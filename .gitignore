@@ -1,0 +1,11 @@
+# emacs
+
+*.elc
+*.eln
+*~
+#*#
+
+auto-save-list
+history
+recentf
+session.*

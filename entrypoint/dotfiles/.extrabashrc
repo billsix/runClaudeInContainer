@@ -1,0 +1,10 @@
+alias ls='ls --color=auto'
+export GPG_TTY=$(tty)
+PS1='\[\e[36m\]┌─(\t) \[\e[32m\]\u@\h:\w\n\[\e[36m\]└─λ \[\e[0m\]'
+
+exit() {
+    echo "Formatting on shell exit"
+    cd /geometricalgebra/src/
+    /format.sh
+    builtin exit "$@"
+}
