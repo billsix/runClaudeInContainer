@@ -22,6 +22,12 @@ GNUPG_MOUNT := $(shell if [ -d $(GNUPG_REAL_PATH) ]; then echo "-v $(GNUPG_REAL_
 CLAUDE_CONFIG_DIR := $(HOME)/.claude
 CLAUDE_CONFIG_MOUNT := $(shell if [ -d $(CLAUDE_CONFIG_DIR) ]; then echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z" ; fi)
 
+# Repo-tracked Claude config (CLAUDE.md + slash commands) layered on top of the
+# host's ~/.claude mount so edits flow back to git. Auth/sessions/credentials
+# still come from the host mount above.
+CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claude/CLAUDE.md:Z \
+                         -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:Z
+
 
 PROJECT_DIR ?= $(notdir $(CURDIR))
 
@@ -55,6 +61,7 @@ shell: ## Get shell.  make shell EXTRA_MOUNTS="-v /home/wsix/opt/marioteachestyp
 		-v ./entrypoint/shell.sh:/shell.sh:Z \
 		$(EXTRA_MOUNTS) \
 		$(CLAUDE_CONFIG_MOUNT) \
+		$(CLAUDE_DOTFILES_MOUNT) \
 		$(X_FLAGS_FOR_CONTAINER) \
 		$(WAYLAND_FLAGS_FOR_CONTAINER) \
 		$(CONTAINER_NAME) \
