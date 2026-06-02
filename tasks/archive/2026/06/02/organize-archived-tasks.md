@@ -1,6 +1,7 @@
 # Date-bucketed archive layout for tasks/
 
-**Status:** in-progress
+**Status:** complete
+**Completed:** 2026-06-02
 **Started:** 2026-06-02
 
 ## Goal
@@ -12,8 +13,8 @@ Replace the flat `tasks/archive/<slug>.md` convention with a date-bucketed layou
 - [x] Decide bucketing key: archive date (today), zero-padded `YYYY/MM/DD`.
 - [x] Update `entrypoint/dotfiles/.claude/CLAUDE.md` to describe the new layout.
 - [x] Update `entrypoint/dotfiles/.claude/commands/archive-task.md` to write into the date hierarchy and to detect/offer to port legacy flat archives.
-- [ ] Rebuild the container image (`make image`) so the COPY of dotfiles into the image picks up the changes — note that the bind mounts already cover live sessions; rebuild only matters for fresh containers without the host `~/.claude` mount.
-- [ ] Commit the changes.
+- [x] Rebuild the container image (`make image`) so the COPY of dotfiles into the image picks up the changes — note that the bind mounts already cover live sessions; rebuild only matters for fresh containers without the host `~/.claude` mount.
+- [x] Commit the changes.
 - [ ] Once stable, archive this task via `/archive-task organize-archived-tasks` (which will exercise the new path).
 
 ## Notes / decisions
