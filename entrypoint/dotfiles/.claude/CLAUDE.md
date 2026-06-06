@@ -27,6 +27,10 @@ For getting (re)acquainted with a project, or checking whether its docs still ma
 - `/audit-repo` — full read of the current repo, cross-referencing the docs (CLAUDE.md, README, task docs) against the actual source to surface stale claims, undocumented features, and internal inconsistencies. **Read-only** — it reports findings and stops.
 - `/findings-to-tasks` — turn those findings (or any list of discussion items) into in-depth task docs under `tasks/`, one per item, each `proposed — needs go-ahead`.
 
+## Open-issues sections in project docs
+
+When a project's `CLAUDE.md` or `README` keeps an "open issues" / "known issues" list, it should contain only **genuinely open** items. When an issue is resolved, **remove it** — don't leave it struck-through or annotated "resolved/fixed". A new developer reading an open-issues list shouldn't have to wade through things that are no longer issues; the resolution history already lives in git and in archived task docs, not in the live list. (This applies specifically to *open-issues* lists; a curated changelog or "resolved" section that exists on purpose is fine.)
+
 ## Multi-repo sessions
 
 This container often has more than one repo bind-mounted at top-level paths like `/foo`, `/bar`. Claude Code only auto-loads the `CLAUDE.md` of the current working directory's repo, so to be aware of the others:
