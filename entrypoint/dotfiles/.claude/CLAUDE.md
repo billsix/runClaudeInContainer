@@ -20,6 +20,13 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
+## Repo audits
+
+For getting (re)acquainted with a project, or checking whether its docs still match its code:
+
+- `/audit-repo` — full read of the current repo, cross-referencing the docs (CLAUDE.md, README, task docs) against the actual source to surface stale claims, undocumented features, and internal inconsistencies. **Read-only** — it reports findings and stops.
+- `/findings-to-tasks` — turn those findings (or any list of discussion items) into in-depth task docs under `tasks/`, one per item, each `proposed — needs go-ahead`.
+
 ## Multi-repo sessions
 
 This container often has more than one repo bind-mounted at top-level paths like `/foo`, `/bar`. Claude Code only auto-loads the `CLAUDE.md` of the current working directory's repo, so to be aware of the others:
