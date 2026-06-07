@@ -1,5 +1,13 @@
 .DEFAULT_GOAL := help
 
+# ============================================================================
+#  make image                 build the OCI image
+#  make shell                 interactive shell in an ephemeral container
+#  make shell NESTED_PODMAN=1 ^ same, but ALSO able to run `podman` inside the
+#                               sandbox (podman-in-podman). Opt-in; see below.
+#  make shell EXTRA_MOUNTS="-v /host/path:/path:Z"   bind extra host dirs
+# ============================================================================
+
 CONTAINER_CMD = podman
 CONTAINER_NAME = claudecontainer
 
@@ -12,10 +20,19 @@ EXTRA_MOUNTS ?=
 #   usage: make shell NESTED_PODMAN=1
 NESTED_PODMAN ?= 0
 ifeq ($(NESTED_PODMAN),1)
+# The host's $XDG_RUNTIME_DIR is bind-mounted in for Wayland/Pulse passthrough, and it
+# carries the *host* podman's rootless state (libpod/tmp/pause.pid -> a host PID). The
+# inner podman would try to setns-join that nonexistent PID's userns and die with
+# "cannot re-exec process to join the existing user namespace". Shadow just the libpod
+# state dir with an empty tmpfs so the inner podman starts clean; the Wayland/Pulse
+# sockets in the rest of the dir are untouched.
+NESTED_PODMAN_RUNTIME_TMPFS := $(if $(XDG_RUNTIME_DIR),--tmpfs $(XDG_RUNTIME_DIR)/libpod:rw)
 NESTED_PODMAN_FLAGS := --device /dev/fuse \
+                       --device /dev/net/tun \
                        --security-opt label=disable \
                        --cap-add=sys_admin,mknod \
-                       --tmpfs /var/lib/containers:rw,size=8g
+                       --tmpfs /var/lib/containers:rw,size=8g \
+                       $(NESTED_PODMAN_RUNTIME_TMPFS)
 else
 NESTED_PODMAN_FLAGS :=
 endif
@@ -66,7 +83,7 @@ image: ## Build the OCI image
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
                          .
 .PHONY: shell
-shell: ## Get shell.  make shell EXTRA_MOUNTS="-v /home/wsix/opt/marioteachestyping/:/mario:Z"
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), EXTRA_MOUNTS="-v /host:/path:Z"
 	$(CONTAINER_CMD) run -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \

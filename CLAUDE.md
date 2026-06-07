@@ -51,10 +51,22 @@ conventions.
 ## Nested Podman
 
 `make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
-sandbox. It appends `--device /dev/fuse`, `--security-opt label=disable`,
-`--cap-add=sys_admin,mknod`, and a tmpfs `/var/lib/containers` to the `shell` target's
-`podman run`. The inner podman uses `fuse-overlayfs` (configured by
+sandbox. It appends `--device /dev/fuse`, `--device /dev/net/tun`, `--security-opt
+label=disable`, `--cap-add=sys_admin,mknod`, a tmpfs `/var/lib/containers`, and a tmpfs
+over `$XDG_RUNTIME_DIR/libpod` to the `shell` target's `podman run`. The inner podman
+uses `fuse-overlayfs` (configured by
 `entrypoint/dotfiles/.config/containers/storage.conf`).
+
+Two non-obvious flags and why they exist:
+- **`--device /dev/net/tun`** — rootless networking (pasta) opens `/dev/net/tun`;
+  without it `podman run` fails at network setup (`--network=none` would still work).
+- **tmpfs over `$XDG_RUNTIME_DIR/libpod`** — the host's `$XDG_RUNTIME_DIR`
+  (`/run/user/<uid>`) is bind-mounted in for Wayland/Pulse, and it carries the *host*
+  podman's `libpod/tmp/pause.pid` pointing at a host PID. Without shadowing it, the
+  inner podman tries to join that nonexistent PID's userns and dies with `cannot
+  re-exec process to join the existing user namespace`. The tmpfs gives it a clean
+  state dir while leaving the Wayland/Pulse sockets in the rest of the dir intact.
+  (subuid/subgid are *not* needed — inner podman runs rootful-in-userns.)
 
 Security trade-off: the host Podman is **rootless** (container-root maps to host UID
 1000, never host root), and this stays true with the flags on — even `--privileged`

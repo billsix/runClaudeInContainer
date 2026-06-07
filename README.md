@@ -19,12 +19,16 @@ the Claude Code native binary.
 ## Quick start
 
 ```sh
-make image     # build the OCI image (tagged "claudecontainer")
-make shell     # run an interactive shell in an ephemeral (--rm) container
+make image                  # build the OCI image (tagged "claudecontainer")
+make shell                  # interactive shell in an ephemeral (--rm) container
+make shell NESTED_PODMAN=1  # ^ same, but also able to run `podman` inside the sandbox
 ```
 
 Inside the shell you start at `/`, with your current project mounted at
 `/<project-dir-name>`. Run `claude` to launch Claude Code.
+
+To run containers *inside* the sandbox (podman-in-podman), add `NESTED_PODMAN=1` —
+see [Building containers inside the sandbox](#building-containers-inside-the-sandbox-nested-podman).
 
 `make help` lists the available targets.
 
@@ -76,18 +80,32 @@ extra flags (overlay-on-overlay under nested user namespaces requires
 make shell NESTED_PODMAN=1
 ```
 
-This adds `--device /dev/fuse`, `--security-opt label=disable`,
-`--cap-add=sys_admin,mknod`, and a tmpfs-backed inner image store. The host Podman
-stays **rootless** — the container's root is a namespace-mapped unprivileged user, so
-nothing here grants privilege on the real host. The inner image store is ephemeral
-(tmpfs); pulled images don't persist across sessions.
+This adds `--device /dev/fuse` (overlay storage), `--device /dev/net/tun` (rootless
+networking via pasta), `--security-opt label=disable`, `--cap-add=sys_admin,mknod`, a
+tmpfs-backed inner image store, and a tmpfs over the host runtime dir's `libpod` state
+(so the inner podman doesn't trip over the *host* podman's leftover state — see note
+below). The host Podman stays **rootless** — the container's root is a namespace-mapped
+unprivileged user, so nothing here grants privilege on the real host. The inner image
+store is ephemeral (tmpfs); pulled images don't persist across sessions.
 
-Quick check inside the shell:
+**Test it — run Podman inside the container:**
 
 ```sh
 podman info --format '{{.Store.GraphDriverName}}'   # -> fuse-overlayfs
-podman run --rm docker.io/library/alpine echo "nested ok"
+podman run --rm docker.io/library/alpine echo "nested podman works"
 ```
+
+The second command exercises the full path: pull (networking), unpack
+(fuse-overlayfs), and run a container nested inside the sandbox. A bind mount works
+too, e.g. `podman run --rm -it -v "$(pwd)":/workspace:Z docker.io/library/ubuntu:latest bash`.
+For a deeper smoke test you can even build this repo's own image from within the
+sandbox: `podman build -t selftest .`.
+
+> **Note:** you must launch with `NESTED_PODMAN=1`. A plain `make shell` won't have
+> `/dev/fuse` or the capabilities, and `podman run` will fail. The `NESTED_PODMAN=1`
+> flag set is also what shadows the host's bind-mounted `$XDG_RUNTIME_DIR/libpod`;
+> without that shadow the inner podman fails with `cannot re-exec process to join the
+> existing user namespace` because it finds the host podman's stale `pause.pid`.
 
 ## Layout
 
