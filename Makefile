@@ -1,7 +1,5 @@
 .DEFAULT_GOAL := help
 
-USE_EMACS ?= 0
-
 CONTAINER_CMD = podman
 CONTAINER_NAME = claudecontainer
 
@@ -51,7 +49,6 @@ all: image  ## Build the image
 .PHONY: image
 image: ## Build the OCI image
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
-                         --build-arg USE_EMACS=$(USE_EMACS) \
                          .
 .PHONY: shell
 shell: ## Get shell.  make shell EXTRA_MOUNTS="-v /home/wsix/opt/marioteachestyping/:/mario:Z"
