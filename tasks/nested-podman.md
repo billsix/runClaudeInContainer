@@ -1,8 +1,29 @@
 # Nested Podman — run Podman inside the `claudecontainer`
 
-**Status:** approved approach — needs go-ahead to implement
+**Status:** implemented — pending acceptance test on a host rebuild
 **Created:** 2026-06-07
 **Owner:** (unassigned)
+
+## Implementation log (2026-06-07)
+
+Approach B implemented:
+
+- `Makefile` — added opt-in `NESTED_PODMAN ?= 0`; when `=1`, the `shell` target
+  appends `--device /dev/fuse --security-opt label=disable --cap-add=sys_admin,mknod
+  --tmpfs /var/lib/containers:rw,size=8g`. Verified with `make -n shell NESTED_PODMAN=1`
+  (flags present) and `make -n shell` (absent). Host stays rootless.
+- `entrypoint/dotfiles/.config/containers/storage.conf` — new; sets the inner podman
+  to overlay via `mount_program = /usr/bin/fuse-overlayfs` (copied to
+  `/root/.config/...` by the Dockerfile's `COPY entrypoint/dotfiles/ /root/`).
+- `Dockerfile` — made `fuse-overlayfs` an explicit dependency (it was already pulled
+  in transitively by podman).
+- `README.md` / root `CLAUDE.md` — documented the `NESTED_PODMAN=1` flag and the
+  security trade-off.
+
+**Not yet verified live.** The acceptance test needs `make image` + `make shell
+NESTED_PODMAN=1` run *on the host* — the current session's container predates these
+changes and was launched without the flags, so nested podman can't be exercised from
+inside it. Run the acceptance test below on the host, then archive this task.
 
 ## Goal
 

@@ -66,6 +66,29 @@ make shell EXTRA_MOUNTS="-v /home/me/project:/project:Z"
 `run.sh` is a saved example of this (it mounts a SPIM simulator and assembly-tutorial
 directories).
 
+### Building containers inside the sandbox (nested Podman)
+
+`podman` is installed in the image, but running it *inside* the sandbox needs a few
+extra flags (overlay-on-overlay under nested user namespaces requires
+`fuse-overlayfs`). These are opt-in:
+
+```sh
+make shell NESTED_PODMAN=1
+```
+
+This adds `--device /dev/fuse`, `--security-opt label=disable`,
+`--cap-add=sys_admin,mknod`, and a tmpfs-backed inner image store. The host Podman
+stays **rootless** — the container's root is a namespace-mapped unprivileged user, so
+nothing here grants privilege on the real host. The inner image store is ephemeral
+(tmpfs); pulled images don't persist across sessions.
+
+Quick check inside the shell:
+
+```sh
+podman info --format '{{.Store.GraphDriverName}}'   # -> fuse-overlayfs
+podman run --rm docker.io/library/alpine echo "nested ok"
+```
+
 ## Layout
 
 | Path | Purpose |

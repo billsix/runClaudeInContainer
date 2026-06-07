@@ -5,6 +5,21 @@ CONTAINER_NAME = claudecontainer
 
 EXTRA_MOUNTS ?=
 
+# Opt-in nested Podman (run `podman` inside the sandbox). Off by default to keep
+# normal sessions minimal. The host podman stays rootless either way: these flags
+# only let the container's (already unprivileged, namespace-mapped) root drive an
+# inner podman via fuse-overlayfs. No privilege is granted on the real host.
+#   usage: make shell NESTED_PODMAN=1
+NESTED_PODMAN ?= 0
+ifeq ($(NESTED_PODMAN),1)
+NESTED_PODMAN_FLAGS := --device /dev/fuse \
+                       --security-opt label=disable \
+                       --cap-add=sys_admin,mknod \
+                       --tmpfs /var/lib/containers:rw,size=8g
+else
+NESTED_PODMAN_FLAGS :=
+endif
+
 TMUX_FILE := $(HOME)/.tmux.conf
 TMUX_REAL_PATH := $(shell readlink -f $(TMUX_FILE))
 TMUX_MOUNT := $(shell if [ -f $(TMUX_REAL_PATH) ]; then echo "-v $(TMUX_REAL_PATH):/root/.tmux.conf:Z" ; fi)
@@ -57,6 +72,7 @@ shell: ## Get shell.  make shell EXTRA_MOUNTS="-v /home/wsix/opt/marioteachestyp
 		$(FILES_TO_MOUNT) \
 		-v ./entrypoint/shell.sh:/shell.sh:Z \
 		$(EXTRA_MOUNTS) \
+		$(NESTED_PODMAN_FLAGS) \
 		$(CLAUDE_CONFIG_MOUNT) \
 		$(CLAUDE_DOTFILES_MOUNT) \
 		$(X_FLAGS_FOR_CONTAINER) \

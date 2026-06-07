@@ -48,6 +48,21 @@ conventions.
   changing the `Dockerfile`, a `make image` is the real test (it is slow — full
   toolchain install).
 
+## Nested Podman
+
+`make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
+sandbox. It appends `--device /dev/fuse`, `--security-opt label=disable`,
+`--cap-add=sys_admin,mknod`, and a tmpfs `/var/lib/containers` to the `shell` target's
+`podman run`. The inner podman uses `fuse-overlayfs` (configured by
+`entrypoint/dotfiles/.config/containers/storage.conf`).
+
+Security trade-off: the host Podman is **rootless** (container-root maps to host UID
+1000, never host root), and this stays true with the flags on — even `--privileged`
+under a rootless host only grants privilege within the user namespace. The costs are
+SELinux disabled for that container, a broad `sys_admin` capability (namespace-confined),
+and slower/ephemeral nested storage. Full rationale and declined alternatives are in
+`tasks/nested-podman.md` (or its archive).
+
 ## Housekeeping notes
 
 - `foo.txt` and `faoeuaoeu.txt` in the repo root are scratch/scratchpad files, not

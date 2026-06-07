@@ -88,6 +88,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    flex \
                    fontconfig-devel \
                    freetype-devel \
+                   fuse-overlayfs \
                    fzf \
                    gawk \
                    gcc \
