@@ -81,7 +81,9 @@ make shell NESTED_PODMAN=1
 ```
 
 This adds `--device /dev/fuse` (overlay storage), `--device /dev/net/tun` (rootless
-networking via pasta), `--security-opt label=disable`, `--cap-add=sys_admin,mknod`, a
+networking via pasta), `--security-opt label=disable`, `--security-opt unmask=ALL` (so the
+inner netavark can write the per-interface sysctls that bridged networking needs — the
+sandbox's `/proc/sys` is otherwise read-only), `--cap-add=sys_admin,mknod,net_admin`, a
 tmpfs-backed inner image store, and a tmpfs over the host runtime dir's `libpod` state
 (so the inner podman doesn't trip over the *host* podman's leftover state — see note
 below). The host Podman stays **rootless** — the container's root is a namespace-mapped
@@ -91,13 +93,29 @@ store is ephemeral (tmpfs); pulled images don't persist across sessions.
 **Test it — run Podman inside the container:**
 
 ```sh
-podman info --format '{{.Store.GraphDriverName}}'   # -> fuse-overlayfs
-podman run --rm docker.io/library/alpine echo "nested podman works"
+podman info --format '{{.Store.GraphDriverName}}'   # -> overlay (driven by fuse-overlayfs)
+
+# full path — pull (networking) + unpack (fuse-overlayfs) + run, with a bind mount:
+podman run --rm -it --cgroups=disabled -v "$(pwd)":/workspace:Z ubuntu:latest bash
 ```
 
-The second command exercises the full path: pull (networking), unpack
-(fuse-overlayfs), and run a container nested inside the sandbox. A bind mount works
-too, e.g. `podman run --rm -it -v "$(pwd)":/workspace:Z docker.io/library/ubuntu:latest bash`.
+`--cgroups=disabled` is **required** on every inner run: the sandbox's `/sys/fs/cgroup` is
+mounted read-only, so without it crun fails with
+`/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. Disabling cgroups is fine
+on a dev box that isn't enforcing resource limits.
+
+The run above leaves networking at the **default (bridged/netavark)** path, which is
+**verified working** — `apt update` inside a nested `ubuntu` reaches the network end-to-end.
+That path needs the inner netavark to write per-interface sysctls under `/proc/sys`, which the
+sandbox mounts read-only; `--security-opt unmask=ALL` (in the `NESTED_PODMAN=1` flag set) is what
+unmasks it. You don't need any `--network` flag. If you ever hit
+`netavark: set sysctl ... Read-only file system` (e.g. on a host where `unmask=ALL` didn't take),
+`--network=host` is a working fallback:
+
+```sh
+podman run --rm -it --network=host --cgroups=disabled -v "$(pwd)":/workspace:Z ubuntu:latest bash
+```
+
 For a deeper smoke test you can even build this repo's own image from within the
 sandbox: `podman build -t selftest .`.
 

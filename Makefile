@@ -27,10 +27,28 @@ ifeq ($(NESTED_PODMAN),1)
 # state dir with an empty tmpfs so the inner podman starts clean; the Wayland/Pulse
 # sockets in the rest of the dir are untouched.
 NESTED_PODMAN_RUNTIME_TMPFS := $(if $(XDG_RUNTIME_DIR),--tmpfs $(XDG_RUNTIME_DIR)/libpod:rw)
+# The inner podman runs *rootful* (container-root), so it uses the netavark backend,
+# not pasta/slirp4netns (those are rootless-only). netavark configures a bridge + veth
+# over netlink, which needs CAP_NET_ADMIN -> without it you get
+# "netavark: Netlink error: Operation not permitted". Hence net_admin below.
+# netavark also writes per-interface sysctls (e.g. net/ipv4/conf/eth0/arp_notify) when it
+# brings up the bridge. The sandbox's /proc/sys is mounted read-only by the outer podman,
+# so even with CAP_NET_ADMIN that write fails ("set sysctl ...: Read-only file system") and
+# bridged networking breaks. --security-opt unmask=ALL unmasks /proc/sys (and friends) so
+# the inner netavark can write them. Verified: without it, only --network=host works.
+# cgroup v2: the sandbox's /sys/fs/cgroup is mounted read-only, so the inner crun can't
+# create its cgroup ("/sys/fs/cgroup/cgroup.subtree_control: read-only file system").
+# --cgroupns=private alone does NOT fix this (tested: cgroup2 stayed ro). The supported
+# path is to run the inner container with `--cgroups=disabled`, e.g.
+#   podman run --cgroups=disabled ...
+# which is fine on a dev box that isn't enforcing resource limits. See README / task doc.
+# (--device /dev/net/tun is retained for the rootless/pasta path; the rootful netavark
+# path above does not use it.)
 NESTED_PODMAN_FLAGS := --device /dev/fuse \
                        --device /dev/net/tun \
                        --security-opt label=disable \
-                       --cap-add=sys_admin,mknod \
+                       --security-opt unmask=ALL \
+                       --cap-add=sys_admin,mknod,net_admin \
                        --tmpfs /var/lib/containers:rw,size=8g \
                        $(NESTED_PODMAN_RUNTIME_TMPFS)
 else

@@ -52,14 +52,31 @@ conventions.
 
 `make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
 sandbox. It appends `--device /dev/fuse`, `--device /dev/net/tun`, `--security-opt
-label=disable`, `--cap-add=sys_admin,mknod`, a tmpfs `/var/lib/containers`, and a tmpfs
-over `$XDG_RUNTIME_DIR/libpod` to the `shell` target's `podman run`. The inner podman
-uses `fuse-overlayfs` (configured by
+label=disable`, `--security-opt unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a
+tmpfs `/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod` to the `shell`
+target's `podman run`. The inner podman uses `fuse-overlayfs` (configured by
 `entrypoint/dotfiles/.config/containers/storage.conf`).
 
-Two non-obvious flags and why they exist:
+**Inner runs need `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is mounted
+read-only and `--cgroupns=private` does *not* make it writable (tested — it stayed `ro`),
+so without `--cgroups=disabled` every inner `podman run` fails with
+`/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. Acceptable on a dev box
+not enforcing resource limits; real cgroup-v2 delegation was declined for now.
+
+Non-obvious flags and why they exist:
+- **`--cap-add=...,net_admin`** — the inner podman runs *rootful* (container-root), so it
+  uses the **netavark** backend, which builds a bridge + veth over netlink and needs
+  `CAP_NET_ADMIN`. Without it: `netavark: Netlink error: Operation not permitted`.
+  (netavark + aardvark-dns ship in `/usr/libexec/podman/`, not on `$PATH`.)
+- **`--security-opt unmask=ALL`** — netavark also writes per-interface sysctls
+  (e.g. `net/ipv4/conf/eth0/arp_notify`) bringing up the bridge, but the sandbox's
+  `/proc/sys` is read-only, so even with `CAP_NET_ADMIN` that write fails and bridged
+  networking breaks. Unmasking lets the inner netavark write them. *(Host-verified
+  2026-06-07: bridged networking works end-to-end — `apt update` in a nested `ubuntu`
+  reached the network with no `--network` flag. `--network=host` remains a fallback.)*
 - **`--device /dev/net/tun`** — rootless networking (pasta) opens `/dev/net/tun`;
   without it `podman run` fails at network setup (`--network=none` would still work).
+  Retained for the rootless/pasta path; the rootful netavark path above does not use it.
 - **tmpfs over `$XDG_RUNTIME_DIR/libpod`** — the host's `$XDG_RUNTIME_DIR`
   (`/run/user/<uid>`) is bind-mounted in for Wayland/Pulse, and it carries the *host*
   podman's `libpod/tmp/pause.pid` pointing at a host PID. Without shadowing it, the
@@ -71,11 +88,7 @@ Two non-obvious flags and why they exist:
 Security trade-off: the host Podman is **rootless** (container-root maps to host UID
 1000, never host root), and this stays true with the flags on — even `--privileged`
 under a rootless host only grants privilege within the user namespace. The costs are
-SELinux disabled for that container, a broad `sys_admin` capability (namespace-confined),
-and slower/ephemeral nested storage. Full rationale and declined alternatives are in
+SELinux disabled for that container (`label=disable` + `unmask=ALL`), broad
+`sys_admin`/`net_admin` capabilities (namespace-confined), and slower/ephemeral nested
+storage. Full rationale and declined alternatives are in
 `tasks/nested-podman.md` (or its archive).
-
-## Housekeeping notes
-
-- `foo.txt` and `faoeuaoeu.txt` in the repo root are scratch/scratchpad files, not
-  part of the build. They are not gitignored.

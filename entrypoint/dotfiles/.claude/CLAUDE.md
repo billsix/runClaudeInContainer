@@ -4,6 +4,14 @@
 
 When I ask you to **list, identify, find, plan, or investigate** something, that's a request for the information — **not** authorization to make changes. Produce the list / plan / findings and **stop**. Wait for my explicit go-ahead ("do it", "apply them", "go ahead") before editing files or running mutating commands. When a request is ambiguous between "tell me" and "do it," treat it as "tell me" and ask.
 
+## Git: I commit, you don't
+
+Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete.
+
+- **You may stage** (`git add`) when it's helpful to group your changes, but **do not `git commit`** (and never `git push`) unless I explicitly ask in that moment. Editing the working tree is your normal mode; turning those edits into commits is mine.
+- **Don't keep asking "want me to commit?"** after finishing work. Just leave the changes staged or unstaged and tell me what changed — assume I'll commit it myself.
+- **If you're curious about what was done** — earlier in this session, in a prior session, or by me between sessions — **read the git history** (`git log`, `git show`, `git diff`) rather than asking or assuming. The working tree lives on a host bind mount, so my out-of-container commits show up there; the history is the source of truth for "what happened."
+
 ## Task documents
 
 For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
@@ -40,3 +48,24 @@ At session start, scan top-level directories at `/`. A directory is a project mo
 For each mount found, read its `CLAUDE.md` if present and apply those rules when working in that repo. Also check each for in-flight items under `tasks/` (per the convention above). Don't announce the scan unless I ask — just internalize each repo's conventions so you behave correctly when I reference paths in any of them.
 
 If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
+
+## Running projects in a nested container
+
+I run inside a Podman sandbox (the `runClaudeInContainer` / `claudecontainer` image). Most of my projects build and run *themselves* in a container — usually via a `Makefile` target (`make run`, `make shell`, `make test`, `make image`) wrapping a `podman run` / `docker run`. I can run those **nested** inside this sandbox, but there are two things to get right. Don't assume a project's container command works as-is; apply these.
+
+**1. The sandbox must have been launched with nested support.** Nested podman only works if `make shell NESTED_PODMAN=1` was used to start this sandbox. Check before trying:
+
+```sh
+test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no nested — relaunch with NESTED_PODMAN=1"
+```
+
+`/dev/fuse` is the tell: absent ⇒ plain `make shell`, nested won't work. If it's not available, tell the user to relaunch the sandbox from the `runClaudeInContainer` repo with **`make shell NESTED_PODMAN=1`** — I can't add those flags from inside an already-running container.
+
+**2. Every inner `podman run` / `docker run` needs `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is read-only, so without it *every* inner run dies with `/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. A project's Makefile won't have this flag, so its container target will fail until it's added. Running their containers nested is the whole point of the setup, but **don't silently edit a project's Makefile / run script — explain that the container target needs `--cgroups=disabled` to work nested, propose how I'd add it (a Makefile variable if one already threads extra flags through, otherwise the flag inline), and wait for the go-ahead** before changing it. A one-off run I can do directly by appending the flag to the `podman run` on the command line; persistent edits to their build files need a yes first.
+
+**Other specifics:**
+- **Networking just works** — default bridged/netavark networking is verified (an inner `apt update` / package pull reaches the network). No `--network` flag needed. If a run ever dies on `netavark: set sysctl ... Read-only file system`, `--network=host` is a working fallback.
+- **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.
+- **Inner image store is ephemeral** (tmpfs) — pulled/built images don't survive the session; expect re-pulls.
+- **Storage is fuse-overlayfs**; `podman info --format '{{.Store.GraphDriverName}}'` reports `overlay` driven by it.
+- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.

@@ -1,8 +1,139 @@
 # Nested Podman — run Podman inside the `claudecontainer`
 
-**Status:** fix implemented — pending re-run of acceptance test on a host rebuild
+**Status:** ✅ COMPLETE (host-verified 2026-06-07, 5th session). Nested podman works
+end-to-end with **`--cgroups=disabled` alone** — bridged (default) networking confirmed: a
+nested `ubuntu:latest` ran `apt update` and reached `archive.ubuntu.com`/`security.ubuntu.com`
+with no `--network` flag. The `unmask=ALL` fix is therefore verified; `--network=host` is now
+just a fallback. Makefile, README, root `CLAUDE.md`, and cross-project `entrypoint/dotfiles/.claude/CLAUDE.md`
+all updated. Archiving.
 **Created:** 2026-06-07
 **Owner:** (unassigned)
+
+## Host verification — bridged networking confirmed (2026-06-07, 5th session)
+
+User re-launched on the host and ran inside the sandbox:
+
+```
+podman run --rm -it --cgroups=disabled -v $(pwd):/workspace:Z ubuntu:latest bash
+```
+
+— **no `--network` flag.** Image pulled (fuse-overlayfs storage), container started, and
+`apt update` fetched InRelease + Packages indexes from `archive.ubuntu.com` and
+`security.ubuntu.com`. That proves the inner netavark brought up **bridged** networking and
+reached the outside network — which is exactly what `--security-opt unmask=ALL` enables (it
+lets the inner netavark write the per-interface sysctls under the otherwise-read-only
+`/proc/sys`). **Both prior walls are now cleared:** `--cgroups=disabled` handles the read-only
+`/sys/fs/cgroup`, and `unmask=ALL` handles the read-only `/proc/sys`. `--network=host` is no
+longer required — it's a documented fallback only.
+
+**Cross-project follow-through (the point of the feature):** added a "Running projects in a
+nested container" section to `entrypoint/dotfiles/.claude/CLAUDE.md` so that when loaded in any
+*other* repo, the agent knows to (1) verify `/dev/fuse` + `podman info` (else ask for a
+`NESTED_PODMAN=1` relaunch) and (2) inject `--cgroups=disabled` into that project's
+Makefile/`podman run` to run its container nested.
+
+## Acceptance test, fourth session (2026-06-07) — RAN the test in-container; two walls left
+
+Turns out the running container was itself a `NESTED_PODMAN=1` session (verified: `/dev/fuse`
+present, `CapEff 0x882415fb` = CAP_SYS_ADMIN + CAP_MKNOD + CAP_NET_ADMIN). So the long-blocked
+acceptance test was run directly, no host launch needed for diagnosis.
+
+**Confirmed working:** `podman run --rm --network=host --cgroups=disabled docker.io/library/alpine
+echo ...` → printed `NESTED PODMAN WORKS`. Storage (fuse-overlayfs) pulls/unpacks `alpine` fine.
+
+**Correction to prior note (line ~32):** netavark + aardvark-dns ARE installed — they live in
+`/usr/libexec/podman/`, not on `$PATH` (a `command -v` check misses them). `podman info` reports
+`netbackend=netavark`. The Dockerfile pulls them transitively via `podman`; no Dockerfile change
+needed.
+
+### Two remaining walls — both are read-only mounts in the OUTER container; CAP_SYS_ADMIN does NOT override them
+
+1. **`/proc/sys` is `ro`** → netavark fails bringing up the bridge:
+   `netavark: set sysctl net/ipv4/conf/eth0/arp_notify: IO error: Read-only file system`.
+   Confirmed `/proc/sys` is `proc ... ro` in the sandbox and a direct write to
+   `/proc/sys/net/ipv4/conf/all/arp_notify` is rejected. **Blocks bridged (default) networking;**
+   `--network=host` and `--network=none` dodge it. **Fix applied:** added `--security-opt unmask=ALL`
+   to the outer `NESTED_PODMAN_FLAGS` so /proc/sys is writable for the inner netavark.
+   *Unverified — needs a host re-launch (it's an outer-launch flag, can't be tested from inside
+   the already-running container).*
+
+2. **`/sys/fs/cgroup` is `ro`** → crun fails for EVERY run regardless of network mode:
+   `mkdir /sys/fs/cgroup/libpod_parent: read-only file system` /
+   `open /sys/fs/cgroup/cgroup.subtree_control for writing: Read-only file system`.
+   **`--cgroupns=private` did NOT fix this** (cgroup2 stayed `ro` even with the flag present) —
+   the 3rd-session "medium confidence" guess is **disproven and the flag has been removed.**
+   **Decision (user, 4th session):** document `--cgroups=disabled` on the inner run as the
+   supported path (acceptable on a dev box not enforcing resource limits). Real cgroup-v2
+   delegation was considered and declined for now.
+
+### Implemented (4th session)
+
+- `Makefile` `NESTED_PODMAN` block: **dropped `--cgroupns=private`**, **added
+  `--security-opt unmask=ALL`**, and rewrote the comments to record both walls. Verified flag
+  expansion: `make -n shell NESTED_PODMAN=1` includes `unmask=ALL` and no longer includes
+  `cgroupns`; `make -n shell` has zero nested flags.
+- README + root `CLAUDE.md`: document `--cgroups=disabled` as the inner-run requirement, the
+  `unmask=ALL` flag + rationale, and `--network=host` as the verified-today network mode.
+
+**TODO (host):** re-launch `make shell NESTED_PODMAN=1` and confirm whether `unmask=ALL` lets
+**bridged** networking work end-to-end:
+`podman run --rm --cgroups=disabled docker.io/library/alpine echo "bridged nested works"`.
+If it works, bridged networking is supported (no `--network=host` needed); if it still hits the
+sysctl/proc wall, document `--network=host --cgroups=disabled` as the supported combo and revisit.
+Then archive.
+
+## Acceptance test, third session (2026-06-07) — two more layers found & fixed
+
+User launched `make shell NESTED_PODMAN=1` (flags applied this time) and ran
+`podman run --rm -it -v $(pwd):/workspace:Z ubuntu:latest bash`. **Storage now works**
+(image pulled via fuse-overlayfs; the pause.pid shadow held). Failed at networking:
+
+```
+Error: netavark: Netlink error: Operation not permitted (os error 1)
+```
+
+Then two diagnostic runs from inside the flagged sandbox:
+- `--network=host` → got past networking, failed on cgroups:
+  `/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`
+- `--network=slirp4netns` → `could not find slirp4netns ... not found in $PATH`
+
+### Root cause A — netavark needs CAP_NET_ADMIN (the original error)
+
+The inner podman runs **rootful** (container-root), so it uses the **netavark** backend,
+not pasta/slirp4netns (those are rootless-only). netavark builds a bridge + veth over
+**netlink**, which requires **CAP_NET_ADMIN**. The flag set granted only
+`sys_admin,mknod` → netlink returns EPERM. **The earlier `--device /dev/net/tun` was
+aimed at the pasta/rootless path, which the rootful inner podman never takes** — so it
+was never the relevant lever (kept anyway; harmless, useful if we ever go rootless-in-
+container). **Fix: add `net_admin` to `--cap-add`.**
+
+Confirmed installed in the image: `netavark`, `aardvark-dns`, `pasta`/`passt`.
+**`slirp4netns` is NOT installed** (pasta supersedes it) — that's why `--network=slirp4netns`
+failed. No need to add it; the rootful path uses netavark.
+
+### Root cause B — cgroup v2 /sys/fs/cgroup is read-only (revealed once networking bypassed)
+
+Confirmed inside the sandbox: `/sys/fs/cgroup` is `cgroup2 ... ro`. Inner crun can't
+create `/sys/fs/cgroup/libpod_parent` or write `cgroup.subtree_control`. This is the
+step-2 cgroup gap predicted earlier; it bites **every** inner run regardless of network
+mode. **Fix: add `--cgroupns=private` to the outer `make shell` run** so the container is
+the root of its own (delegated, writable) cgroup-v2 namespace, mounting cgroup2 rw.
+*Medium confidence — needs the host re-test to confirm.* Guaranteed fallback if it still
+trips: `podman run --cgroups=disabled ...` on the inner command (acceptable on a dev box
+not enforcing resource limits).
+
+### Implemented (2026-06-07, this session)
+
+`Makefile` `NESTED_PODMAN` block: `--cap-add=sys_admin,mknod` → `...,net_admin`, and added
+`--cgroupns=private`. Verified flag expansion with `make -n shell NESTED_PODMAN=1` (both
+present) and `make -n shell` (absent). Run-time flags only — **no `make image` rebuild
+needed**, just a fresh `make shell NESTED_PODMAN=1`.
+
+**TODO (host):** re-run `make shell NESTED_PODMAN=1`, then
+`podman run --rm docker.io/library/alpine echo "nested podman works"`. If the cgroup error
+persists, retry the inner run with `--cgroups=disabled` and report back. README + root
+CLAUDE.md flag lists still need syncing once verified.
+
 
 ## Acceptance test FAILED + root cause (2026-06-07, second session)
 
