@@ -389,4 +389,7 @@ RUN echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
 
 # Install Claude Code (native binary, no Node.js required)
 RUN curl -fsSL https://claude.ai/install.sh | bash
+
+RUN claude update
+
 ENTRYPOINT ["/entrypoint.sh"]
