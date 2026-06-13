@@ -9,3 +9,8 @@ auto-save-list
 history
 recentf
 session.*
+
+# editor / tooling caches
+nano.*.save
+.ruff_cache/
+.virtual_documents/
