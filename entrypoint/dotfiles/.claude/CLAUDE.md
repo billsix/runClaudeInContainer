@@ -49,6 +49,60 @@ For each mount found, read its `CLAUDE.md` if present and apply those rules when
 
 If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
 
+## My project layout (the container-per-project template)
+
+Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-container dev environment**, driven by a `Makefile` whose targets each `podman run --rm` the project's image and hand it a script from `entrypoint/`. Use this as a **conformance reference**: when I mount a new project (often via `EXTRA_MOUNTS`), compare it against the tiers below and tell me where it diverges — a deliberate variation is fine, an *accidental* drift (stale copy-paste, wrong path, missing target) is what I want flagged. The tiers are **invariant** (true of every project), **common** (most), and **variant** (legitimately differs).
+
+### Directory layout
+
+```
+<project>/
+├── Dockerfile              # invariant
+├── Makefile                # invariant (rare exception: a Dockerfile-only project)
+├── entrypoint/             # invariant
+│   ├── shell.sh            #   invariant — cd into the project dir, exec bash
+│   ├── format.sh           #   common   — clang-format (C/C++) or ruff (Python)
+│   ├── entrypoint.sh       #   common   — the image's ENTRYPOINT target
+│   ├── <task>.sh           #   variant  — lint.sh, html/pdf/epub.sh, buildDebug.sh, jupyter.sh, …
+│   └── dotfiles/           #   optional — .extrabashrc, .emacs.d/, .tmux.conf, .lldbinit
+├── .clang-format / .clang-tidy   # C/C++ projects
+├── requirements.txt              # Python projects
+├── output/                       # docs/book projects — bind target for built artifacts
+└── tasks/                        # the task-doc convention above
+```
+
+### Makefile contract
+
+- **Header (invariant):** `.DEFAULT_GOAL := shell` (or `help`); `CONTAINER_CMD = podman`; `CONTAINER_NAME = <project>`.
+- **`FILES_TO_MOUNT`** aggregates `-v $(shell pwd):/<name>/:Z`, the entrypoint-script mounts, and conditional host-config mounts built with the `readlink -f` + `if [ -f … ]` idiom (`TMUX_MOUNT`, sometimes `GITCONFIG_MOUNT` / `GNUPG_MOUNT`).
+- **Targets:** `all` → `image` → `shell`, plus `format`, optional `docs`/`html`/`pdf`/`epub`, and a `help` target using the standard `grep --extended-regexp '^[a-zA-Z0-9_-]+:.*?## .*$$' … awk '{printf "\033[36m%-30s\033[0m %s\n", …}'` one-liner. Every real target carries a `## description` for that help output.
+- **`run`-style targets** all share the shape `podman run -it --rm --entrypoint /bin/bash $(FILES_TO_MOUNT) … $(CONTAINER_NAME) /usr/local/bin/<script>.sh` — one image, many entrypoint scripts.
+- **Feature flags** are passed as `--build-arg` (`BUILD_DOCS`, `USE_EMACS`, `USE_GRAPHICS`, `USE_JUPYTER`/`SPYDER`/`IMGUI`/`X_WINDOWS`, `BUILD_TREE_SITTER`) and **default to `1` in the Makefile**.
+- **GUI:** an `USE_X` / X11 block and a `WAYLAND_FLAGS_FOR_CONTAINER` block for display passthrough. Every bind mount uses **`:Z`** (`U,z` only where ownership matters, e.g. the emacs `elpa` mount).
+
+### Dockerfile contract
+
+- **Invariant:** `FROM registry.fedoraproject.org/fedora:44`, then the dnf-cache idiom — `RUN --mount=type=cache,target=/var/cache/libdnf5 --mount=type=cache,target=/var/lib/dnf`, `keepcache=True` appended to `dnf.conf`, `dnf upgrade -y`, then `dnf install`.
+- **`ARG` feature flags default to `0`** — the mirror of the Makefile's `1`, so a bare `podman build` is lean and `make` opts features in.
+- COPY the entrypoint scripts to `/usr/local/bin` (or the whole `entrypoint/dotfiles/` to `/root/`); `echo "source ~/.extrabashrc" >> ~/.bashrc`.
+- **Variant:** `ENTRYPOINT ["/entrypoint.sh"]` *or* no entrypoint at all (then every Makefile target supplies `--entrypoint /bin/bash`). Some images build + test the project at image-build time and gate the build on tests (`ctest`, `meson test`).
+
+### entrypoint contract
+
+- **`shell.sh`** — cd into the project dir and `exec bash`. Python projects first install themselves editable: `uv pip install --no-deps --no-index --no-build-isolation -e .`.
+- **`format.sh`** — clang-format over `*.{c,cpp,h,hpp}`, or `ruff check --fix` + `ruff format --line-length=80`.
+- **Docs/book projects** — build HTML/PDF/EPUB and copy artifacts into a bind-mounted `/output/<proj>/`, with `touch /output/<proj>/.nojekyll` for GitHub Pages.
+- **C/C++ projects** — an `exit()` trap in `~/.bashrc` that runs `format.sh` (and `lint.sh`) on shell exit.
+
+### Two families
+
+- **Toolchain / source** (e.g. apue, spimulator, texExpToPng, gltron): a meson or cmake build, often performed at image-build time with tests gating the image.
+- **Book / docs** (e.g. programmingFromTheGroundUp, hanoi, modelviewprojection): a Sphinx pipeline → html/pdf/epub, artifacts to `/output`, heavy `BUILD_DOCS` TeX Live install.
+
+### Quick conformance check for a new project
+
+`Dockerfile` + `Makefile` + `entrypoint/shell.sh` present? Fedora-44 base with the dnf-cache idiom? `CONTAINER_NAME` matches the dir? `FILES_TO_MOUNT` mounts the repo at `/<name>/:Z`? `help` target with `##`-documented targets? Build-arg defaults `1` (Makefile) / `0` (Dockerfile)? Entrypoint scripts and the image's `ENTRYPOINT`/`--entrypoint` story consistent? Each `entrypoint/*.sh` references the *right* project's paths (a frequent copy-paste drift) — flag any that point at another project.
+
 ## Running projects in a nested container
 
 I run inside a Podman sandbox (the `runClaudeInContainer` / `claudecontainer` image). Most of my projects build and run *themselves* in a container — usually via a `Makefile` target (`make run`, `make shell`, `make test`, `make image`) wrapping a `podman run` / `docker run`. I can run those **nested** inside this sandbox, but there are two things to get right. Don't assume a project's container command works as-is; apply these.
