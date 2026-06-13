@@ -88,7 +88,9 @@ tmpfs-backed inner image store, and a tmpfs over the host runtime dir's `libpod`
 (so the inner podman doesn't trip over the *host* podman's leftover state — see note
 below). The host Podman stays **rootless** — the container's root is a namespace-mapped
 unprivileged user, so nothing here grants privilege on the real host. The inner image
-store is ephemeral (tmpfs); pulled images don't persist across sessions.
+store is ephemeral (tmpfs); pulled images don't persist across sessions. That tmpfs
+defaults to **8g** and is RAM-backed; raise it for a large inner build with
+`make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`.
 
 **Test it — run Podman inside the container:**
 

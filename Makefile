@@ -19,6 +19,11 @@ EXTRA_MOUNTS ?=
 # inner podman via fuse-overlayfs. No privilege is granted on the real host.
 #   usage: make shell NESTED_PODMAN=1
 NESTED_PODMAN ?= 0
+# Size of the tmpfs backing the inner podman image store (/var/lib/containers).
+# It is RAM-backed (only consumes memory as images are written, but a full store
+# costs that much RAM + swap), so the default is a lean 8g. Override per-run for a
+# bigger inner build, e.g.:  make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g
+NESTED_PODMAN_TMPFS_SIZE ?= 8g
 ifeq ($(NESTED_PODMAN),1)
 # The host's $XDG_RUNTIME_DIR is bind-mounted in for Wayland/Pulse passthrough, and it
 # carries the *host* podman's rootless state (libpod/tmp/pause.pid -> a host PID). The
@@ -49,7 +54,7 @@ NESTED_PODMAN_FLAGS := --device /dev/fuse \
                        --security-opt label=disable \
                        --security-opt unmask=ALL \
                        --cap-add=sys_admin,mknod,net_admin \
-                       --tmpfs /var/lib/containers:rw,size=8g \
+                       --tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE) \
                        $(NESTED_PODMAN_RUNTIME_TMPFS)
 else
 NESTED_PODMAN_FLAGS :=
@@ -101,7 +106,7 @@ image: ## Build the OCI image
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
                          .
 .PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), EXTRA_MOUNTS="-v /host:/path:Z"
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z"
 	$(CONTAINER_CMD) run -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \

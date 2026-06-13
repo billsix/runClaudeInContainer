@@ -57,6 +57,11 @@ tmpfs `/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod` to the `
 target's `podman run`. The inner podman uses `fuse-overlayfs` (configured by
 `entrypoint/dotfiles/.config/containers/storage.conf`).
 
+The `/var/lib/containers` tmpfs defaults to **8g** and is **RAM-backed** (it only
+uses memory as inner images are written, but a full store costs that much RAM+swap).
+Bump it for a large inner build via `NESTED_PODMAN_TMPFS_SIZE`, e.g.
+`make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`.
+
 **Inner runs need `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is mounted
 read-only and `--cgroupns=private` does *not* make it writable (tested — it stayed `ro`),
 so without `--cgroups=disabled` every inner `podman run` fails with
