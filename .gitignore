@@ -14,3 +14,6 @@ session.*
 nano.*.save
 .ruff_cache/
 .virtual_documents/
+
+# exported OCI image tars (make image-export) — large, never commit
+claudecontainer-*.tar
