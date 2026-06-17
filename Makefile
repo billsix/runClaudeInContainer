@@ -98,6 +98,26 @@ WAYLAND_FLAGS_FOR_CONTAINER = -e "WAYLAND_DISPLAY=${WAYLAND_DISPLAY}" \
                               -e "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" \
                               -v "${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}"
 
+# Game controllers / joysticks. SDL2 (and most engines) read gamepads from the
+# host's evdev nodes (/dev/input/event*, and the legacy /dev/input/js*), which
+# are not visible in the container by default. Bind-mount the input tree in, and
+# carry the host user's supplementary groups so the 0660 device nodes are
+# readable (on Fedora the logged-in user already gets read access via
+# systemd-logind's `uaccess` ACLs, which apply because rootless podman maps
+# container-root to the host user). Caveats:
+#   * Plug the controller in BEFORE launching the app — there is no udev hotplug
+#     in the container, so SDL only enumerates devices present at startup.
+#   * Set USE_CONTROLLER=0 to skip the passthrough.
+#   * If SELinux denies access (check `ausearch -m avc -ts recent`), add
+#     `--security-opt label=disable` for the run.
+USE_CONTROLLER ?= 1
+ifeq ($(USE_CONTROLLER),1)
+  CONTROLLER_FLAGS_FOR_CONTAINER := -v /dev/input:/dev/input \
+                                    --group-add keep-groups
+else
+  CONTROLLER_FLAGS_FOR_CONTAINER :=
+endif
+
 .PHONY: all
 all: image  ## Build the image
 
@@ -106,7 +126,7 @@ image: ## Build the OCI image
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
                          .
 .PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z"
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z", USE_CONTROLLER=0 (skip gamepad passthrough)
 	$(CONTAINER_CMD) run -it --rm \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
@@ -117,6 +137,7 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(CLAUDE_DOTFILES_MOUNT) \
 		$(X_FLAGS_FOR_CONTAINER) \
 		$(WAYLAND_FLAGS_FOR_CONTAINER) \
+		$(CONTROLLER_FLAGS_FOR_CONTAINER) \
 		$(CONTAINER_NAME) \
 		/shell.sh
 
