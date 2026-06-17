@@ -112,8 +112,7 @@ WAYLAND_FLAGS_FOR_CONTAINER = -e "WAYLAND_DISPLAY=${WAYLAND_DISPLAY}" \
 #     `--security-opt label=disable` for the run.
 USE_CONTROLLER ?= 1
 ifeq ($(USE_CONTROLLER),1)
-  CONTROLLER_FLAGS_FOR_CONTAINER := -v /dev/input:/dev/input \
-                                    --group-add keep-groups
+  CONTROLLER_FLAGS_FOR_CONTAINER := $(shell if [ -d /dev/input ]; then echo "-v /dev/input:/dev/input --group-add keep-groups"; fi)
 else
   CONTROLLER_FLAGS_FOR_CONTAINER :=
 endif
