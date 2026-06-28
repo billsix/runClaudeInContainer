@@ -279,6 +279,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    python3 \
                    python3-black \
                    python3-cython \
+                   python3-devel \
                    python3-ipython \
                    python3-matplotlib \
                    python3-mypy \
