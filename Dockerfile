@@ -386,11 +386,12 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    && \
     echo "source ~/.extrabashrc" >> ~/.bashrc
 
+
 RUN echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
 
 # Install Claude Code (native binary, no Node.js required)
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-RUN claude update
+RUN source ~/.bashrc && claude update
 
 ENTRYPOINT ["/entrypoint.sh"]
