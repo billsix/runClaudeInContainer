@@ -102,6 +102,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    git \
                    git-lfs \
                    glew-devel \
+                   glfw-devel \
                    glib2-devel \
                    glibc-static \
                    gmp-devel \
@@ -278,11 +279,13 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    pv \
                    python3 \
                    python3-black \
+                   python3-build \
                    python3-cython \
                    python3-devel \
                    python3-ipython \
                    python3-matplotlib \
                    python3-mypy \
+                   python3-nanobind \
                    python3-notebook \
                    python3-numpy \
                    python3-pandas \
@@ -291,6 +294,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    python3-pytest \
                    python3-pytest-xdist \
                    python3-requests \
+                   python3-scikit-build-core \
                    python3-scipy \
                    python3-setuptools \
                    python3-sphinx \
