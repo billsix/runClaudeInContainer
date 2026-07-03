@@ -280,6 +280,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    python3 \
                    python3-black \
                    python3-build \
+                   python3-clang \
                    python3-cython \
                    python3-devel \
                    python3-ipython \

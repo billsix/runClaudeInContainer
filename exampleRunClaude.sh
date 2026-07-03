@@ -1,0 +1,1 @@
+make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:Z -v /mnt/sda1/programming/math/openstax/:/mnt/sda1/programming/math/openstax:Z -v /mnt/sda1/n64/:/mnt/sda1/n64:Z" USE_CONTROLLER=1
