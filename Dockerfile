@@ -386,7 +386,6 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    zig \
                    zip \
                    zlib-devel \
-                   zsh \
                    zstd \
                    && \
     echo "source ~/.extrabashrc" >> ~/.bashrc
