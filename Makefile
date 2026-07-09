@@ -73,7 +73,12 @@ GNUPG_REAL_PATH := $(shell readlink -f $(GNUPG_FILE))
 GNUPG_MOUNT := $(shell if [ -d $(GNUPG_REAL_PATH) ]; then echo "-v $(GNUPG_REAL_PATH):/root/.gnupg:Z" ; fi)
 
 CLAUDE_CONFIG_DIR := $(HOME)/.claude
-CLAUDE_CONFIG_MOUNT := $(shell if [ -d $(CLAUDE_CONFIG_DIR) ]; then echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z" ; fi)
+# mkdir -p, not an existence check: if the host dir is missing, a conditional
+# silently skips the mount and auth/sessions/memory die with the container
+# (re-sign-in every launch). Created here at parse time — a recipe-line mkdir
+# would run after this := is already expanded. make runs on the host, so this
+# creates the host-side dir itself.
+CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
 
 # Repo-tracked Claude config (CLAUDE.md + slash commands) layered on top of the
 # host's ~/.claude mount so edits flow back to git. Auth/sessions/credentials
