@@ -1,11 +1,12 @@
 # Persist Claude Code login (and all of `~/.claude`) across container runs
 
-**Status:** Makefile fix APPLIED (staged) 2026-07-09 — Bill suggested the
-`mkdir -p` and it went in the same day (see "Fix" below; the manual host-side
-step turned out unnecessary since `make` runs on the host). Remaining: Bill's
-next `make shell` + one final sign-in to prove persistence, then the optional
-memory rescue (step 3) while the 2026-07-09 sandbox is still alive. Diagnosed
-2026-07-09 from inside a running sandbox (the multi-day mvp/gacalc session).
+**Status:** DONE, ARCHIVED 2026-07-09. The Makefile `mkdir -p` fix is
+applied (Bill's suggestion) and verified via `make -n shell`. The remaining
+one-time sign-in happens naturally on the next `make shell` — nothing left to
+track. (The optional memory rescue of the 2026-07-09 sandbox was not
+performed; if that sandbox is gone, the memory rebuilds organically.)
+Diagnosed 2026-07-09 from inside a running sandbox (the multi-day mvp/gacalc
+session).
 
 **Symptom (Bill):** every `make shell` requires signing in to Claude Code
 again.

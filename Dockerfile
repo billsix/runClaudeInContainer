@@ -28,6 +28,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    bc \
                    bear \
                    bind-utils \
+                   binutils \
                    binutils-devel \
                    binutils-gold \
                    bison \
@@ -63,6 +64,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    diffutils \
                    direnv \
                    distcc \
+                   dotnet-sdk-8.0 \
                    doxygen \
                    duf \
                    eigen3-devel \
@@ -103,6 +105,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    git-lfs \
                    glew-devel \
                    glfw-devel \
+                   glib \
                    glib2-devel \
                    glibc-static \
                    gmp-devel \
@@ -120,6 +123,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    gtk3-devel \
                    gtk4-demo \
                    gtk4-devel \
+                   gzip \
                    heaptrack \
                    htop \
                    httpie \
@@ -135,19 +139,23 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    jansson-devel \
                    java-25-openjdk \
                    java-25-openjdk-devel \
+                   java-latest-openjdk-devel \
                    jq \
                    julia \
                    kcachegrind \
+                   ksh \
                    lapack-devel \
                    less \
                    leveldb-devel \
                    libacl-devel \
                    libarchive-devel \
                    libasan \
+                   libbsd-devel \
                    libcap-devel \
                    libcurl-devel \
                    libcxx-devel \
                    libdrm-devel \
+                   libedit-devel \
                    libev-devel \
                    libevent-devel \
                    libffi-devel \
@@ -170,6 +178,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    libtiff-devel \
                    libtool \
                    libubsan \
+                   libuuid-devel \
                    libuv-devel \
                    libvorbis-devel \
                    libwebp-devel \
@@ -242,8 +251,11 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    npm \
                    nss-tools \
                    ocaml \
+                   ocaml-cmdliner \
+                   ocaml-dune \
                    octave \
                    oniguruma-devel \
+                   opam \
                    openblas-devel \
                    openldap-devel \
                    openssh-clients \
@@ -310,12 +322,14 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    qt6-qtbase-devel \
                    qt6-qtbase-examples \
                    R \
+                   racket \
                    radare2 \
                    ragel \
                    rclone \
                    R-core-devel \
                    re2c \
                    readline-devel \
+                   redhat-rpm-config \
                    redis \
                    ripgrep \
                    rpm-build \
@@ -323,7 +337,10 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    rsync \
                    ruby \
                    ruby-devel \
+                   rubygems \
                    ruff \
+                   rust \
+                   rust-analyzer \
                    rustfmt \
                    samba-client \
                    sbcl \
@@ -352,6 +369,11 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    tcpdump \
                    tesseract \
                    texinfo \
+                   texlive \
+                   texlive-anyfontsize \
+                   texlive-dvipng \
+                   texlive-dvisvgm \
+                   texlive-standalone \
                    the_silver_searcher \
                    tig \
                    tinyxml2-devel \
@@ -386,6 +408,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    zig \
                    zip \
                    zlib-devel \
+                   zsh \
                    zstd \
                    && \
     echo "source ~/.extrabashrc" >> ~/.bashrc
