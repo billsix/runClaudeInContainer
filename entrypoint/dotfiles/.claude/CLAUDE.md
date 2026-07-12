@@ -16,6 +16,21 @@ Committing is **my** job and I do it **outside** the container, on my own schedu
 - **Don't keep asking "want me to commit?"** after finishing work. Just leave the changes staged or unstaged and tell me what changed — assume I'll commit it myself.
 - **If you're curious about what was done** — earlier in this session, in a prior session, or by me between sessions — **read the git history** (`git log`, `git show`, `git diff`) rather than asking or assuming. The working tree lives on a host bind mount, so my out-of-container commits show up there; the history is the source of truth for "what happened."
 
+## Quick-save commits, then squash to a per-task history (only when I authorize committing)
+
+**The default from "Git: I commit, you don't" still holds — don't commit unless I explicitly tell you to.** This workflow applies **only** when I've said, in this session, that you may commit. That say-so is the trigger — not the mere presence of a repo-local `CLAUDE.md`, and it doesn't carry over to the next session. I'll typically authorize it for **long-running tasks where I'm away from the computer** and you have to make decisions yourself: in that mode, commit as you go (below), keep working, and **log the decisions/open questions** (in the task doc) for me to review when I'm back. When I've given that go-ahead, use this two-phase rhythm:
+
+- **During the work — quick-saves.** Commit freely as you go, like video-game quick-saves: one commit per meaningful step (a slice compiles, a milestone passes, a binding builds, a bug is fixed, a task doc updated). Small, frequent, honestly-labelled checkpoints. They're restore points — if a later change breaks something, diff/reset to the last good one — and they let me follow the play-by-play. Don't optimize these for a clean final history; optimize for "never lose a working state." Granular commits interleaved with `tasks:`-tracking commits are fine and expected here.
+- **At the end — squash to a per-task history.** Once the work (or a phase) is done and verified, collapse the quick-saves into a clean **one-commit-per-task** history, each with a good written message, folding the noisy `tasks: log/mark/scope …` tracking commits into the work commit they belong to. Leave genuinely single-purpose commits alone; only squash the multi-part runs.
+
+Mechanics — the container has **no interactive editor, so a literal `git rebase -i` won't run**; do the equivalent non-interactively:
+
+- **Back up first:** make a `backup` branch at the current tip before rewriting and never touch it — it's the undo (`git reset --hard backup` restores everything).
+- **Reconstruct deterministically** on a temp branch off the base: `git cherry-pick -n <parent>..<end>` collapses a run of commits into one staged change → `git commit -F msg`; a plain `git cherry-pick <sha>` keeps a single commit as-is. Replaying in the original order mirrors the old history, so there are no conflicts. **Caveat: `git cherry-pick` has no `-q` flag** — passing it dumps usage and, under `set -e`, aborts the script mid-run; use `--no-edit`/`-n`, not `-q`. (Driving `git rebase -i` via `GIT_SEQUENCE_EDITOR`/`GIT_EDITOR` scripts also works, but the cherry-pick rebuild is easier to verify.)
+- **Verify before moving the real branch:** the rewrite must change *history only, never content* — confirm `git diff <rebuilt> <backup>` is **empty** (byte-identical tree) before you `reset --hard` the real branch onto the rebuilt one. If it differs, stop; something got dropped.
+
+I'll normally ask for the cleanup explicitly ("squash the history"). Don't rewrite history that's already pushed/shared without me saying so.
+
 ## Task documents
 
 For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
