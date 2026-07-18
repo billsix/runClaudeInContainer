@@ -150,18 +150,41 @@ questions you need *me* to answer** — not to caveats, warnings, or recommendat
 which stay inline only.
 
 Raise a question at the point in the response where it arises — that's where the context
-is. **Then repeat every one of them at the end, as a bulleted list**, one or two
+is. **Then repeat every one of them at the end, as a NUMBERED list**, one or two
 sentences each. Without that list I have to re-read a long response hunting for what you
 actually need from me, and questions buried mid-prose get missed (2026-07-18: I ended a
 long status update with two questions in different paragraphs and Bill's reply was "what
 are you asking me?").
 
-- One bullet per question, phrased so it can be answered on its own.
-- **It is fine — preferred, even — to say "see above for detail"** and keep the bullet
+- **Number them (1., 2., 3.)**, not bullets, so I can answer by number.
+- One item per question, phrased so it can be answered on its own.
+- **It is fine — preferred, even — to say "see above for detail"** and keep the item
   short. The list is a checklist of what's blocking, not a re-explanation.
-- If you have a recommendation, put it in the bullet, so I can just say "yes."
+- If you have a recommendation, put it in the item, so I can just say "yes."
 - If there is genuinely nothing you need from me, say nothing — don't manufacture an
   empty "Questions" section.
+
+### Every question must be addressed before you implement anything
+
+**An open question blocks implementation.** Once you have asked, do not write code,
+edit files, or run mutating commands that depend on the answer until I have addressed
+**each** numbered question. Investigation, measurement, and answering follow-ups are
+always fine — it is *acting on the unanswered part* that is not.
+
+**"Addressed" is a low bar, deliberately.** Any of these unblocks a question:
+
+- a real answer;
+- "don't care" / "your call" / "whatever you think" — that is me handing you the
+  decision, so **use your discretion** (see that section) and proceed;
+- "skip that for now" / "not yet" — then leave it alone and don't re-ask.
+
+What does *not* count is silence. If my reply addresses some questions and not others,
+**do not quietly proceed on the ones I answered while guessing at the rest, and do not
+drop the unanswered ones.** Say plainly which numbers went unaddressed, re-ask them, and
+wait. Repeat as needed — it is not nagging, it is the protocol I asked for.
+
+A carried-over question keeps its own identity: re-ask it as its own numbered item with
+enough context to answer cold, since by then it may be several messages back.
 
 ## Git: I commit, you don't
 
