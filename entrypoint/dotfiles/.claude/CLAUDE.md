@@ -117,6 +117,32 @@ surface only the judgment calls.
 
 When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
 
+## An externally-defined name always wins over a naming convention
+
+**If a name is dictated by something outside the code — a framework superclass method
+you're overriding, an interface/protocol member you're implementing, a callback
+signature, a magic name a library looks up — then the naming rules do not apply to it.**
+Renaming it doesn't make it tidier; it *unbinds* it and silently breaks the code. This
+is not a judgment call and it needs no case-by-case discussion: match the external name
+exactly, however ugly it is by house style.
+
+Language-agnostic. Examples: wxPython's `OnPaint` / `InitGL` / `OnInit`, Qt's
+`paintEvent`, `unittest`'s `setUp` / `tearDown`, Python dunders and protocol names
+(`__enter__`, `_repr_latex_`, `__post_init__`), a C callback whose signature is fixed by
+the API taking it, JNI's `Java_pkg_Class_method`, a serialization field that must match
+a wire format, an env var or CLI flag someone else specifies.
+
+Consequences:
+
+- **A linter flagging one of these is the linter being wrong, not the code.** Suppress
+  it — scoped as narrowly as the tool allows (a `per-file-ignores` entry for a
+  framework-boundary file, an inline `noqa`/`NOLINT`) — and **write the reason at the
+  suppression site**: which framework, and that the name is externally fixed.
+- **Say so in the project's own conventions doc**, so the exemption is discoverable and
+  the next person doesn't "fix" it.
+- The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
+  helpers inside such a method still follow house style.
+
 ## Questions for me go inline AND in a closing list
 
 **This is the one deliberate exception to the rule above, and it applies only to
