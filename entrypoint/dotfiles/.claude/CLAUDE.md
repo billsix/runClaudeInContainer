@@ -45,6 +45,44 @@ discretion"):
   `# noqa: E501` and a comment saying why. Reflowing would have been technically
   compliant and actively worse.
 
+## Never orphan a word on its own comment line
+
+**Reflow the whole paragraph, not the offending line.** When a comment or docstring line
+is over the limit, re-wrap the entire contiguous paragraph as a unit. Fixing the single
+long line in isolation produces this, which I don't want:
+
+```python
+# stored ``steps`` field stay typed tuple[Step, ...] for readers while
+# the
+# constructor accepts the broader input.
+```
+
+A comment line holding one word or a short sentence fragment is always wrong. Same for
+docstrings.
+
+### Changing a line-length limit without causing that
+
+The order that works:
+
+1. **Set the limit in config, in one place**, so the formatter and the linter agree —
+   e.g. ruff's `[tool.ruff] line-length` governs both `ruff format` and E501. Then
+   **remove any per-invocation `--line-length` flags** from format scripts so there's a
+   single source of truth; a formatter at 80 with a linter at 88 lets new long lines land.
+2. **Run the formatter first.** It reflows *code* for free. Whatever survives is prose
+   and unbreakable tokens — that's the real work-list, and it's much smaller.
+3. **Fix the residue paragraph-wise, and do NOT try to automate it.** I tried; it doesn't
+   generalize. A "reflow every ragged paragraph" pass matched 87 paragraphs — mostly the
+   author's own deliberate line breaks in files the change never touched. Tightening the
+   heuristic still matched content that must never be joined into a paragraph. Use an
+   **explicit allowlist of paragraphs you have read**, and print before/after for each.
+4. **Things that look like prose but must not be reflowed** — check for every one before
+   touching a comment block: bulleted/numbered lists, `Controls:`-style key lists,
+   section banner comments, **commented-out code**, jupytext `# %%` cell markers, license
+   headers, `doc-region-begin/end` markers (they drive a book build), ASCII diagrams and
+   tables, aligned matrix literals, and math notation whose spacing carries meaning.
+5. **Re-verify after**: linter clean, formatter idempotent (`--check` reports no changes),
+   everything still compiles.
+
 The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
 surface only the judgment calls.
 
