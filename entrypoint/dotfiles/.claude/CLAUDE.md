@@ -117,6 +117,26 @@ surface only the judgment calls.
 
 When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
 
+## Questions for me go inline AND in a closing list
+
+**This is the one deliberate exception to the rule above, and it applies only to
+questions you need *me* to answer** — not to caveats, warnings, or recommendations,
+which stay inline only.
+
+Raise a question at the point in the response where it arises — that's where the context
+is. **Then repeat every one of them at the end, as a bulleted list**, one or two
+sentences each. Without that list I have to re-read a long response hunting for what you
+actually need from me, and questions buried mid-prose get missed (2026-07-18: I ended a
+long status update with two questions in different paragraphs and Bill's reply was "what
+are you asking me?").
+
+- One bullet per question, phrased so it can be answered on its own.
+- **It is fine — preferred, even — to say "see above for detail"** and keep the bullet
+  short. The list is a checklist of what's blocking, not a re-explanation.
+- If you have a recommendation, put it in the bullet, so I can just say "yes."
+- If there is genuinely nothing you need from me, say nothing — don't manufacture an
+  empty "Questions" section.
+
 ## Git: I commit, you don't
 
 Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete.
