@@ -143,6 +143,43 @@ Consequences:
 - The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
   helpers inside such a method still follow house style.
 
+## Prefer total dispatch over an open-ended conditional chain
+
+**A chain of `if` / `else if` with no final `else` can fall through silently, and the
+hole is invisible** — nothing in the code marks the case nobody handled. A construct with
+a mandatory-feeling default (`match`/`case _`, `switch`/`default`, a sealed-type match)
+makes that branch something you have to look at and decide about.
+
+This is not a style preference; it is a bug class I have actually hit. In mvp,
+`pyMatrixStack.get_current_matrix` was five `if`s with no `else`:
+
+```python
+def get_current_matrix(matrix_stack) -> np.ndarray:   # annotated -> ndarray
+    if matrix_stack == MatrixStack.model:
+        return __model_stack__[-1]
+    ...                                    # four more `if`s, no else
+    # falls off the end -> returns None, and every caller indexes the result
+```
+
+Every real case was handled, so it looked fine; the hole only opens when someone adds an
+enum member. Rewritten as a `match` with `case _: raise ValueError(...)`, the omission
+becomes impossible to add by accident.
+
+**The discipline is the pairing, not the keyword: always write the default branch.** A
+`match` without a `case _` has exactly the same hole. The default may raise, return a
+documented fallback, or be an explicit no-op with a comment saying why — but it must be
+written.
+
+Language notes: Python `match` + `case _`; C/C++ `switch` + `default` (and turn on
+`-Wswitch`, which catches an unhandled enum for you); Rust/ML-family matches are
+exhaustive by compiler and need no discipline. Where the language gives you a compiler
+check, prefer letting it check rather than adding a catch-all that defeats it.
+
+**Caveat, so this doesn't get over-applied:** `match` earns its keep on *structural*
+patterns (destructuring, type dispatch). A `match` whose every case is a boolean guard —
+`case (a, b) if a == b:` — is an `if`/`elif` chain in different syntax, justified only by
+the exhaustiveness argument above. Don't convert every two-branch conditional.
+
 ## Questions for me go inline AND in a closing list
 
 **This is the one deliberate exception to the rule above, and it applies only to
