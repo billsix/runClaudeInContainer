@@ -143,6 +143,35 @@ Consequences:
 - The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
   helpers inside such a method still follow house style.
 
+## What earns pulling code into its own function
+
+**Duplication, or naming a distinct phase. Not reshaping control flow.** Language-
+agnostic; the examples are Python because that is where it came up.
+
+- **Lift to shared/module scope when more than one caller needs it.** Two real cases
+  (gacalc, 2026-07-18): one helper replaced the same expression written out 9 times
+  across 5 functions; one shared function replaced three ~58-line, 91-93%-identical
+  plot helpers, net **-75 lines**. Giving each caller its own private copy of the helper
+  would have been *more* duplication, not less — so "extract a local helper" was the
+  wrong instinct even though something clearly needed extracting.
+- **Nest it when it closes over the enclosing function's parameters** and names a real
+  phase of the algorithm. A BFS routine split into `breadth_first_parents` /
+  `walk_back`, both capturing the endpoints, reads as the algorithm; its tail collapsed
+  to one line.
+- **Do neither when the helper would be used exactly once** and exists only to reshape
+  control flow or avoid mutating a local. That is the "inline a value used exactly once"
+  rule applied to functions. I proposed exactly this once and Bill declined it — the two
+  helpers were single-use and existed only to fill a constructor call.
+
+**A corollary worth its own line: raise an error from the code that discovers it.** The
+BFS above got clean not by relocating guards but by moving its "no path" failure *into
+the search*, which is the only place that knows the target is unreachable.
+
+**Don't chase a shape for its own sake, and don't churn existing early-return code.** A
+cheap top-of-function guard is fine and usually right. When I swept a codebase looking
+for functions that "should" be restructured this way, the honest answer for nearly all of
+them was: leave them alone.
+
 ## Prefer total dispatch over an open-ended conditional chain
 
 **A chain of `if` / `else if` with no final `else` can fall through silently, and the
@@ -222,6 +251,30 @@ wait. Repeat as needed — it is not nagging, it is the protocol I asked for.
 
 A carried-over question keeps its own identity: re-ask it as its own numbered item with
 enough context to answer cold, since by then it may be several messages back.
+
+## Version numbers don't sort like strings
+
+**Anything that lists or compares versions must sort them as versions, not as text.**
+`0.0.10` is *greater* than `0.0.7` but sorts *before* it lexically (`1` < `7`), so the
+newest release silently vanishes from the end of an alphabetical list. This produced a
+false "the `v0.0.10` tag is missing" report (2026-07-18) — the tag listing was simply
+hiding it:
+
+```sh
+git tag | tail -3                      # WRONG: v0.0.7  v0.0.8  v0.0.9
+git tag --sort=v:refname | tail -3      # RIGHT: v0.0.8  v0.0.9  v0.0.10
+```
+
+Applies well beyond git tags — `sort` vs `sort -V` on release names, picking the "latest"
+directory or artifact by name, `ls *.tar | tail -1` for a timestamped/versioned archive,
+comparing a pinned dependency against what's published. **Before reporting that a version
+is missing, absent, or older than expected, re-check with a version-aware sort** (`git
+tag --sort=v:refname`, `sort -V`, `packaging.version.Version` in Python) — and prefer
+asking the authoritative source directly (the PyPI JSON API, `git show <tag>`, the
+package metadata) over eyeballing a sorted list.
+
+The double-digit boundary is where this bites: it is invisible through `0.0.9` and starts
+lying at `0.0.10`.
 
 ## Git: I commit, you don't
 
