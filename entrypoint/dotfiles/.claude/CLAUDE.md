@@ -25,9 +25,18 @@ Discretion is **not** "do whatever." It's this, in order:
 5. **Report the exceptions afterward**, briefly: what I did in bulk, what I opted out of
    and why. That's the part I actually need to review.
 
-**Worked example — enforcing an 80-column limit (mvp, 2026-07-18).** 78 over-long lines,
-one instruction ("80 is good, I make a PDF of it; fix as much as possible with your
-discretion"):
+**This is language-agnostic.** I work in C, C++, assembly, shell, Make, Emacs Lisp, TeX
+and Python; the shape above applies to any of them and to any enforcement tool —
+`clang-tidy`/`clang-format`, a compiler warning sweep, `shellcheck`, `rustfmt`, a linter,
+a codemod. The worked example below is Python because that's where it came up; read the
+*structure*, not the tooling. The per-language particulars that change are only: what the
+comment marker is, which tool reflows what, and how you spell an opt-out
+(`# noqa: RULE`, `// NOLINT(rule)`, `/* clang-format off */`, `// eslint-disable-line`,
+`#pragma GCC diagnostic ignored`, a `.editorconfig` exception).
+
+**Worked example — enforcing an 80-column limit (mvp, Python/ruff, 2026-07-18).** 78
+over-long lines, one instruction ("80 is good, I make a PDF of it; fix as much as
+possible with your discretion"):
 
 - **70 were prose** — comments and docstrings. Rewrapped automatically, no questions.
   Handled RST bullet continuation indent and Sphinx `#:` markers so the rewrap didn't
@@ -57,31 +66,49 @@ long line in isolation produces this, which I don't want:
 # constructor accepts the broader input.
 ```
 
-A comment line holding one word or a short sentence fragment is always wrong. Same for
-docstrings.
+A comment line holding one word or a short sentence fragment is always wrong. **This
+applies to every comment syntax I use** — `#`, `//`, `/* … */`, `;;`, `--`, `%`, `!` —
+and to doc comments (docstrings, doxygen `/** … */`, javadoc, `///` Rust doc comments)
+just the same.
 
 ### Changing a line-length limit without causing that
 
-The order that works:
+Language-agnostic; the tool names are examples.
 
-1. **Set the limit in config, in one place**, so the formatter and the linter agree —
-   e.g. ruff's `[tool.ruff] line-length` governs both `ruff format` and E501. Then
-   **remove any per-invocation `--line-length` flags** from format scripts so there's a
-   single source of truth; a formatter at 80 with a linter at 88 lets new long lines land.
+1. **Set the limit in config, in one place**, so the formatter and the linter agree.
+   `[tool.ruff] line-length` (governs both `ruff format` and E501), `ColumnLimit` in
+   `.clang-format`, `max_width` in `rustfmt.toml`, `printWidth` for prettier,
+   `max_line_length` in `.editorconfig`. Then **remove any per-invocation
+   `--line-length`-style flags** from format scripts so there's a single source of truth
+   — a formatter at 80 with a linter at 88 quietly lets new long lines land.
 2. **Run the formatter first.** It reflows *code* for free. Whatever survives is prose
-   and unbreakable tokens — that's the real work-list, and it's much smaller.
+   and unbreakable tokens — that's the real work-list, and it's much smaller. Note which
+   side of the line your formatter sits on: `ruff format`/`black`/`gofmt` won't touch
+   comment prose at all, while `clang-format` *will* if `ReflowComments` is on — and if
+   it is, let it do the bulk and only hand-check what it leaves.
 3. **Fix the residue paragraph-wise, and do NOT try to automate it.** I tried; it doesn't
    generalize. A "reflow every ragged paragraph" pass matched 87 paragraphs — mostly the
    author's own deliberate line breaks in files the change never touched. Tightening the
    heuristic still matched content that must never be joined into a paragraph. Use an
    **explicit allowlist of paragraphs you have read**, and print before/after for each.
 4. **Things that look like prose but must not be reflowed** — check for every one before
-   touching a comment block: bulleted/numbered lists, `Controls:`-style key lists,
-   section banner comments, **commented-out code**, jupytext `# %%` cell markers, license
-   headers, `doc-region-begin/end` markers (they drive a book build), ASCII diagrams and
-   tables, aligned matrix literals, and math notation whose spacing carries meaning.
-5. **Re-verify after**: linter clean, formatter idempotent (`--check` reports no changes),
-   everything still compiles.
+   touching a comment block. Language-independent: bulleted/numbered lists, key/controls
+   lists, section banner comments, **commented-out code**, license headers, ASCII diagrams
+   and tables, aligned literals (matrices, register/bitfield tables, enum value columns),
+   and math notation whose spacing carries meaning. Toolchain-specific: doc-extraction
+   markers that drive a build (`doc-region-begin/end`, doxygen `\brief`/`\param`, javadoc
+   tags, `//!` sections), literate/cell markers (jupytext `# %%`, org-mode `#+begin_src`),
+   and anything a preprocessor reads.
+5. **Watch for line structure that is syntactically load-bearing, not stylistic** — where
+   re-wrapping changes meaning rather than looks. C/C++ multi-line macros continued with
+   trailing `\` (moving the backslash breaks the macro); shell and Make line
+   continuations; Make recipe lines (leading TAB is significant); assembly, one
+   instruction per line; a `//` comment inside a string literal that is *source for
+   another language* (embedded GLSL/SQL/regex) — wrapping emits invalid code in that
+   inner language, and the linter can't see it. In these, shorten the text or restructure;
+   never just insert a newline.
+6. **Re-verify after**: linter clean, formatter idempotent (`--check` reports no changes),
+   and the code still builds — compile, don't just re-lint.
 
 The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
 surface only the judgment calls.
