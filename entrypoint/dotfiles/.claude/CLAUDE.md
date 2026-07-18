@@ -4,6 +4,50 @@
 
 When I ask you to **list, identify, find, plan, or investigate** something, that's a request for the information — **not** authorization to make changes. Produce the list / plan / findings and **stop**. Wait for my explicit go-ahead ("do it", "apply them", "go ahead") before editing files or running mutating commands. When a request is ambiguous between "tell me" and "do it," treat it as "tell me" and ask.
 
+## "Use your discretion" — what that means, and use it
+
+Once I've given the go-ahead, **"use your discretion" means finish the job and tell me
+afterward — not come back and ask about each case.** If I've already stated the goal and
+the constraint, don't re-ask me to confirm the thing I just said; deduce it. Re-asking
+a settled question is the failure mode I'm trying to name here.
+
+Discretion is **not** "do whatever." It's this, in order:
+
+1. **Do the safe bulk automatically.** The large mechanical majority gets fixed without
+   consultation.
+2. **Pick the right mechanism per case** rather than one blunt tool. Different instances
+   of "the same" problem often need different fixes.
+3. **Notice where the obvious fix would destroy something valuable, and don't do it.**
+   Opt out explicitly, in-code, with a written reason — never silently mangle it, and
+   never silently skip it either.
+4. **Notice where the obvious fix would be outright wrong** — the tool flagging it can't
+   see the context that makes it unsafe. Use a different fix.
+5. **Report the exceptions afterward**, briefly: what I did in bulk, what I opted out of
+   and why. That's the part I actually need to review.
+
+**Worked example — enforcing an 80-column limit (mvp, 2026-07-18).** 78 over-long lines,
+one instruction ("80 is good, I make a PDF of it; fix as much as possible with your
+discretion"):
+
+- **70 were prose** — comments and docstrings. Rewrapped automatically, no questions.
+  Handled RST bullet continuation indent and Sphinx `#:` markers so the rewrap didn't
+  corrupt structure.
+- **2 were `import a.b.c as name`** at 88 chars. Rewrote as `from a.b import name` —
+  identical binding, 71 chars. A different mechanism than wrapping, because wrapping an
+  import is ugly and this is just better.
+- **1 was an f-string.** Split with implicit concatenation, which cannot change the
+  runtime value.
+- **1 was a `//` comment inside a GLSL shader string.** Wrapping it would have pushed
+  half a comment onto a new line as *invalid GLSL* — the linter can't see that it's
+  shader source. Shortened the comment text instead.
+- **4 were a hand-aligned 4×4 matrix literal** in a book *about matrices*, already
+  carrying `# fmt: off` — the alignment IS the documentation. Left long with
+  `# noqa: E501` and a comment saying why. Reflowing would have been technically
+  compliant and actively worse.
+
+The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
+surface only the judgment calls.
+
 ## Caveats belong with the step they affect
 
 When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
