@@ -230,6 +230,31 @@ are you asking me?").
 - If there is genuinely nothing you need from me, say nothing — don't manufacture an
   empty "Questions" section.
 
+### Name the positions in the question; never say "change your mind"
+
+**A question about a decision must state what the options ARE**, not refer to them.
+"Does that change your mind?" is unanswerable — it assumes I remember what my position
+was, what yours is, and what the alternatives were. Bad and good:
+
+- BAD:  "Does the cost change your mind?"
+- GOOD: "Do you want to switch from **keeping the global** to **passing `axes`
+  explicitly to all ~150 call sites**?"
+
+- BAD:  "Still happy with the earlier decision?"
+- GOOD: "Earlier you chose **0.0.10 over 0.1.0**. Now that there's a breaking parameter
+  rename, do you want to switch to **0.1.0**?"
+
+Concretely, every decision question should carry:
+
+1. **The position currently on the table**, named — mine, yours, or the status quo, and
+   say which it is.
+2. **The specific alternative**, named — not "the other option".
+3. **What actually differs** if it changes — a number, a file count, a behaviour.
+
+The same applies to re-asking a question I did not answer: restate both options rather
+than saying "the question above" or "my earlier question", since by then it may be
+several messages back.
+
 ### Every question must be addressed before you implement anything
 
 **An open question blocks implementation.** Once you have asked, do not write code,
