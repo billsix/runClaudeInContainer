@@ -448,16 +448,31 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
-## The work stack — for when we divert mid-problem
+## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
-**The failure this fixes:** we start on A, discover B while verifying it, chase B into C,
-and A is never resumed — or is resumed with its open questions silently dropped. It
-happened repeatedly on 2026-07-19 (doctests → main guards → a layout move → dangling book
-includes → marker naming), and the original ask was already satisfied three levels down.
+**What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
+don't get so lost in the weeds that we forget our purpose and make bad decisions.** It is
+**not** a to-do queue and **not** a priority list. It is a breadcrumb trail of diversions.
 
-`tasks/*.md` records **the work**. The stack records **attention order** — which thing we
-are on *now*, and what is waiting underneath. They are complements: a stack entry should
-*point* at a task doc, never duplicate one.
+**Read it from the BOTTOM up.** The bottom entry is the *root purpose* — the thing we
+actually set out to do. Each entry above it is a diversion from the one below. The chain
+from bottom to top is the story of how we got where we are:
+
+```
+  write doctests                     <- BOTTOM = why we're here at all
+   └ diverted to: dangling includes
+      └ diverted to: gacalc markers
+         └ diverted to: marker ID naming   <- TOP = the weeds we're currently in
+```
+
+**The failure it prevents:** on 2026-07-19 we went doctests → main guards → a layout move
+→ dangling includes → markers → SHA1 ID design, and were making cross-repo architecture
+decisions while the original ask (write doctests) sat untouched five levels down. Nobody
+could *see* that descent, so nobody questioned whether it was worth it.
+
+`tasks/*.md` records **the work**. This trail records **the descent** — how each thing we
+are on relates to the purpose beneath it. A trail entry *points* at a task doc, never
+duplicates one.
 
 - **`/stack-push <what we're diverting to>`** — before chasing the new thing, push the
   current one. Records repo, task doc, **a concrete `resume with` action**, and **every
@@ -495,6 +510,25 @@ four operations below as things you *do*, not commands you wait for me to type:
   drifted off the top item, **say so unprompted** — "note: the top of the stack is X, but
   we've been on Y for a while." Catching that drift is your job, not mine; the stack is
   useless if I have to remember to ask.
+
+**The point is depth-awareness, not "what to do now."** The trail's job is to keep the
+root purpose in view, so the guidance is:
+
+- **The most valuable line is the BOTTOM one.** When surfacing the trail, always restate
+  the root purpose and the depth ("we're 4 diversions deep; the reason we started was
+  X"). That single line is what stops us rabbit-holing.
+- **Check the current micro-decision against the root — especially before deciding.**
+  Before I ask Bill to arbitrate some deep-in-the-weeds choice, look down the trail and
+  ask out loud: *does this still serve the thing at the bottom, or have we lost the
+  plot?* If a diversion has grown out of proportion to the purpose it was meant to serve,
+  **say so** — "this started as 'write doctests' and has become a cross-repo checksum
+  design; is that worth it?" That sentence is the entire reason this trail exists.
+- **When recommending a next action, prefer the entry closest to the ROOT that is
+  actionable** — climbing back *down* toward the purpose, not deeper into the newest
+  tangent. Phrase it as a recommendation, never a present-tense fact, and give **one**
+  recommendation, not a menu (that hands Bill the sorting the trail is meant to do for
+  him). I got this exactly wrong on 2026-07-19: asserted "what we should be doing now:
+  <newest tangent>", then contradicted it, then handed Bill a list to arbitrate.
 
 **Two things must survive a push:** the concrete next action, and the unanswered
 questions, verbatim. A vague "continue the doctest work" is a failed entry; so is one that
