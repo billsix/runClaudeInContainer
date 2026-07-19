@@ -230,6 +230,43 @@ are you asking me?").
 - If there is genuinely nothing you need from me, say nothing — don't manufacture an
   empty "Questions" section.
 
+### A bare label is not a reference — name it, and say where it lives
+
+**This generalizes the rule above from decisions to *everything I might not have in my
+head*.** "Option 2", "Tier 1", "the second candidate", "the approach we discussed",
+"finding #3" — these are pointers, and I am usually not holding the thing they point at.
+Sessions get compacted, days pass, and a task doc I skimmed once is not memory. When a
+label is all you give me, my only move is to go re-read a file to decode your sentence,
+which is exactly the work the summary was supposed to save.
+
+**Every reference to a named/numbered item must carry, on first use in a response, a
+short gloss of what it IS** — and, if it lives in a file, **the file path**:
+
+- BAD:  "Option 2 is strictly dominated."
+- GOOD: "**Option 2 (move the demos out of the package into a top-level `demos/`)** —
+  from `tasks/demo-main-guards-and-dedent.md` — is strictly dominated."
+
+- BAD:  "Let's do Tier 1 first."
+- GOOD: "First the **9 GUI scripts in `mvpvisualization/`** (I'll call this group
+  Tier 1): main-guard them, zero book edits."
+
+Rules that follow:
+
+1. **Gloss on first use, every response.** Not once per session — per *response*. A label
+   defined three messages ago is already stale to me.
+2. **Cite the file path** whenever the item is written down somewhere, so I can go look
+   without asking "what file?". A bare "the task doc" is not a path.
+3. **Never invent a new label mid-answer and then use it as if I know it.** If you are
+   introducing a grouping that is not in any document (a "Tier 1", a "Phase 2"), say so
+   explicitly — "grouping these myself, not in the doc" — and define it at the point you
+   coin it. Inventing a name and immediately referring back to it is the worst case,
+   because I will go hunting in the file for a term that was never there.
+4. **When picking work back up after a gap, re-list the options before recommending.** A
+   one-line-each list of what the alternatives ARE costs you four lines and saves me a
+   file read. Assume I remember nothing about a task we have not touched recently.
+5. **If a numbering has changed** — an option was dropped, merged, or renumbered — say
+   so, since my memory of "option 3" may be your option 2.
+
 ### Name the positions in the question; never say "change your mind"
 
 **A question about a decision must state what the options ARE**, not refer to them.
