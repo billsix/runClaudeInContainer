@@ -209,6 +209,45 @@ patterns (destructuring, type dispatch). A `match` whose every case is a boolean
 `case (a, b) if a == b:` — is an `if`/`elif` chain in different syntax, justified only by
 the exhaustiveness argument above. Don't convert every two-branch conditional.
 
+## Keep the original goal in sight; a prerequisite is not a new project
+
+**Before designing around a blocker, verify the blocker is real** — and if the work you
+are proposing has drifted far from what I actually asked for, stop and say so instead of
+building it.
+
+This has a signature, and I have hit it (mvp, 2026-07-19). I asked for one thing —
+*"doctests should run as part of the test suite"* — which was **already achieved**. From
+there: a config allow-list looked like it blocked writing more doctests → that needed
+runnable scripts to stop executing on import → that needed 25 files reshaped and 129
+documentation references edited. Four levels down, I was drafting a repo-wide
+restructure, and **nobody had checked whether the allow-list blocked anything.** It did
+not: it already covered every library module in the repo. My words for it: *"we were deep
+in inception, forgetting about our original goal, and then doing a huge rewrite without
+keeping the goal in sight."*
+
+The discipline:
+
+- **Test the blocker before designing around it.** "X is blocked by Y" is a *claim*, and
+  usually a cheap one to check — try the thing and watch it fail. One command would have
+  ended the example above at step one. Never inherit a blocking claim from a document
+  (including one you wrote) without re-verifying it; the codebase moves, and the claim may
+  have been wrong when written.
+- **Say the goal out loud at each level of nesting.** When a task spawns a prerequisite,
+  state the chain in one line — "to do A I need B, which needs C" — because seeing the
+  chain written down is what makes an absurd one visible. If the chain reaches three
+  levels, that is a stop-and-report point, not a licence to keep going.
+- **Scale is a signal, not a detail.** If the fix has grown to touch dozens of files while
+  the request was small, that disproportion is itself evidence the framing is wrong.
+  Surface it — *"this started as X and has become a restructure of Y; is that what you
+  want?"* — before doing the work, not after.
+- **When the goal turns out to be already met, say that first and stop.** Do not roll
+  straight into the adjacent improvement you found along the way. Report it as a separate
+  option I can decline.
+- **A good idea found mid-drift is still drift.** The restructure above was genuinely
+  reasonable *on its own merits* — that is exactly what made it seductive. Merit does not
+  make it in-scope. Park it in its own task doc, say plainly that it is unrelated to the
+  original ask, and get a fresh decision.
+
 ## Questions for me go inline AND in a closing list
 
 **This is the one deliberate exception to the rule above, and it applies only to
@@ -229,6 +268,25 @@ are you asking me?").
 - If you have a recommendation, put it in the item, so I can just say "yes."
 - If there is genuinely nothing you need from me, say nothing — don't manufacture an
   empty "Questions" section.
+
+### Never cite an artifact you have not verified exists
+
+**A reference to a file, function, ticket, task doc, or command is a claim that it is
+there.** Writing `see foo.md` for a document you intend to create — or have merely
+discussed — leaves a breadcrumb pointing at nothing, and it is worse than vagueness
+because the reader goes looking. I did exactly this (mvp, 2026-07-19): archived a task
+doc containing *"folded into `move-demos-out-of-package.md`"* for a file that did not
+exist.
+
+Language- and tool-agnostic. The same applies to a `See also:` in a comment, a link in a
+commit message or PR body, a manpage `SEE ALSO`, a header include, a Makefile target you
+tell me to run, a config key you say to set.
+
+- **Create it first, then cite it** — or cite it as explicitly hypothetical ("no task doc
+  exists for this yet").
+- **`ls` / grep the path before writing it down.** This costs one command.
+- **When a document moves or is archived, check what pointed at it** and fix those links
+  in the same change; an archived doc leaves dangling references behind it.
 
 ### A bare label is not a reference — name it, and say where it lives
 
@@ -276,6 +334,19 @@ was, what yours is, and what the alternatives were. Bad and good:
 - BAD:  "Does the cost change your mind?"
 - GOOD: "Do you want to switch from **keeping the global** to **passing `axes`
   explicitly to all ~150 call sites**?"
+
+**Never ask an either/or question that "yes" or "no" cannot answer.** "Should we park
+this and do X, or do the move first?" has no valid one-word reply — but I will often send
+one, and then you get to pick which half I meant. That is how work starts on the branch I
+did not choose (mvp, 2026-07-19). Either ask a single yes/no question, or **label the
+alternatives** so a one-word answer decodes:
+
+- BAD:  "Park it and write the tests, or do the move first?"  ("no" is undecodable)
+- GOOD: "Which next — **(a) write the tests now**, or **(b) do the move first**?"
+
+**And when a short reply is ambiguous, do not resolve it silently by picking the likelier
+branch — ask.** A one-word answer to a two-branch question is not consent to either
+branch.
 
 - BAD:  "Still happy with the earlier decision?"
 - GOOD: "Earlier you chose **0.0.10 over 0.1.0**. Now that there's a breaking parameter
