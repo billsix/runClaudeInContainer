@@ -448,6 +448,62 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
+## The work stack — for when we divert mid-problem
+
+**The failure this fixes:** we start on A, discover B while verifying it, chase B into C,
+and A is never resumed — or is resumed with its open questions silently dropped. It
+happened repeatedly on 2026-07-19 (doctests → main guards → a layout move → dangling book
+includes → marker naming), and the original ask was already satisfied three levels down.
+
+`tasks/*.md` records **the work**. The stack records **attention order** — which thing we
+are on *now*, and what is waiting underneath. They are complements: a stack entry should
+*point* at a task doc, never duplicate one.
+
+- **`/stack-push <what we're diverting to>`** — before chasing the new thing, push the
+  current one. Records repo, task doc, **a concrete `resume with` action**, and **every
+  unanswered question, verbatim**.
+- **`/stack`** — read-only. Shows the stack top-first, verifies each entry still matches
+  reality, and says what the top item means we should be doing *now*.
+- **`/stack-pop`** — finished. Verifies it really is finished, archives the task doc, then
+  **properly resumes** the entry underneath — restating its next action and **re-asking its
+  open questions with both positions named**, since they may be many messages back.
+- **`/stack-drop [n]`** — decided *not* to do it. Deliberately separate from pop: it always
+  confirms, and it records *why*, because a dropped item with no reason gets re-proposed
+  and re-investigated from scratch.
+
+The stack lives at `~/.claude/stack.md` and is **global, not per-repo** — diversions cross
+repos routinely (a book change in one repo turning into a generator change in another).
+
+**I do NOT manage this stack — you do. That is the whole point (Bill, 2026-07-19: "I
+don't want to have to remember those as commands").** The slash commands exist as manual
+overrides for when I explicitly want to poke the stack, but the default is that **you keep
+it current on your own, without being told**, as a normal part of how you work. Treat the
+four operations below as things you *do*, not commands you wait for me to type:
+
+- **Push, when a diversion is actually happening.** The moment we leave the current thread
+  for something discovered mid-work — I ask about something you found while verifying, a
+  "quick check" turns into its own investigation, a new problem is chosen — **push the
+  current work first, then follow the new thread.** Do it silently as bookkeeping; a brief
+  "(pushed X onto the stack)" line is enough. Do not ask permission to push.
+- **Pop, when something is finished.** When work completes, archive its task doc and pop
+  it **on your own**, then resume and properly restate whatever is now on top. Don't leave
+  a done item sitting on the stack for me to notice.
+- **Drop, only with my say-so.** Discarding an entry we won't do is the one operation that
+  loses work, so this one you *do* confirm with me — but you still initiate it (notice the
+  entry is dead and propose dropping it), rather than waiting for a command.
+- **Surface it yourself.** At session start, and whenever the current conversation has
+  drifted off the top item, **say so unprompted** — "note: the top of the stack is X, but
+  we've been on Y for a while." Catching that drift is your job, not mine; the stack is
+  useless if I have to remember to ask.
+
+**Two things must survive a push:** the concrete next action, and the unanswered
+questions, verbatim. A vague "continue the doctest work" is a failed entry; so is one that
+drops a question I never answered.
+
+**When in doubt, err toward pushing.** An extra stack entry costs a few lines; a lost
+thread costs a whole investigation redone. If you are unsure whether a tangent is big
+enough to push, push it.
+
 ## Repo audits
 
 For getting (re)acquainted with a project, or checking whether its docs still match its code:
