@@ -448,6 +448,49 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
+## Reference documents — durable knowledge that isn't tracked work
+
+Not everything worth writing down is a *task*. A task doc tracks *work* — a goal, steps,
+status — and has a lifecycle: in-flight in `tasks/`, then **archived** to `tasks/archive/...`
+when done and out of the way. That lifecycle is exactly wrong for a **reference document**:
+something whose value *outlives* the work that produced it and that I'll re-open repeatedly.
+Filing one as a "completed" task archives it into a date-bucket I explicitly don't trawl,
+burying the knowledge I wanted to keep. (This came up 2026-07-20: an overnight galgebra-vs-
+gacalc gap analysis was written as a task, and it obviously wanted to be a standing reference,
+not an archived job.)
+
+**Reference docs live in `tasks/reference/<short-kebab-slug>.md`** (a sibling of
+`tasks/archive/`), one file per topic, and are **never archived** — they are living
+knowledge, updated in place as they drift or as items in them get promoted into real `tasks/`.
+
+**What qualifies as a reference doc** — create one when the deliverable is any of these:
+- a **comparison / competitive analysis** of another tool, library, or approach against mine
+  (e.g. "galgebra vs gacalc");
+- a **survey / landscape** of a problem space or the state of the art;
+- an **investigation's findings / conclusions** that stay true after the investigation ends
+  (a "why does X behave this way" write-up, a root-cause study);
+- a **design rationale / decision record** — why an approach was chosen, trade-offs weighed,
+  options rejected and why;
+- a **capability map / feature inventory or gap analysis** of my own code;
+- **domain notes** — distilled background I'll want on hand again (math, protocols, formats).
+
+**The test, when unsure:** *"will this still be worth reading after the current work is
+finished?"* If yes, and it states *what is true* rather than *what to do* → reference
+(`tasks/reference/`). A goal with steps and a done-state → task (`tasks/`, archived when done).
+
+**A research task and its output are two things.** The *investigation* may be a task ("research
+X vs Y"); its *deliverable* is a reference doc. When the task completes, archive the task doc
+and keep the note. Reference docs routinely **spawn** tasks (promote a row of a gap analysis
+into a `tasks/` item) and get **updated** as those tasks land — that cross-linking is expected,
+not a smell.
+
+- Create `tasks/reference/` the first time it's needed. Committable by default, like tasks.
+- **Session start:** the in-flight `tasks/` scan is **top-level only** — do **not** treat
+  `tasks/reference/` (or `tasks/archive/`) as pending work, and don't auto-trawl either.
+  Consult a reference doc by name when a topic it covers comes up.
+- **This structure is standard across every one of my projects** — use it (and create
+  `tasks/reference/` as needed) in any repo, even ones that don't obviously need it yet.
+
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
 **What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
