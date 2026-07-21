@@ -18,6 +18,10 @@ Steps:
 4. Verify `tasks/$ARGUMENTS.md` exists. If not, stop, list what's actually in `tasks/`, and ask me to pick the right slug.
 5. Compute today's date as `<YYYY>/<MM>/<DD>` (zero-padded). Ensure `tasks/archive/<YYYY>/<MM>/<DD>/` exists; create it (with intermediate dirs) if missing.
 6. If `tasks/archive/<YYYY>/<MM>/<DD>/$ARGUMENTS.md` already exists, stop and ask whether to overwrite or pick a different destination name.
-7. Edit the file in place before moving: set `**Status:** complete` and add a `**Completed:** <today, YYYY-MM-DD>` line directly under it if not already present. Leave the rest of the content alone.
-8. Move the file. If we're in a git repo, use `git mv`. Otherwise plain `mv`.
-9. Confirm the destination path. Do not commit — leave staging to me.
+7. **Harvest durable knowledge into a reference doc, and reconcile existing ones** (per the "Reference documents" convention in `~/.claude/CLAUDE.md` — reference docs are an expanded, agent-facing `CLAUDE.md`, and archiving otherwise buries decisions in a don't-trawl bucket). Read the task's content and decide:
+   - Does it hold **durable decisions / rationale / rejected alternatives / how-it-actually-works** that outlive the work? If so, **extract that into `tasks/reference/<topic>.md`** (create it, or update an existing reference doc it belongs to), **slim the task to a lean work record that points to the reference**, and cross-link both. Keep the *work log* (what was done, which gates passed) in the task.
+   - Independently, **double-check the other `tasks/reference/*` docs** (and, if relevant, `CLAUDE.md` / `README.md`): does completing this task make any of them **stale** (a claim no longer true) or **incomplete** (a decision/subsystem now missing)? Update as appropriate.
+   - Surface what you extracted/updated, concisely. If the task is purely mechanical with nothing durable to harvest and nothing to reconcile, say so and skip.
+8. Edit the file in place before moving: set `**Status:** complete` and add a `**Completed:** <today, YYYY-MM-DD>` line directly under it if not already present. Leave the rest of the content alone.
+9. Move the file. If we're in a git repo, use `git mv`. Otherwise plain `mv`.
+10. Confirm the destination path (and any reference-doc created/updated in step 7). Do not commit — leave staging to me.

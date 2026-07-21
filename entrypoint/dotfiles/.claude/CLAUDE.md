@@ -463,6 +463,14 @@ not an archived job.)
 `tasks/archive/`), one file per topic, and are **never archived** — they are living
 knowledge, updated in place as they drift or as items in them get promoted into real `tasks/`.
 
+**Think of `tasks/reference/` as an expanded, project-specific `CLAUDE.md` — and it is for
+*you, the agent* to read (Bill, 2026-07-21).** `CLAUDE.md` stays lean and loads every session;
+the reference directory is the larger, consultable body of *why this project is the way it is*
+— design decisions, rationale, how subsystems work, gap analyses, domain notes — distilled so
+I can get oriented **without** wading through every task doc or reading all the code. It is the
+first place to read when picking up an unfamiliar area, and the entry to read before touching a
+subsystem it covers.
+
 **What qualifies as a reference doc** — create one when the deliverable is any of these:
 - a **comparison / competitive analysis** of another tool, library, or approach against mine
   (e.g. "galgebra vs gacalc");
@@ -478,20 +486,59 @@ knowledge, updated in place as they drift or as items in them get promoted into 
 finished?"* If yes, and it states *what is true* rather than *what to do* → reference
 (`tasks/reference/`). A goal with steps and a done-state → task (`tasks/`, archived when done).
 
-**A research task and its output are two things.** The *investigation* may be a task ("research
-X vs Y"); its *deliverable* is a reference doc. When the task completes, archive the task doc
-and keep the note. Reference docs routinely **spawn** tasks (promote a row of a gap analysis
-into a `tasks/` item) and get **updated** as those tasks land — that cross-linking is expected,
-not a smell.
+**When archiving a task, harvest its durable knowledge into a reference doc first.** A
+completed task's *work log* — what was done, when, which gates passed — belongs in the archive.
+But the **decisions, rationale, rejected alternatives, and how-it-actually-works** it
+accumulated are exactly the reference material listed above, and archiving (or a history
+squash) would otherwise bury them where I never look. So at archive time: **extract that
+content into a `tasks/reference/` doc**, slim the task to a lean work record that *points to*
+the reference, then archive the task and cross-link both. Do this as a normal part of
+archiving a non-trivial task — not only when I ask. (Worked example, 2026-07-21: the
+"type-precise products" task's decision rationale — why overloads over free functions, why
+`-> MultiVectorBase` not `G2` — was extracted to `tasks/reference/generated-product-typing.md`
+before the thin work record was archived.)
+
+**A research task and its output are two things** — the same split, seen from the other end.
+The *investigation* may be a task ("research X vs Y"); its *deliverable* is a reference doc.
+Reference docs routinely **spawn** tasks (promote a row of a gap analysis into a `tasks/` item)
+and get **updated** as those tasks land — that cross-linking is expected, not a smell.
 
 - Create `tasks/reference/` the first time it's needed. Committable by default, like tasks.
-- **Session start:** the in-flight `tasks/` scan is **top-level only** — do **not** treat
-  `tasks/reference/` (or `tasks/archive/`) as pending work, and don't auto-trawl either.
-  Consult a reference doc by name when a topic it covers comes up.
+- **Session start & orientation:** the in-flight `tasks/` scan stays **top-level only** —
+  `tasks/reference/` and `tasks/archive/` are never pending work. But treat `tasks/reference/`
+  like a table of contents I *know exists*: note what entries are there (listing their titles
+  is cheap), and **read the relevant one when getting oriented on a project or before touching a
+  subsystem it covers** — exactly as I'd read the pertinent part of `CLAUDE.md`. Don't bulk-read
+  every reference doc each session (they can be large); pull the one that matches the work at
+  hand.
 - **This structure is standard across every one of my projects** — use it (and create
   `tasks/reference/` as needed) in any repo, even ones that don't obviously need it yet.
 
 Helper command: `/new-reference <slug>` to scaffold one.
+
+### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
+
+**When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
+it for now", etc.), before we stop do a **documentation-reconciliation pass** so the always-read
+docs don't drift from what the session actually changed:
+
+1. **Read**, for each project we touched this session: its **`CLAUDE.md`**, **every
+   `tasks/reference/*` doc**, and its **`README.md`**. (Scope to projects we touched — don't sweep
+   unrelated mounts.)
+2. **Reconcile against what happened this session** — new or changed code, decisions made, things
+   learned, conventions established, subsystems added or reshaped. Look for what's now **stale** (a
+   claim no longer true), **missing** (a decision/subsystem/convention not written down), or
+   **misplaced** (detail bloating `CLAUDE.md` that belongs in a `tasks/reference/` doc; a finding
+   that should be promoted from a task).
+3. **Tell me the list** — what should change and why, grouped by file, concisely.
+4. **Then make the updates.** This is report-**and-do**, not report-and-wait — I've asked for the
+   pass, so apply the changes (keeping `CLAUDE.md` lean and pushing detail into `tasks/reference/`
+   per the convention above) and show me the diffs. Flag anything genuinely ambiguous for me to
+   decide rather than guessing.
+
+Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
+updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
+`/audit-repo` does, but scoped to the always-read docs and triggered automatically at session end.)
 
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
