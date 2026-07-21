@@ -491,6 +491,8 @@ not a smell.
 - **This structure is standard across every one of my projects** — use it (and create
   `tasks/reference/` as needed) in any repo, even ones that don't obviously need it yet.
 
+Helper command: `/new-reference <slug>` to scaffold one.
+
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
 **What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
