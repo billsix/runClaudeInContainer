@@ -651,6 +651,14 @@ For each mount found, read its `CLAUDE.md` if present and apply those rules when
 
 If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
 
+### Reference my projects by their GitHub URL in documentation, not the local path
+
+My projects are **local git checkouts** bind-mounted at container paths (`/foo/opt/<name>`, `/bar/…`, etc.); each has a **GitHub remote** (typically `github.com/billsix/<repo>`). Those container-absolute paths exist **only inside this sandbox** — they are meaningless and non-portable to anyone reading the docs on GitHub. I'll often refer to a project by its local path in conversation; that's fine for chat.
+
+But **in anything that gets committed or shared** — a `README.md`, a `CLAUDE.md`, a task or `tasks/reference/` doc, a code comment, a commit/PR body — **never write the container-absolute path for one of my projects; use its GitHub URL instead.**
+
+**Confirm the URL from the actual git remote — don't guess it from the directory name.** The mount's directory name often differs from the GitHub repo name (a `hanoi` dir whose remote is `towersofhanoi`; a `gltron` dir whose remote is `gltron-mirror`). Read the real URL with `git -C <local-path> remote get-url origin` (or `git remote -v`) and use that. If a repo's remote isn't GitHub or can't be confirmed (e.g. a third-party checkout, or one with no billsix remote), say so rather than inventing a URL. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`, the URL read from the remote.)
+
 ## My project layout (the container-per-project template)
 
 Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-container dev environment**, driven by a `Makefile` whose targets each `podman run --rm` the project's image and hand it a script from `entrypoint/`. Use this as a **conformance reference**: when I mount a new project (often via `EXTRA_MOUNTS`), compare it against the tiers below and tell me where it diverges — a deliberate variation is fine, an *accidental* drift (stale copy-paste, wrong path, missing target) is what I want flagged. The tiers are **invariant** (true of every project), **common** (most), and **variant** (legitimately differs).
