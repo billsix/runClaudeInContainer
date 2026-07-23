@@ -409,12 +409,15 @@ package metadata) over eyeballing a sorted list.
 The double-digit boundary is where this bites: it is invisible through `0.0.9` and starts
 lying at `0.0.10`.
 
-## Git: I commit, you don't
+## Git: I commit, you don't — but you DO stage
 
-Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete.
+Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete. **Staging is your half of that handoff, and it is the default, not an option.**
 
-- **You may stage** (`git add`) when it's helpful to group your changes, but **do not `git commit`** (and never `git push`) unless I explicitly ask in that moment. Editing the working tree is your normal mode; turning those edits into commits is mine.
-- **Don't keep asking "want me to commit?"** after finishing work. Just leave the changes staged or unstaged and tell me what changed — assume I'll commit it myself.
+- **Stage finished work automatically — don't wait to be asked.** When a coherent piece of work is done, `git add` the files it touched and say so in your summary. A finished change left unstaged is a change I might not notice and might overwrite. By the end of any work chunk, `git status` should read as a handoff: staged = "this is the work," unstaged = "this is still in flight or isn't mine to give you."
+- **Why staging specifically: `git add` writes the content into `.git/objects`, so it survives.** An unstaged edit is only bytes on disk — a later overwrite, a bad `checkout`, or a botched `sed` loses it with no recovery. Staged content can always be recovered (`git fsck --lost-found`) even if the working tree is clobbered. It is the cheapest possible backup and it costs nothing, so err toward staging early and often rather than once at the end.
+- **Stage the files your work touched, by path** (`git add <paths>`), **never `git add -A`.** A blanket add sweeps in build artifacts, scratch files, and anything I was editing myself — that makes the handoff *less* useful, not more. If something is generated or gitignored, leave it out and mention it.
+- **Stage, then stop.** Never `git commit`, and never `git push`, unless I ask in that moment. Turning staged work into commits is mine.
+- **Don't keep asking "want me to commit?"** after finishing work. Stage it, tell me what changed, and move on — assume I'll commit it myself.
 - **If you're curious about what was done** — earlier in this session, in a prior session, or by me between sessions — **read the git history** (`git log`, `git show`, `git diff`) rather than asking or assuming. The working tree lives on a host bind mount, so my out-of-container commits show up there; the history is the source of truth for "what happened."
 
 ## Quick-save commits, then squash to a per-task history (only when I authorize committing)
@@ -535,6 +538,9 @@ docs don't drift from what the session actually changed:
    pass, so apply the changes (keeping `CLAUDE.md` lean and pushing detail into `tasks/reference/`
    per the convention above) and show me the diffs. Flag anything genuinely ambiguous for me to
    decide rather than guessing.
+5. **Stage everything the session touched** (`git add` by path, per "Git: I commit, you don't —
+   but you DO stage"), including the doc updates from this sweep, so the session ends with the
+   work handed off rather than sitting loose in the working tree.
 
 Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
 updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
