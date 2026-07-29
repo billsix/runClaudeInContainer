@@ -80,11 +80,15 @@ CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # creates the host-side dir itself.
 CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
 
-# Repo-tracked Claude config (CLAUDE.md + slash commands) layered on top of the
-# host's ~/.claude mount so edits flow back to git. Auth/sessions/credentials
-# still come from the host mount above.
+# Repo-tracked Claude config (CLAUDE.md + slash commands + reference docs)
+# layered on top of the host's ~/.claude mount so edits flow back to git.
+# Auth/sessions/credentials still come from the host mount above. tasks/reference
+# holds docs the mounted CLAUDE.md tells the agent to read (e.g. the overused-
+# words catalog, read at session start); mounting it keeps those pointers valid
+# in every session while the docs stay in their conventional tasks/reference home.
 CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claude/CLAUDE.md:Z \
-                         -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:Z
+                         -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:Z \
+                         -v ./tasks/reference:/root/.claude/reference:Z
 
 
 PROJECT_DIR ?= $(notdir $(CURDIR))

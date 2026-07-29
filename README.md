@@ -50,9 +50,12 @@ The run (`make shell`) mounts, on top of the image:
 - Host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, and `~/.claude` — **only if they
   exist** on the host.
 - The repo-tracked `CLAUDE.md` and `commands/` from
-  `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount. This
-  keeps your conventions and slash commands in version control while auth,
-  sessions, and credentials still come from the host mount.
+  `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
+  this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
+  `CLAUDE.md` points at, e.g. the overused-words catalog it reads at session
+  start). This keeps your conventions, slash commands, and those reference docs
+  in version control while auth, sessions, and credentials still come from the
+  host mount.
 - X11 and Wayland sockets, so GUI programs (Firefox, GTK Emacs, etc.) display on
   the host.
 
@@ -138,6 +141,7 @@ sandbox: `podman build -t selftest .`.
 | `entrypoint/shell.sh` | `make shell` launcher (`cd /` then `exec bash`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
+| `tasks/reference/` | Reference docs, mounted at `~/.claude/reference/` for the conventions to cite |
 
 ## License
 

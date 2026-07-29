@@ -23,11 +23,15 @@ user-facing overview.
 ## The two-layer Claude config
 
 `entrypoint/dotfiles/.claude/CLAUDE.md` and `commands/` are **mounted over** the
-host's `~/.claude` at run time (see `CLAUDE_DOTFILES_MOUNT` in the `Makefile`). That
-file holds the user's *cross-project conventions* and is version-controlled here;
-auth, sessions, and credentials come from the host `~/.claude` mount instead. Edits
-to those conventions should be made in `entrypoint/dotfiles/.claude/` so they flow
-back to git.
+host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
+`~/.claude/reference/` alongside them (see `CLAUDE_DOTFILES_MOUNT` in the
+`Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
+version-controlled here; auth, sessions, and credentials come from the host
+`~/.claude` mount instead. The `tasks/reference/` mount exists because the mounted
+`CLAUDE.md` tells the agent to read docs there (currently the overused-words catalog,
+read at session start), so those pointers must resolve in every session. Edits to the
+conventions or commands go in `entrypoint/dotfiles/.claude/`; the reference docs are
+edited in `tasks/reference/` as usual — both flow back to git.
 
 This root `CLAUDE.md` (the one you're reading) is project-specific guidance for
 working on the container builder; it is distinct from the mounted cross-project
