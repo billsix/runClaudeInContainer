@@ -1,6 +1,7 @@
 # Overused LLM words/phrases — catalog, alternatives, and CLAUDE.md guidance
 
-**Status:** done 2026-07-29 — deliverables staged, awaiting Bill's review (archive after)
+**Status:** complete
+**Completed:** 2026-07-29
 **Started:** 2026-07-29
 
 ## Goal

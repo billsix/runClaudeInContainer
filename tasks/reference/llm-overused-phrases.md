@@ -1,6 +1,6 @@
 # Words and phrases overused by Claude Code and LLMs — catalog, alternatives, verdicts
 
-**Created:** 2026-07-29 (from `tasks/llm-overused-phrases.md`)
+**Created:** 2026-07-29 (work record: `tasks/archive/2026/07/29/llm-overused-phrases.md`)
 **What this is:** a research-backed catalog of the words and multi-word phrases that
 Claude Code and LLMs generally overuse; for each: what it means, ~15 alternatives, and
 a verdict on which alternatives are worth remembering. The distilled, actionable form
