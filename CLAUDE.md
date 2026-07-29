@@ -18,7 +18,8 @@ user-facing overview.
 - **`entrypoint/shell.sh`** — what `make shell` runs; `cd /` then `exec bash`.
 - **`entrypoint/dotfiles/`** — copied into `/root/` at build time: `.extrabashrc`
   (prompt, `GPG_TTY`, `ls` alias), `.emacs.d/`, and `.claude/`.
-- **`run.sh`** — a saved `make shell` invocation with `EXTRA_MOUNTS` populated.
+- **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`
+  and `EXTRA_MOUNTS` populated.
 
 ## The two-layer Claude config
 

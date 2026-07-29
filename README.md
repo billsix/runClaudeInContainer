@@ -70,8 +70,8 @@ Use `EXTRA_MOUNTS` to bind additional host paths:
 make shell EXTRA_MOUNTS="-v /home/me/project:/project:Z"
 ```
 
-`run.sh` is a saved example of this (it mounts a SPIM simulator and assembly-tutorial
-directories).
+`exampleRunClaude.sh` is a saved example of this (it launches with nested Podman
+enabled and mounts a projects directory plus openstax and N64 trees).
 
 ### Building containers inside the sandbox (nested Podman)
 
@@ -136,7 +136,7 @@ sandbox: `podman build -t selftest .`.
 | --- | --- |
 | `Dockerfile` | Image definition (Fedora base + toolchain + Claude Code) |
 | `Makefile` | `make image` / `make shell`; host-mount detection; X11/Wayland passthrough |
-| `run.sh` | Saved `make shell` invocation with extra mounts |
+| `exampleRunClaude.sh` | Saved `make shell` invocation with extra mounts |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
 | `entrypoint/shell.sh` | `make shell` launcher (`cd /` then `exec bash`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |
