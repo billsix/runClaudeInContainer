@@ -763,6 +763,49 @@ When nested podman is available, "done" for a code change means **the project's 
 - **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke Bill's plain `make image` inside the tree-sitter keyword pipeline.)
 - **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what Bill actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.
 
+## A multi-step check script must propagate every step's failure
+
+**The design intent of `format.sh` (and any `make format` / `lint` / `check` target
+that chains tools) is "run EVERY step, so one pass reports ALL the red" — deliberately
+not fail-fast.** But a plain command sequence in a shell script exits with the **last
+command's status alone**, so `make` reports green whenever the final step passes,
+silently masking every earlier failure. This is not hypothetical; it has bitten twice:
+
+- **mvp, 2026-07-09:** 79 `ty` diagnostics in `src/` hid for weeks behind a green
+  format gate (the final `ty check` in the sequence happened to pass).
+- **gacalc, 2026-07-29:** 3 `ty` errors were printed mid-output, then the last step
+  (`ty check tools`) printed its own "All checks passed!" and `make format` exited 0 —
+  the error report and the green verdict in the same scroll, and the gate was trusted
+  over the scroll.
+
+**The required shape — both properties at once** (every step still runs; any failure
+fails the script):
+
+```bash
+status=0
+ruff check . --fix       || status=1
+ruff format              || status=1
+ty check src             || status=1
+ty check tests           || status=1
+exit $status
+```
+
+(mvp's variant wraps this in a `run() { "$@" || status=1; }` helper — same thing.)
+
+- **`set -e` is the WRONG fix** — it makes the script fail-*fast*, losing the
+  report-everything property the multi-step design exists for. Accumulate, don't abort.
+- **Loops need it per-iteration**: `for f in …; do clang-format -i "$f" || status=1;
+  done` — a bare loop's exit is its last iteration's (this was gltron's flaw).
+- **Safe by shape, no change needed:** a single-command script (its exit *is* the
+  gate), and `find … -print0 | xargs -0 tool` (xargs exits 123 if any invocation
+  failed — spimulator/texExpToPng's shape).
+- **When writing or reviewing ANY gate script, check the exit-code story first:**
+  "if step 1 fails and the last step passes, what does `make` see?" And don't trust a
+  green gate over an error-bearing scroll — the 2026-07-29 case printed both.
+- Audit of all mounted repos (2026-07-29): mvp was already correct; **gacalc, hanoi,
+  multivariate-math, gltron fixed**; spimulator/texExpToPng safe by shape; the rest
+  have no format script.
+
 ## Instrumentation-driven debugging (make the tools tell you what to do)
 
 This is the working method Bill wants applied to any "I can't figure out why this won't work / where to even start" problem — build fights, upgrades, ports, migrations, flaky behavior, unfamiliar codebases. It's language- and tool-agnostic; the examples below are just whatever tool happens to be in front of you. The through-line: **make the machine tell you the truth, and make being wrong cheap.** Don't reason abstractly about what's probably wrong — instrument it so the tools *emit* the answer, then let their output *be* the plan.
