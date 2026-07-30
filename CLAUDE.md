@@ -29,14 +29,17 @@ host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
 version-controlled here; auth, sessions, and credentials come from the host
 `~/.claude` mount instead. The `tasks/reference/` mount exists because the mounted
-`CLAUDE.md` tells the agent to read docs there (currently the overused-words catalog,
-read at session start), so those pointers must resolve in every session. Edits to the
+`CLAUDE.md` tells the agent to read docs there (the overused-words catalog at session
+start; the nested-podman, config-layering, and capability-map docs when relevant), so
+those pointers must resolve in every session. Edits to the
 conventions or commands go in `entrypoint/dotfiles/.claude/`; the reference docs are
 edited in `tasks/reference/` as usual — both flow back to git.
 
 This root `CLAUDE.md` (the one you're reading) is project-specific guidance for
 working on the container builder; it is distinct from the mounted cross-project
-conventions.
+conventions. The full layering design — what persists where, the `mkdir -p`
+rationale, and the rejected alternatives — is in
+`tasks/reference/claude-config-layering.md`.
 
 ## Conventions for changing this repo
 
@@ -100,5 +103,5 @@ Security trade-off: the host Podman is **rootless** (container-root maps to host
 under a rootless host only grants privilege within the user namespace. The costs are
 SELinux disabled for that container (`label=disable` + `unmask=ALL`), broad
 `sys_admin`/`net_admin` capabilities (namespace-confined), and slower/ephemeral nested
-storage. Full rationale and declined alternatives are in
-`tasks/nested-podman.md` (or its archive).
+storage. Full rationale, declined alternatives, and operating lore are in
+`tasks/reference/nested-podman-design.md`.
