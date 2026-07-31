@@ -578,6 +578,46 @@ and get **updated** as those tasks land — that cross-linking is expected, not 
 
 Helper command: `/new-reference <slug>` to scaffold one.
 
+### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
+
+When the task is "read this whole codebase and make reference docs" — an unfamiliar project,
+no prior context — this is the method that worked (the Ghostship SM64 PC port,
+`github.com/HarbourMasters/Ghostship`, 2026-07-31: seven docs from a cold start):
+
+- **Fan out one reader per subsystem, in parallel.** Split the codebase along its real seams
+  (build, assets, each engine layer) and give each a subagent a focused brief: *return a
+  structured, `file:line`-anchored report, not prose*. Synthesize the reports into docs
+  yourself. One cold read of a 2000-file tree becomes N concurrent scoped reads, and the
+  synthesis + verification is where you actually learn it.
+- **Verify load-bearing claims before they enter a durable doc.** A reference doc is *trusted
+  later without re-checking*, so a wrong claim compounds. Independently confirm anything an
+  agent asserts as fact — especially "X is dead/unused/vestigial" (grep for refs; check the
+  build really excludes it; check the dir it needs even exists) and "the seam is *here*". One
+  agent pass is a lead, not proof. (Ghostship: an agent called `extract_assets.py` dead
+  legacy; a `git grep` plus "the `tools/` dir it needs is absent" confirmed it before I wrote
+  it down.)
+- **Distinguish live code from dead/vestigial code explicitly** — the single highest-value
+  thing a reference doc records, because it's the trap that wastes hours on re-discovery (half
+  the frame-interpolation ops had zero live callers; the N64 thread scheduler is inert). Say
+  "looks load-bearing, is inert, here's why."
+- **Git history answers *why / when / who*, not *what-is-true-now*.** The techniques that paid
+  off for reference-doc work: `git diff $(git merge-base upstream mine)..mine` to isolate a
+  fork's real delta; `git log --diff-filter=A --reverse -- <path>` + `git show --stat` to find
+  when/where a subsystem was born; `git shortlog -sne` for provenance; and reading the
+  commit-message trail for the bootstrap order (Ghostship's was legibly *build → intro →
+  audio → gameplay*). Current architecture comes from reading current code — don't reconstruct
+  it from history.
+- **Shape: an `architecture-overview.md` anchor + one doc per subsystem, cross-linked,** every
+  claim `file:line`-anchored so the doc lets you *jump*, not re-search. Then add a pointer
+  block to the project's `CLAUDE.md` indexing the set — even when a hand-written `CLAUDE.md`
+  already exists (add the index, keep the lean doc lean, push detail down into the reference
+  docs).
+- **`tasks/reference/` even when the repo has its own `docs/`.** Don't scatter reference docs
+  into a repo-local `docs/` folder just because one exists — the convention is
+  `tasks/reference/` in *every* repo, so the orientation habit and the session-end sweep find
+  them in one known place. (I filed them under `docs/reference/` first here and Bill moved me
+  back; a repo having a `docs/` dir is not a reason to diverge.)
+
 ### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
 
 **When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
