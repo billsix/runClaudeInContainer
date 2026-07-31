@@ -124,13 +124,14 @@ problem is that your output leans on the same words and phrases so often it beco
 annoying, samey, and dull to read. Every one of these is a legitimate word — the tell
 is *frequency*, so the goal is rationing and variety, not a ban.
 
-**At the start of every session, Read `~/.claude/reference/llm-overused-phrases.md`**
-— the full catalog behind this section (meaning, ~15 alternatives each, and which
-alternatives are worth keeping). It is mounted into the container alongside this
-file, so it is always present; the version-controlled copy lives in
-[runClaudeInContainer](https://github.com/billsix/runClaudeInContainer) at
-`tasks/reference/`, which the Makefile mounts to `~/.claude/reference/`. What follows
-here is the distilled version to keep in mind while writing.
+**The full catalog behind this section is `@`-imported into every session** (see
+*Auto-imported references* at the end of this file), so its content is always in context —
+you are not relied on to *choose* to read it (a reliance that failed on 2026-07-31, when the
+catalog went unread and "load-bearing" was overused). It gives each offender's meaning, ~15
+alternatives, and which are worth keeping. The version-controlled copy lives in
+[runClaudeInContainer](https://github.com/billsix/runClaudeInContainer) at `tasks/reference/`,
+mounted by the Makefile to `~/.claude/reference/`. What follows here is the distilled version
+to keep in mind while writing.
 
 **The fixes, in order of preference — synonym rotation is NOT one of them** (swapping
 delve→"dive into" or robust→"battle-tested" just mints the next cliché):
@@ -589,7 +590,7 @@ no prior context — this is the method that worked (the Ghostship SM64 PC port,
   structured, `file:line`-anchored report, not prose*. Synthesize the reports into docs
   yourself. One cold read of a 2000-file tree becomes N concurrent scoped reads, and the
   synthesis + verification is where you actually learn it.
-- **Verify load-bearing claims before they enter a durable doc.** A reference doc is *trusted
+- **Verify any claim a reader will later trust without re-checking, before it enters a durable doc.** A reference doc is *trusted
   later without re-checking*, so a wrong claim compounds. Independently confirm anything an
   agent asserts as fact — especially "X is dead/unused/vestigial" (grep for refs; check the
   build really excludes it; check the dir it needs even exists) and "the seam is *here*". One
@@ -599,7 +600,7 @@ no prior context — this is the method that worked (the Ghostship SM64 PC port,
 - **Distinguish live code from dead/vestigial code explicitly** — the single highest-value
   thing a reference doc records, because it's the trap that wastes hours on re-discovery (half
   the frame-interpolation ops had zero live callers; the N64 thread scheduler is inert). Say
-  "looks load-bearing, is inert, here's why."
+  "looks like it does real work, is inert, here's why."
 - **Git history answers *why / when / who*, not *what-is-true-now*.** The techniques that paid
   off for reference-doc work: `git diff $(git merge-base upstream mine)..mine` to isolate a
   fork's real delta; `git log --diff-filter=A --reverse -- <path>` + `git show --stat` to find
@@ -919,3 +920,15 @@ This is the working method Bill wants applied to any "I can't figure out why thi
 - **Instrument the artifact, not just the build.** The same reflex applies once it compiles/starts: run it on a tiny known input (a one-line smoke test), diff actual output/exit code against expected, and bisect flags/inputs until a single variable explains the delta. When a symptom is opaque, find the *narrowest* invocation that reproduces it, then vary one thing at a time.
 
 The habit in one line: **turn an unknown into a measured list, isolate causes in disposable environments, fix by class while a metric and a regression gate both stay honest.**
+
+## Auto-imported references
+
+Claude Code inlines `@`-path references from this file into context at load (recursively, up
+to ~5 hops), so the referenced file's *content* is present every session rather than being
+something I have to remember to open. This is the deterministic fix for "CLAUDE.md tells me to
+read X but I skip it": the content is loaded by the harness, not by my choosing. Only the
+always-relevant catalog goes here — the situational reference docs
+(`nested-podman-design.md`, `claude-config-layering.md`, `sandbox-capability-map.md`) stay
+read-on-demand, since inlining them every session would bloat context for no gain.
+
+@~/.claude/reference/llm-overused-phrases.md
