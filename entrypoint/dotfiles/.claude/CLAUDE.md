@@ -619,6 +619,44 @@ no prior context — this is the method that worked (the Ghostship SM64 PC port,
   them in one known place. (I filed them under `docs/reference/` first here and Bill moved me
   back; a repo having a `docs/` dir is not a reason to diverge.)
 
+### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
+
+When a reference set describes a **dependency the project pins by submodule/SHA** (a vendored engine,
+a git submodule), the docs rot the moment the pin moves. Hard-won documenting libultraship, which
+three sibling ports pin at three different commits (Ghostship `1.3.1-399`, Shipwright `1.3.1-463`,
+upstream main `1.3.1-472`):
+
+- **Pin the docs to the exact commit the consumer builds — not latest upstream — and banner it in
+  every doc** (record the SHA + `git describe`), so a future session can detect drift. If you cloned
+  the dependency separately, reset that clone to the submodule's SHA before studying it (fetch the
+  object first — a `reset --hard` to an un-fetched SHA silently lands somewhere else).
+- **Give a one-line re-sync check** ("compare `git -C <consumer>/<dep> rev-parse HEAD` to the banner
+  SHA; if they differ, reset the doc checkout and re-verify"). Without it, nobody knows the docs rotted.
+- **A version bump can be a *structural refactor*, not line drift — re-verify, don't assume.** Between
+  LUS `399` and `472`, `Context` went singleton (`GetInstance()` + `Init*` methods) → Component tree
+  (`CreateDefaultInstance`, `GetChildren().GetFirst<T>()`), files moved (`ship/Context.cpp` →
+  `ship/core/Context.cpp`), and whole subsystems appeared (events bus, scripting, keystore, tests). A
+  "re-anchor the line numbers" pass would have been wrong on nearly every page.
+- **Re-study method that worked: hand each reader the OLD-version doc as a baseline and demand
+  deltas** — each subagent returns STILL-TRUE (corrected anchors) / CHANGED (old claim → new fact) /
+  NEW-ABSENT. Faster and more accurate than re-mapping from scratch, and it pinpoints exactly what moved.
+- **Name the doc by what's actually present at the pinned version.** At `399` there was no event bus
+  or scripting, so `config-events-scripting.md` became `config-cvars-logging.md`. Don't carry a
+  name/scope across a version that no longer has those parts.
+- **When a *consumer's* doc cites the dependency's internals, point to the dependency's own pinned
+  docs — never embed drifting line numbers.** Ghostship's interpolation doc had cited LUS
+  `interpreter.cpp` line numbers from the wrong (newer) checkout — silently wrong for the version
+  Ghostship builds. Keep only the consumer's own `file:line` inline; banner which dependency commit
+  any borrowed anchor came from.
+
+**Sharpening the verify rule: parallel readers confidently contradict each other — resolve it
+yourself.** One LUS reader reported `OtrSignatureCheck` exists nowhere (grep-negative); another placed
+it exactly (`ResourceManager.cpp`). I grepped — it exists. Treat two readers disagreeing as a flag to
+check yourself, and remember **a subagent's "grep found nothing" is not proof of absence** (wrong
+scope, wrong path, a typo'd pattern). This is why the pass pays for itself: it caught a fictional
+`AudioDmaRegistry`, non-existent bridge statics, and a "`ThreadPool` component" that was really a
+plain member — before any reached a doc.
+
 ### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
 
 **When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
