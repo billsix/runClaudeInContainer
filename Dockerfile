@@ -261,6 +261,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    openssh-clients \
                    openssl-devel \
                    p7zip \
+                   PackageKit-gtk3-module \
                    pandoc \
                    pango-devel \
                    parallel \
@@ -346,6 +347,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    sbcl \
                    scons \
                    SDL2_image-devel \
+                   SDL2_net-devel \
                    SDL3-devel \
                    SDL3_sound \
                    SDL3_sound-devel \
@@ -398,6 +400,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    wireguard-tools \
                    wl-clipboard \
                    xclip \
+                   xdg-desktop-portal-gtk \
                    xdotool \
                    xmlstarlet \
                    xorg-x11-server-Xvfb \
@@ -405,6 +408,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    xz-devel \
                    yasm \
                    yq \
+                   zenity \
                    zig \
                    zip \
                    zlib-devel \
