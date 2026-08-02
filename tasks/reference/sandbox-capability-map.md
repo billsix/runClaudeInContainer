@@ -61,6 +61,14 @@ WebAssembly (wabt).
   vulkan-tools), GTK3/GTK4, Qt5/Qt6, cairo/pango/freetype.
 - **aspell + aspell-en** (added 2026-08-02) — spellcheck; e.g. enumerate the words
   the mvp book's `aspell` gate would flag via `aspell --personal=… list < file`.
+- **Sphinx book toolchain → HTML + PDF** (added 2026-08-02) — `python3-sphinx` +
+  `python3-furo` + `python3-nbsphinx` + `myst-nb`; PDF via **LuaLaTeX**
+  (`texlive-luahbtex` provides `lualatex`, NOT `texlive-luatex`) with
+  `fontspec`/`gnu-freefont` and the Sphinx-LaTeX support set (fncychap, wrapfig,
+  capt-of, needspace, tabulary, framed, titlesec, varwidth, fancyhdr, multirow,
+  threeparttable, eqparbox) + `latexmk`. Used by the mvp and gacalc books. lualatex,
+  not pdflatex, is required once autodoc pulls Unicode-math docstrings into the PDF —
+  pdflatex aborts on characters like `√`/`∧`/`e₁`.
 - Media: ffmpeg-free, sox, mpv, ImageMagick, gnuplot, graphviz, tesseract
   (OCR), poppler-utils (PDF).
 

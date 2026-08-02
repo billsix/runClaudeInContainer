@@ -527,15 +527,17 @@ Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archi
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
 
-While doing a task I often write throwaway scripts — codemods, bulk edits, one-off verification harnesses. **When such a script is substantive, save it under `tasks/adhoc/<task-slug>/<name>` in the repo and run it from there**, instead of executing it only from the ephemeral session scratchpad. The point is that you get a *committed record of the mechanical "how"* behind a large diff — and of *whether* a change was verified — not just the resulting diff.
+While doing a task I often write throwaway scripts — codemods, bulk edits, one-off verification harnesses, or a **one-time generative setup** (running a scaffolding tool, then transforming its output — e.g. `sphinx-quickstart` then editing the generated `conf.py`). **When such a script is substantive, save it under `tasks/adhoc/<task-slug>/<name>` in the repo and run it from there**, instead of executing it only from the ephemeral session scratchpad. The point is that you get a *committed record of the mechanical "how"* behind a large diff — and of *whether* a change was verified — not just the resulting diff.
 
 **What to save (the threshold — do NOT clutter this with one-liners):**
 
-- **Save:** scripts that **mutate repo files** (rename passes, codemods, generated transformations); non-trivial multi-step programs; and task-specific **verification / proof harnesses** (cross-reference checkers, before/after AST diffs, differential state traces).
-- **Skip:** trivial shell pipelines, `grep`/`sed`/`awk` one-liners, `python -c` snippets, and interactive exploration. Those belong in the terminal/scratchpad, not the repo — saving them defeats the auditability goal by burying the meaningful scripts.
+- **Save:** scripts that **mutate repo files** (rename passes, codemods, generated transformations); non-trivial multi-step programs; task-specific **verification / proof harnesses** (cross-reference checkers, before/after AST diffs, differential state traces); and **one-time generative setup** (a scaffolding tool plus the edits that shape its output into what the project keeps).
+- **Skip:** trivial shell pipelines, `grep`/`sed`/`awk` one-liners, `python -c` snippets, and interactive exploration (they belong in the terminal/scratchpad — saving them buries the meaningful scripts); **a script that merely reproduces a permanent file edit** (a `Dockerfile`/`Makefile`/config change — scripting it only duplicates what is already committed in the file, so edit the file directly); and **environment setup outside the project** (`dnf install`ing into the sandbox/container is not project work — its durable form is the project's own `Dockerfile`, or it's just sandbox state — so it is never an ad-hoc script).
 - **The test when unsure:** *would the diff alone leave you wondering how I did this, or whether it was safe?* If yes → save it.
 
 **Write them repo-relative and self-contained** — runnable from the repo root, no absolute scratchpad paths — so the saved copy is a meaningful, re-runnable record rather than a dead artifact.
+
+**Comment them for a reader with basic command-line knowledge** — explain the tool's flags and any non-obvious step, but don't explain piping, environment variables, or redirection (assume those are known). A saved scaffold is meant to *teach* the how, so a newcomer can follow it and learn from it, not just re-run it.
 
 **Namespacing:** `tasks/adhoc/<task-slug>/` — one subdir per task, matching the task doc's slug, so archiving can remove it in one step. For scripted work with no tracked task, use a short descriptive subdir name.
 
