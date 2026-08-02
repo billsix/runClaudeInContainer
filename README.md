@@ -56,7 +56,7 @@ The run (`make shell`) mounts, on top of the image:
   start). This keeps your conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
-- X11 and Wayland sockets, so GUI programs (Firefox, GTK Emacs, etc.) display on
+- X11 and Wayland sockets, so GUI programs (GTK Emacs, etc.) display on
   the host.
 
 Containers run with `--rm`, so each session is fresh; persistent state lives in the

@@ -19,6 +19,8 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    aria2 \
                    asciidoctor \
                    asciinema \
+                   aspell \
+                   aspell-en \
                    attr \
                    audit-libs-devel \
                    autoconf \
@@ -84,7 +86,6 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    ffmpeg-free \
                    fftw-devel \
                    file \
-                   firefox \
                    firewalld \
                    fish \
                    flex \
