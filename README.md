@@ -52,8 +52,9 @@ The run (`make shell`) mounts, on top of the image:
 - The repo-tracked `CLAUDE.md` and `commands/` from
   `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
   this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
-  `CLAUDE.md` points at, e.g. the overused-words catalog it reads at session
-  start). This keeps your conventions, slash commands, and those reference docs
+  `CLAUDE.md` `@`-imports into every session — the overused-words catalog plus the
+  nested-podman, sandbox-capability-map, and config-layering docs). This keeps your
+  conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
 - X11 and Wayland sockets, so GUI programs (GTK Emacs, etc.) display on
