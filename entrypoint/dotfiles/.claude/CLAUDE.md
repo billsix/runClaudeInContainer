@@ -511,6 +511,34 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
+## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
+
+While doing a task I often write throwaway scripts — codemods, bulk edits, one-off verification harnesses. **When such a script is substantive, save it under `tasks/adhoc/<task-slug>/<name>` in the repo and run it from there**, instead of executing it only from the ephemeral session scratchpad. The point is that you get a *committed record of the mechanical "how"* behind a large diff — and of *whether* a change was verified — not just the resulting diff.
+
+**What to save (the threshold — do NOT clutter this with one-liners):**
+
+- **Save:** scripts that **mutate repo files** (rename passes, codemods, generated transformations); non-trivial multi-step programs; and task-specific **verification / proof harnesses** (cross-reference checkers, before/after AST diffs, differential state traces).
+- **Skip:** trivial shell pipelines, `grep`/`sed`/`awk` one-liners, `python -c` snippets, and interactive exploration. Those belong in the terminal/scratchpad, not the repo — saving them defeats the auditability goal by burying the meaningful scripts.
+- **The test when unsure:** *would the diff alone leave you wondering how I did this, or whether it was safe?* If yes → save it.
+
+**Write them repo-relative and self-contained** — runnable from the repo root, no absolute scratchpad paths — so the saved copy is a meaningful, re-runnable record rather than a dead artifact.
+
+**Namespacing:** `tasks/adhoc/<task-slug>/` — one subdir per task, matching the task doc's slug, so archiving can remove it in one step. For scripted work with no tracked task, use a short descriptive subdir name.
+
+**Git lifecycle — committed during the task; at archive, PROMOTE or remove.** Stage ad-hoc scripts with the task's work (this is the one place a committed-then-deleted artifact is intended — it's the audit trail). At archive time, `/archive-task` triages each script:
+
+- **One-shot** — a codemod / bulk edit whose job is done and that you would not run again: **remove from version control** (`git rm -r`). The history survives in the work commits, so nothing is lost — `git log` / `git show` still recover it. (A task archived before its scripts were ever committed just deletes them — an accepted edge case, not a bug.)
+- **Reusable** — a checker / linter / report / proof-harness you *would* run again against future changes (the test is exactly that: *would I re-run this?*): **promote it** instead of deleting.
+
+**Promotion — a reusable script becomes a first-class tool.** When a script has ongoing value:
+
+- **Move it to the repo's tools location** — `tools/` where that exists (create one if not, or **fold it into an existing tool** rather than inventing a new directory) — with a **light cleanup**: make it repo-relative and self-contained, and give it a docstring saying *when to run it*. It is now maintained code, not a scratch artifact.
+- **Update the relevant reference doc** to note it (what it checks, when to run it). This is the runnable sibling of the "harvest durable knowledge into reference docs" step — the reference doc often gets both the rationale and a pointer to the tool.
+- **Investigate whether it should run as a make target.** Read the repo's `Makefile`, `Dockerfile`, and entrypoint scripts to see whether it belongs in an existing gate (`format` / `check-*` / `test`), wants its own `## `-documented target, must run **in-container after setup** (some checks can only run once generated/populated files exist — so they live in `entrypoint.sh`, not a host-side target), and/or needs a Dockerfile dependency. Then **propose** the specific wiring — shaped to the gate conventions (a multi-step check script must propagate every step's failure; the real gate runs in the container). **Do not auto-wire it**; changing the build/gate is Bill's to approve. "Manual tool, documented, not gated" is a valid outcome — not everything reusable should be a pass/fail gate (an informational audit like a dead-marker report shouldn't fail the build).
+- **Default to delete; promote only when the ongoing-use case is clear, and ASK when borderline.** A wrongly-promoted script rots in `tools/`; a wrongly-deleted one is still in git history.
+
+The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask.
+
 ## Reference documents — durable knowledge that isn't tracked work
 
 Not everything worth writing down is a *task*. A task doc tracks *work* — a goal, steps,
@@ -821,8 +849,9 @@ Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-co
 │   └── dotfiles/           #   optional — .extrabashrc, .emacs.d/, .tmux.conf, .lldbinit
 ├── .clang-format / .clang-tidy   # C/C++ projects
 ├── requirements.txt              # Python projects
+├── tools/                        #   common   — repo scripts / dev tooling: code generators, checkers, linters (e.g. gacalc's gen_specialized.py, mvp's check_doc_regions.py). The home a promoted ad-hoc script lands in.
 ├── output/                       # docs/book projects — bind target for built artifacts
-└── tasks/                        # the task-doc convention above
+└── tasks/                        # tasks/ (task docs) + tasks/reference/ (durable knowledge) + tasks/adhoc/ (transient scripts) — see conventions above
 ```
 
 ### Makefile contract
