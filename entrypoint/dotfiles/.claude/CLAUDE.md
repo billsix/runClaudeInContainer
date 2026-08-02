@@ -993,9 +993,15 @@ The habit in one line: **turn an unknown into a measured list, isolate causes in
 Claude Code inlines `@`-path references from this file into context at load (recursively, up
 to ~5 hops), so the referenced file's *content* is present every session rather than being
 something I have to remember to open. This is the deterministic fix for "CLAUDE.md tells me to
-read X but I skip it": the content is loaded by the harness, not by my choosing. Only the
-always-relevant catalog goes here — the situational reference docs
-(`nested-podman-design.md`, `claude-config-layering.md`, `sandbox-capability-map.md`) stay
-read-on-demand, since inlining them every session would bloat context for no gain.
+read X but I skip it": the content is loaded by the harness, not by my choosing. All four
+reference docs are auto-imported. The overused-phrases catalog is always relevant; the three
+sandbox/config docs are small (~100 lines each) and broadly useful — nested-podman and the
+sandbox capability map come up whenever a project is built or run in a nested container,
+which happens across projects, not only when working on this repo. The earlier "bloat for no
+gain" concern didn't hold up in practice (Bill, 2026-08-02). All `@`-paths resolve in the
+container, where the Makefile mounts `tasks/reference/` to `~/.claude/reference/`.
 
 @~/.claude/reference/llm-overused-phrases.md
+@~/.claude/reference/nested-podman-design.md
+@~/.claude/reference/sandbox-capability-map.md
+@~/.claude/reference/claude-config-layering.md
