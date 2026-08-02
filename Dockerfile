@@ -90,6 +90,8 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    fish \
                    flex \
                    fontconfig-devel \
+                   freeglut \
+                   freeglut-devel \
                    freetype-devel \
                    fuse-overlayfs \
                    fzf \

@@ -499,11 +499,25 @@ I'll normally ask for the cleanup explicitly ("squash the history"). Don't rewri
 
 For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
 
+### Priority & difficulty (rough triage for "what to work on next")
+
+Every task doc carries two 1–10 ratings in its header, directly under `**Status:**`:
+
+- **`**Priority:** N`** — `1` = highest (do first), `10` = least. Judge by value × urgency × whether finishing it unblocks other work. Parked / not-approved / someday tasks get a *high* number (low priority).
+- **`**Difficulty:** N`** — `1` = easiest, `10` = hardest. Effort + design risk + blast radius.
+
+**The scale is geometric — each step is ~1.5× the previous** (so a 10 is ~1.5⁹ ≈ 38× a 1). The high end deliberately compresses many hard/low-priority items; this is for *rough ranking to decide what's next*, not for estimation. Rough anchors:
+
+- **Difficulty:** 1 trivial (minutes, mechanical) · 3 small (≤ an hour, localized) · 5 medium (a session, some design) · 7 large (multi-session, cross-cutting) · 9 very large (major subsystem / real risk) · 10 project-scale.
+- **Priority:** 1–2 do-next / blocking / high value · 3–4 important soon · 5–6 normal backlog · 7–8 nice-to-have · 9–10 someday / parked.
+
+**Use them to choose next work:** scan a project's `tasks/` for the **lowest priority-number combined with the lowest difficulty-number** — high-value easy wins first. Assign both at creation (via `/new-task`) and revise as scope becomes clear.
+
 When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
 
 Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
 
-At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off. Don't trawl `tasks/archive/` unless I ask about prior work.
+At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off — **list each with its Priority/Difficulty, sorted easy-wins first** (lowest priority-number, then lowest difficulty-number) so it's immediately clear what's worth doing next. Don't trawl `tasks/archive/` unless I ask about prior work.
 
 Don't create a task file for one-off questions, trivial edits, or anything resolvable in a single response. Task files are for work that spans turns or sessions.
 

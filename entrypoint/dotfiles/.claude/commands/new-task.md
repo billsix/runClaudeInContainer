@@ -19,6 +19,8 @@ Steps:
    # <Title>
 
    **Status:** in-progress
+   **Priority:** <1–10, 1=highest>
+   **Difficulty:** <1–10, 1=easiest>
    **Started:** <today, YYYY-MM-DD>
 
    ## Goal
@@ -34,5 +36,5 @@ Steps:
    ## Open questions
    ```
 
-6. Ask me for the title and one-paragraph goal (don't invent them from the slug). Fill them in once I answer. Leave Plan/Notes/Open questions for me or for our work to populate.
+6. Ask me for the title and one-paragraph goal (don't invent them from the slug). Fill them in once I answer. Also **propose a Priority and Difficulty** (1–10 each, per the scale in the "Task documents" section of `CLAUDE.md` — 1=highest priority / easiest, geometric ~1.5×/step) with a one-line rationale for each, and let me adjust before finalizing. Leave Plan/Notes/Open questions for me or for our work to populate.
 7. Confirm the path of the created file.
