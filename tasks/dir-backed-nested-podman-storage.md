@@ -1,6 +1,8 @@
 # Investigate: disk-directory-backed nested-podman storage (vs the RAM tmpfs)
 
 **Status:** proposed — investigation only (needs go-ahead to implement)
+**Priority:** 5
+**Difficulty:** 6
 **Created:** 2026-07-06
 **Motivation:** the nested-podman inner store `/var/lib/containers` is currently a **RAM-backed tmpfs**
 (default 8g, `NESTED_PODMAN_TMPFS_SIZE`). Large inner image builds overflow it: on 2026-07-06 a nested
