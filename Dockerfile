@@ -148,6 +148,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    kcachegrind \
                    ksh \
                    lapack-devel \
+                   latexmk \
                    less \
                    leveldb-devel \
                    libacl-devel \
@@ -238,6 +239,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    mpfr-devel \
                    mpv \
                    mtr \
+                   myst-nb \
                    nano \
                    nasm \
                    ncdu \
@@ -299,10 +301,12 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    python3-clang \
                    python3-cython \
                    python3-devel \
+                   python3-furo \
                    python3-ipython \
                    python3-matplotlib \
                    python3-mypy \
                    python3-nanobind \
+                   python3-nbsphinx \
                    python3-notebook \
                    python3-numpy \
                    python3-pandas \
@@ -376,9 +380,28 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
                    texinfo \
                    texlive \
                    texlive-anyfontsize \
+                   texlive-capt-of \
+                   texlive-collection-fontsrecommended \
+                   texlive-collection-latexrecommended \
                    texlive-dvipng \
                    texlive-dvisvgm \
+                   texlive-eqparbox \
+                   texlive-fancyhdr \
+                   texlive-fncychap \
+                   texlive-fontspec \
+                   texlive-framed \
+                   texlive-gnu-freefont \
+                   texlive-luahbtex \
+                   texlive-lualatex-math \
+                   texlive-luatex85 \
+                   texlive-multirow \
+                   texlive-needspace \
                    texlive-standalone \
+                   texlive-tabulary \
+                   texlive-threeparttable \
+                   texlive-titlesec \
+                   texlive-varwidth \
+                   texlive-wrapfig \
                    the_silver_searcher \
                    tig \
                    tinyxml2-devel \

@@ -50,11 +50,17 @@ WebAssembly (wabt).
   ImageMagick — run `Xvfb :99`, point `DISPLAY` at it (shareable into nested
   containers via `/tmp/.X11-unix`), screenshot with `import`, and judge pixels.
   glfw reports `4.6 (Compatibility Profile) Mesa` through this path.
+  **Caveat (2026-08-02): freeglut/GLUT C++ demos won't render under Xvfb** — they
+  fail with X `BadAtom` and capture black. GLFW-based demos render fine; for GLUT
+  use the host display, not the headless path.
 - **Host display passthrough:** X11 socket + Wayland (`$XDG_RUNTIME_DIR`)
   mounts are always on — GUI apps (GTK/Qt apps, Emacs-pgtk) display
   on the host in interactive use.
-- Dev libraries for GL/Vulkan/SDL (glew, glfw, SDL2_image, SDL3(+sound),
+- Dev libraries for GL/Vulkan/SDL (glew, glfw, **freeglut/-devel** (added
+  2026-08-02, for building nested GLUT C++ demos), SDL2_image, SDL3(+sound),
   vulkan-tools), GTK3/GTK4, Qt5/Qt6, cairo/pango/freetype.
+- **aspell + aspell-en** (added 2026-08-02) — spellcheck; e.g. enumerate the words
+  the mvp book's `aspell` gate would flag via `aspell --personal=… list < file`.
 - Media: ffmpeg-free, sox, mpv, ImageMagick, gnuplot, graphviz, tesseract
   (OCR), poppler-utils (PDF).
 
