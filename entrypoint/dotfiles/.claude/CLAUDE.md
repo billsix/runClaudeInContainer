@@ -523,6 +523,8 @@ Don't create a task file for one-off questions, trivial edits, or anything resol
 
 If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. By default these docs are committable — only add `tasks/` to `.gitignore` if I explicitly ask.
 
+**When a task you create (or substantially flesh out) has open questions, surface them to me at report time — don't bury them in the doc.** If the task's **Open questions** section is non-empty, repeat those questions as a **numbered list at the very end of the message** that tells me you made the task (this is the "Questions for me go inline AND in a closing list" rule, applied to task creation — I should see what you need from me in the message, not have to open the file to find it). Number them, name the positions, and include your recommendation per question. And per "Every question must be addressed before you implement anything": a question that blocks the work still blocks it even though the task is "made" — don't start implementing until I've addressed the numbered questions, and don't read a bare "go ahead" as answering them unless it actually resolves each one.
+
 Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
