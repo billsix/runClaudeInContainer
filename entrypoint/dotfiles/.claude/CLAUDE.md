@@ -1,5 +1,22 @@
 # Cross-project conventions
 
+## Who "the user" is — identified by git config
+
+Throughout these conventions the first person ("I", "me", "my") is the **user** — the
+person running this session — and the second person ("you") is the agent. The user is
+**not a fixed individual**: identify whoever is in the current session by their
+`git config user.name` and `user.email` (the host `~/.gitconfig` is mounted into the
+sandbox, and the shell exports `CLAUDE_USER_NAME` / `CLAUDE_USER_EMAIL` at start). Other
+people will contribute over time; "the user" always means the current one, and you should
+refer to them by that git identity rather than assuming a specific person.
+
+- **When you write a new dated attribution or decision stamp, identify the user uniquely
+  by name and email** — e.g. `(William Emerison Six <billsix@gmail.com>, 2026-08-12)` — so
+  a multi-contributor history stays unambiguous about who decided what. (Existing
+  historical stamps and authorship credits are left as written; they already record who.)
+- **When no git identity is available** (no `~/.gitconfig` mounted), treat the user as an
+  unknown user rather than assuming a specific person.
+
 ## Confirm before acting
 
 When I ask you to **list, identify, find, plan, or investigate** something, that's a request for the information — **not** authorization to make changes. Produce the list / plan / findings and **stop**. Wait for my explicit go-ahead ("do it", "apply them", "go ahead") before editing files or running mutating commands. When a request is ambiguous between "tell me" and "do it," treat it as "tell me" and ask.
@@ -220,7 +237,7 @@ agnostic; the examples are Python because that is where it came up.
   to one line.
 - **Do neither when the helper would be used exactly once** and exists only to reshape
   control flow or avoid mutating a local. That is the "inline a value used exactly once"
-  rule applied to functions. I proposed exactly this once and Bill declined it — the two
+  rule applied to functions. I proposed exactly this once and the user declined it — the two
   helpers were single-use and existed only to fill a constructor call.
 
 **A corollary worth its own line: raise an error from the code that discovers it.** The
@@ -318,7 +335,7 @@ Raise a question at the point in the response where it arises — that's where t
 is. **Then repeat every one of them at the end, as a NUMBERED list**, one or two
 sentences each. Without that list I have to re-read a long response hunting for what you
 actually need from me, and questions buried mid-prose get missed (2026-07-18: I ended a
-long status update with two questions in different paragraphs and Bill's reply was "what
+long status update with two questions in different paragraphs and the user's reply was "what
 are you asking me?").
 
 - **Number them (1., 2., 3.)**, not bullets, so I can answer by number.
@@ -552,7 +569,7 @@ While doing a task I often write throwaway scripts — codemods, bulk edits, one
 
 - **Move it to the repo's tools location** — `tools/` where that exists (create one if not, or **fold it into an existing tool** rather than inventing a new directory) — with a **light cleanup**: make it repo-relative and self-contained, and give it a docstring saying *when to run it*. It is now maintained code, not a scratch artifact.
 - **Update the relevant reference doc** to note it (what it checks, when to run it). This is the runnable sibling of the "harvest durable knowledge into reference docs" step — the reference doc often gets both the rationale and a pointer to the tool.
-- **Investigate whether it should run as a make target.** Read the repo's `Makefile`, `Dockerfile`, and entrypoint scripts to see whether it belongs in an existing gate (`format` / `check-*` / `test`), wants its own `## `-documented target, must run **in-container after setup** (some checks can only run once generated/populated files exist — so they live in `entrypoint.sh`, not a host-side target), and/or needs a Dockerfile dependency. Then **propose** the specific wiring — shaped to the gate conventions (a multi-step check script must propagate every step's failure; the real gate runs in the container). **Do not auto-wire it**; changing the build/gate is Bill's to approve. "Manual tool, documented, not gated" is a valid outcome — not everything reusable should be a pass/fail gate (an informational audit like a dead-marker report shouldn't fail the build).
+- **Investigate whether it should run as a make target.** Read the repo's `Makefile`, `Dockerfile`, and entrypoint scripts to see whether it belongs in an existing gate (`format` / `check-*` / `test`), wants its own `## `-documented target, must run **in-container after setup** (some checks can only run once generated/populated files exist — so they live in `entrypoint.sh`, not a host-side target), and/or needs a Dockerfile dependency. Then **propose** the specific wiring — shaped to the gate conventions (a multi-step check script must propagate every step's failure; the real gate runs in the container). **Do not auto-wire it**; changing the build/gate is the user's to approve. "Manual tool, documented, not gated" is a valid outcome — not everything reusable should be a pass/fail gate (an informational audit like a dead-marker report shouldn't fail the build).
 - **Default to delete; promote only when the ongoing-use case is clear, and ASK when borderline.** A wrongly-promoted script rots in `tools/`; a wrongly-deleted one is still in git history.
 
 The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask.
@@ -662,7 +679,7 @@ no prior context — this is the method that worked (the Ghostship SM64 PC port,
 - **`tasks/reference/` even when the repo has its own `docs/`.** Don't scatter reference docs
   into a repo-local `docs/` folder just because one exists — the convention is
   `tasks/reference/` in *every* repo, so the orientation habit and the session-end sweep find
-  them in one known place. (I filed them under `docs/reference/` first here and Bill moved me
+  them in one known place. (I filed them under `docs/reference/` first here and the user moved me
   back; a repo having a `docs/` dir is not a reason to diverge.)
 
 ### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
@@ -800,7 +817,7 @@ root purpose in view, so the guidance is:
   the root purpose and the depth ("we're 4 diversions deep; the reason we started was
   X"). That single line is what stops us rabbit-holing.
 - **Check the current micro-decision against the root — especially before deciding.**
-  Before I ask Bill to arbitrate some deep-in-the-weeds choice, look down the trail and
+  Before I ask the user to arbitrate some deep-in-the-weeds choice, look down the trail and
   ask out loud: *does this still serve the thing at the bottom, or have we lost the
   plot?* If a diversion has grown out of proportion to the purpose it was meant to serve,
   **say so** — "this started as 'write doctests' and has become a cross-repo checksum
@@ -808,9 +825,9 @@ root purpose in view, so the guidance is:
 - **When recommending a next action, prefer the entry closest to the ROOT that is
   actionable** — climbing back *down* toward the purpose, not deeper into the newest
   tangent. Phrase it as a recommendation, never a present-tense fact, and give **one**
-  recommendation, not a menu (that hands Bill the sorting the trail is meant to do for
+  recommendation, not a menu (that hands the user the sorting the trail is meant to do for
   him). I got this exactly wrong on 2026-07-19: asserted "what we should be doing now:
-  <newest tangent>", then contradicted it, then handed Bill a list to arbitrate.
+  <newest tangent>", then contradicted it, then handed the user a list to arbitrate.
 
 **Two things must survive a push:** the concrete next action, and the unanswered
 questions, verbatim. A vague "continue the doctest work" is a failed entry; so is one that
@@ -945,8 +962,8 @@ test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no
 
 When nested podman is available, "done" for a code change means **the project's own containerized gate passed** — the `make image` / `make test` / `make dist` target that repo's CLAUDE.md names as its gate — not merely an in-sandbox build and unit-test run. Build the nested container and run the real gate before calling a change verified.
 
-- **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke Bill's plain `make image` inside the tree-sitter keyword pipeline.)
-- **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what Bill actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.
+- **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke the user's plain `make image` inside the tree-sitter keyword pipeline.)
+- **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what the user actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.
 
 ## A multi-step check script must propagate every step's failure
 
@@ -993,7 +1010,7 @@ exit $status
 
 ## Instrumentation-driven debugging (make the tools tell you what to do)
 
-This is the working method Bill wants applied to any "I can't figure out why this won't work / where to even start" problem — build fights, upgrades, ports, migrations, flaky behavior, unfamiliar codebases. It's language- and tool-agnostic; the examples below are just whatever tool happens to be in front of you. The through-line: **make the machine tell you the truth, and make being wrong cheap.** Don't reason abstractly about what's probably wrong — instrument it so the tools *emit* the answer, then let their output *be* the plan.
+This is the working method the user wants applied to any "I can't figure out why this won't work / where to even start" problem — build fights, upgrades, ports, migrations, flaky behavior, unfamiliar codebases. It's language- and tool-agnostic; the examples below are just whatever tool happens to be in front of you. The through-line: **make the machine tell you the truth, and make being wrong cheap.** Don't reason abstractly about what's probably wrong — instrument it so the tools *emit* the answer, then let their output *be* the plan.
 
 - **The tool is the oracle, not your intuition.** Whatever tool sits closest to the problem — compiler, linker, type checker, linter, test runner, the program's own logs/stderr/exit code, `strace`/`ltrace`, a profiler, `git bisect` — is a source of precise, free, location-attached to-do items. Your job is mostly to *run the right probe and listen in the right order*, not to theorize. Prefer an experiment that makes the tool speak over an argument about what it would probably say.
 - **Collect the whole truth, not the first casualty.** Most tools stop at the first failure and lie about scale. Force them to keep going and report everything — keep-going/max-errors modes, "run the whole suite not fail-fast," full-output not summary — then **categorize by failure-class × count × location.** That reframing is most of the value: it turns a vague dread ("this whole thing is broken / too old to fix") into *N failures, 2 classes that matter, most of them in one place* — a checklist with a denominator you can watch shrink.

@@ -1,11 +1,12 @@
 # Identify the session user by git name + email; de-hardcode "Bill" in the conventions
 
-**Status:** ready — all decisions made; awaiting go-ahead to implement
+**Status:** implemented 2026-08-12 (cross-project conventions) — per-project CLAUDE.md
+lines left as authorship/env-specific; awaiting user ruling on those (see Work log)
 **Priority:** 3
 **Difficulty:** 4
 **Created:** 2026-08-12
-**Updated:** 2026-08-12 — decisions locked: category-1-only rewrite; new stamps use
-git **name + email** (see Decisions)
+**Updated:** 2026-08-12 — implemented in the cross-project conventions; decisions locked:
+category-1-only rewrite; new stamps use git **name + email** (see Decisions)
 
 **Motivation (confirmed 2026-08-12):** at some point other people will contribute. The
 current user *is* Bill today, but **whenever the agent references the user it is
@@ -64,9 +65,43 @@ current user."
    email, e.g. `(William Emerison Six <billsix@gmail.com>, 2026-08-12)`. (Existing
    stamps are not rewritten — decision 1.)
 
+## Work log (2026-08-12)
+
+**Done — cross-project conventions (`entrypoint/dotfiles/.claude/CLAUDE.md`):**
+- Added a **"Who 'the user' is — identified by git config"** section (new §, top of file):
+  the user is whoever the session's `git config user.name`/`user.email` resolves to (not a
+  fixed person); new dated stamps use **name + email**; fall back to "unknown user" with no
+  gitconfig.
+- **Genericized all 10 category-1 lines** ("Bill"/"Bill's" → "the user"/"the user's").
+  No `(Bill, <date>)` stamp and no authorship credit was touched (verified: the 10 stamps
+  in the file are intact).
+- **`entrypoint/dotfiles/.extrabashrc`**: exports `CLAUDE_USER_NAME` / `CLAUDE_USER_EMAIL`
+  from `git config` (fallback "unknown user"), so the identity is visible in the shell and
+  to scripts. Verified it resolves to `William Emerison Six` / `billsix@gmail.com` here.
+
+**Refinement discovered while scoping (applied, needs a nod):** the "Bill" hits in
+gacalc/mvp are ~99% in **task docs** (historical work-logs: "Bill wants/chose/confirmed")
+and **book/code authorship** — where "Bill" is the *correct unique attribution* and
+genericizing would **destroy** exactly the who-did-what record this task exists to protect.
+So those were left. The only per-project *CLAUDE.md* "Bill" lines are authorship or
+environment-specific, also left:
+
+- **gacalc `CLAUDE.md:449`** — "Settled 2026-07-18 from what Bill accepted and declined" —
+  historical. Leave.
+- **mvp `CLAUDE.md:5,15,27,455,481,485`** — Bill as the **book's author** ("sources Bill
+  draws from", "lets Bill explain", "Bill's pedagogy choice", "Bill's to write"). Leave —
+  genericizing misattributes authorship of a specific book.
+- **mvp `CLAUDE.md:83`** — "Bill's host is Fedora 43 … Bill verifies anything requiring a
+  display" — env-specific; genericizing would falsely claim every contributor is on Fedora
+  43. Leave.
+- **mvp `CLAUDE.md:172,241`** — "the exercise design is Bill's call" — a live rule, but
+  about *this book's* exercise design; authorship-adjacent. Recommend leave.
+
 ## Open questions
 
-None — ready to implement on go-ahead.
+1. **The per-project CLAUDE.md lines above** (esp. mvp `241`/`172` "exercise design is
+   Bill's call") — leave as authorship/env-specific (recommended), or genericize the
+   live-rule ones to "the user"? These are the only judgment calls; everything else is done.
 
 ## See also
 

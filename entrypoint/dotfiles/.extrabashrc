@@ -1,3 +1,9 @@
 alias ls='ls --color=auto'
 export GPG_TTY=$(tty)
+
+# Identify the current session user by their git config (name + email) — the unique
+# identity the agent should use to refer to whoever is in this session. Reads the global
+# ~/.gitconfig (mounted from the host); falls back to "unknown user" when none is present.
+export CLAUDE_USER_NAME="$(git config --get user.name 2>/dev/null || echo 'unknown user')"
+export CLAUDE_USER_EMAIL="$(git config --get user.email 2>/dev/null)"
 PS1='\[\e[36m\]┌─(\t) \[\e[32m\]\u@\h:\w\n\[\e[36m\]└─λ \[\e[0m\]'
