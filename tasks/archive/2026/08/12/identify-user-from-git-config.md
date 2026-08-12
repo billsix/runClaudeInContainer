@@ -1,12 +1,11 @@
 # Identify the session user by git name + email; de-hardcode "Bill" in the conventions
 
-**Status:** implemented 2026-08-12 (cross-project conventions) — per-project CLAUDE.md
-lines left as authorship/env-specific; awaiting user ruling on those (see Work log)
+**Status:** DONE 2026-08-12 — implemented in the cross-project conventions; per-project
+CLAUDE.md authorship/env-specific lines left as-is (user chose the recommendation).
 **Priority:** 3
 **Difficulty:** 4
 **Created:** 2026-08-12
-**Updated:** 2026-08-12 — implemented in the cross-project conventions; decisions locked:
-category-1-only rewrite; new stamps use git **name + email** (see Decisions)
+**Updated:** 2026-08-12 — implemented; per-project lines left per user's ruling.
 
 **Motivation (confirmed 2026-08-12):** at some point other people will contribute. The
 current user *is* Bill today, but **whenever the agent references the user it is
@@ -99,9 +98,8 @@ environment-specific, also left:
 
 ## Open questions
 
-1. **The per-project CLAUDE.md lines above** (esp. mvp `241`/`172` "exercise design is
-   Bill's call") — leave as authorship/env-specific (recommended), or genericize the
-   live-rule ones to "the user"? These are the only judgment calls; everything else is done.
+None — **resolved 2026-08-12**: the user chose the recommendation, so the per-project
+CLAUDE.md authorship/env-specific "Bill" lines are **left as-is**. Task complete.
 
 ## See also
 
