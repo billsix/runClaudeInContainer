@@ -7,8 +7,9 @@ user-facing overview.
 ## What the pieces do
 
 - **`Dockerfile`** — Fedora 44 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
-  into `/root/`, `dnf install`s ~300 packages (the big toolchain list), then
-  installs Claude Code via the official `install.sh`. Entrypoint is
+  into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~430-package
+  toolchain — a host-runnable script the Dockerfile sources, not an inline
+  `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is
   `/entrypoint.sh`.
 - **`Makefile`** — the control surface. `make image` builds; `make shell` runs an
   ephemeral (`--rm`) container. It conditionally mounts host `~/.tmux.conf`,
@@ -47,7 +48,10 @@ rationale, and the rejected alternatives — is in
 
 - **The package list is intentionally large.** Don't prune it for "cleanliness" —
   it's a deliberately maximal dev box. Add packages alphabetically to keep the list
-  in the `Dockerfile` sorted.
+  in **`entrypoint/01-install-base.sh`** sorted (the list lives in that host-runnable
+  script now, not inline in the `Dockerfile` — per the cross-project convention
+  "Host-agnostic setup belongs in a script the Dockerfile sources"). This repo has a
+  single package group and no feature flags, so there's just the one `01-install-base.sh`.
 - **Preserve the dnf cache mounts** (`--mount=type=cache,...`) on `dnf` steps; they
   keep rebuilds fast.
 - **Keep host mounts conditional.** New host-file mounts in the `Makefile` should

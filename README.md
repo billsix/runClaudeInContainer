@@ -39,8 +39,11 @@ The build (`Dockerfile`):
 1. `FROM registry.fedoraproject.org/fedora:44`, then `dnf upgrade`.
 2. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the
    tracked `.claude/` conventions).
-3. `dnf install`s the full toolchain (~300 packages). dnf cache mounts keep
-   rebuilds fast.
+3. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
+   (~430 packages). The package list lives in that script — host-runnable on its
+   own (`sudo ./entrypoint/01-install-base.sh` on a bare Fedora box), not just at
+   build time — while the dnf cache mounts (which keep rebuilds fast) stay in the
+   `Dockerfile`.
 4. Installs Claude Code via `curl -fsSL https://claude.ai/install.sh | bash`.
 5. `ENTRYPOINT` is `/entrypoint.sh` (which just `exec bash`).
 
@@ -138,6 +141,7 @@ sandbox: `podman build -t selftest .`.
 | `Dockerfile` | Image definition (Fedora base + toolchain + Claude Code) |
 | `Makefile` | `make image` / `make shell`; host-mount detection; X11/Wayland passthrough |
 | `exampleRunClaude.sh` | Saved `make shell` invocation with extra mounts |
+| `entrypoint/01-install-base.sh` | The ~430-package `dnf install`, host-runnable; the Dockerfile sources it |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
 | `entrypoint/shell.sh` | `make shell` launcher (`cd /` then `exec bash`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |

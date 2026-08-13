@@ -109,6 +109,8 @@ before nested work.
 ## Conventions for growing the image
 
 From root `CLAUDE.md`: the package list is deliberately maximal — don't prune
-for cleanliness; add alphabetically; preserve the dnf cache mounts; keep host
-mounts conditional (except `~/.claude` — see `claude-config-layering.md` for
-why that one must never skip).
+for cleanliness; add packages alphabetically in **`entrypoint/01-install-base.sh`**
+(the host-runnable install script the Dockerfile sources — the list is no longer
+inline in the `Dockerfile`); preserve the dnf cache mounts (those stay in the
+`Dockerfile`); keep host mounts conditional (except `~/.claude` — see
+`claude-config-layering.md` for why that one must never skip).

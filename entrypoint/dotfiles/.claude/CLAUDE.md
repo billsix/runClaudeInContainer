@@ -878,6 +878,7 @@ Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-co
 ├── Makefile                # invariant (rare exception: a Dockerfile-only project)
 ├── entrypoint/             # invariant
 │   ├── shell.sh            #   invariant — cd into the project dir, exec bash
+│   ├── 01-install-base.sh  #   common   — dnf install of the base packages, host-runnable; feature groups are 0N-install-<group>.sh, dispatched by the Dockerfile's ARG ifs (see "Host-agnostic setup belongs in a script")
 │   ├── format.sh           #   common   — clang-format (C/C++) or ruff (Python)
 │   ├── entrypoint.sh       #   common   — the image's ENTRYPOINT target
 │   ├── <task>.sh           #   variant  — lint.sh, html/pdf/epub.sh, buildDebug.sh, jupyter.sh, …
@@ -902,10 +903,57 @@ Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-co
 
 ### Dockerfile contract
 
-- **Invariant:** `FROM registry.fedoraproject.org/fedora:44`, then the dnf-cache idiom — `RUN --mount=type=cache,target=/var/cache/libdnf5 --mount=type=cache,target=/var/lib/dnf`, `keepcache=True` appended to `dnf.conf`, `dnf upgrade -y`, then `dnf install`.
+- **Invariant:** `FROM registry.fedoraproject.org/fedora:44`, then the dnf-cache idiom — `RUN --mount=type=cache,target=/var/cache/libdnf5 --mount=type=cache,target=/var/lib/dnf`, `keepcache=True` appended to `dnf.conf`, `dnf upgrade -y`, then the package install — which, per "Host-agnostic setup belongs in a script" below, runs the host-runnable `0N-install-*.sh` scripts rather than an inline `dnf install`.
 - **`ARG` feature flags default to `0`** — the mirror of the Makefile's `1`, so a bare `podman build` is lean and `make` opts features in.
 - COPY the entrypoint scripts to `/usr/local/bin` (or the whole `entrypoint/dotfiles/` to `/root/`); `echo "source ~/.extrabashrc" >> ~/.bashrc`.
 - **Variant:** `ENTRYPOINT ["/entrypoint.sh"]` *or* no entrypoint at all (then every Makefile target supplies `--entrypoint /bin/bash`). Some images build + test the project at image-build time and gate the build on tests (`ctest`, `meson test`).
+
+### Host-agnostic setup belongs in a script the Dockerfile sources (so it also runs without a container)
+
+**Much of what a Dockerfile does is not container-specific — it is ordinary host setup
+that happens to run inside a `RUN` line.** Extract that into **standalone scripts the
+Dockerfile invokes**, so the *same* setup can run on a bare Fedora host, or in a guest
+with no docker/podman, not only during `podman build`. The canonical case is **system
+package installation**.
+
+- **One optionless script per package group — the scripts take NO flags.** Put each
+  group in its own `entrypoint/0N-install-<group>.sh` (`01-install-base.sh`,
+  `02-install-docs.sh`, …), each a flat `dnf install -y …` of just that group. **Which
+  optional groups get installed is decided in the Dockerfile**, by its feature-flag ARG
+  `if` blocks (`if [ "$BUILD_DOCS" = "1" ]; then /usr/local/bin/02-install-docs.sh; fi`)
+  — the flag logic lives in exactly one place, the Dockerfile, not duplicated into the
+  scripts. A human on a bare host runs base then whichever groups they want. (This beats
+  a single script that re-reads the flags as env vars: no env plumbing, and each script
+  is a trivially readable package list.) Also extractable when it comes up: building a
+  pinned dependency from source, fetching + verifying a tool.
+- **Guard `dnf`:** the base script checks `command -v dnf` and **fails loudly** on a
+  non-dnf host rather than silently no-op'ing (the feature scripts inherit that path,
+  since base runs first).
+- **Keep in the Dockerfile (build-time or container-path):** the dnf **cache mount +
+  `keepcache=True`** (build plumbing — the scripts must not depend on it; the `RUN` keeps
+  the `--mount=type=cache` and calls the scripts), `FROM`/`ARG`/`COPY`/`ENTRYPOINT`, the
+  `if`-dispatch itself, and anything that writes **container paths** (`/venv` creation,
+  pip installs, jupyter/spyder config, `~/.bashrc`/`~/.bash_history` seeding) — those are
+  "set up this image", not "install packages on a machine". Where a feature mixes both
+  (e.g. `USE_JUPYTER` installs packages *and* writes config), the packages go in the
+  group script and the config stays in the Dockerfile, each under its own flag check.
+- **Exit status:** a single-`dnf` script's own exit *is* the gate (safe by shape). A
+  script with several `dnf` calls (e.g. base does upgrade + installs) must accumulate
+  (`… || status=1; exit $status`), not fail-fast — same rule as the format/gate scripts.
+  Dispatch the group scripts with `&&` so a failed install fails the build.
+- **Verify BOTH ways:** (a) the image still builds (`make image`, nested) — and across a
+  few **flag permutations**, checking each built image has each group's sentinel package
+  present iff its flag is on (the absent half proves the `if` gating works); (b) a group
+  script runs standalone in a fresh `fedora:44` container (the bare-guest case). Prove the
+  extraction changed nothing by diffing the **package set** old-Dockerfile vs the union of
+  the new scripts — it must be identical.
+- **These are not ad-hoc scripts** (they become permanent files the Dockerfile sources) —
+  they live in `entrypoint/`, committed, not under `tasks/adhoc/`.
+
+Worked example: **modelviewprojection** `entrypoint/0N-install-*.sh` (2026-08-12) — six
+group scripts whose union is proven identical (96 packages) to the prior inline
+Dockerfile via a dnf-arg diff; verified standalone in a fresh Fedora guest and by nested
+image builds across flag permutations.
 
 ### entrypoint contract
 
@@ -921,7 +969,7 @@ Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-co
 
 ### Quick conformance check for a new project
 
-`Dockerfile` + `Makefile` + `entrypoint/shell.sh` present? Fedora-44 base with the dnf-cache idiom? `CONTAINER_NAME` matches the dir? `FILES_TO_MOUNT` mounts the repo at `/<name>/:Z`? `help` target with `##`-documented targets? Build-arg defaults `1` (Makefile) / `0` (Dockerfile)? Entrypoint scripts and the image's `ENTRYPOINT`/`--entrypoint` story consistent? Each `entrypoint/*.sh` references the *right* project's paths (a frequent copy-paste drift) — flag any that point at another project.
+`Dockerfile` + `Makefile` + `entrypoint/shell.sh` present? Fedora-44 base with the dnf-cache idiom? `CONTAINER_NAME` matches the dir? `FILES_TO_MOUNT` mounts the repo at `/<name>/:Z`? `help` target with `##`-documented targets? Build-arg defaults `1` (Makefile) / `0` (Dockerfile)? Entrypoint scripts and the image's `ENTRYPOINT`/`--entrypoint` story consistent? Each `entrypoint/*.sh` references the *right* project's paths (a frequent copy-paste drift) — flag any that point at another project? Package installation extracted into host-runnable `entrypoint/0N-install-*.sh` group scripts the Dockerfile dispatches by ARG (per "Host-agnostic setup belongs in a script"), or still inline in a `RUN`?
 
 ## Running projects in a nested container
 
