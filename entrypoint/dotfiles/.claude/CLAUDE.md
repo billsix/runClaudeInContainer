@@ -486,6 +486,68 @@ package metadata) over eyeballing a sorted list.
 The double-digit boundary is where this bites: it is invisible through `0.0.9` and starts
 lying at `0.0.10`.
 
+## Changelogs, versioning, and communicating breaking changes
+
+**The problem this solves:** when someone who depends on my project bumps their pinned
+version, they need to know — *without reading the git log* — what changed and, above all,
+what will **break**. Any project with external consumers that ships versioned releases (a
+library on a registry — PyPI / npm / crates.io / …, or a tool other people pin) needs this;
+a private app nobody else pins does not. The failure mode it prevents is **silent breakage**:
+a consumer bumps the pin, their build or tests break, and they only find out by running them.
+(This bit me in gacalc — an `is_close`→`isclose` rename with no changelog silently broke a
+downstream consumer's 36 call sites, found only when its tests failed.) Two artifacts do the
+job: a **version number** (so they can pin and compare) and a **changelog** (so they can read
+what a bump will cost them).
+
+### Versioning (SemVer), and the pre-1.0 reality
+
+`MAJOR.MINOR.PATCH`. Post-1.0: a **breaking** change bumps MAJOR, a backward-compatible
+feature bumps MINOR, a bug fix bumps PATCH. **Pre-1.0 (`0.y.z`)** SemVer permits breaking
+anything at any time — but *permission to break is not permission to break silently*. Still
+bump for it (treat a breaking change as a MINOR bump — `0.Y.0`; a compatible one as a PATCH),
+and **always changelog it**. At `0.0.z` (very early) treat the whole surface as unstable but
+keep the same discipline: changelog every break, bump the version every release.
+
+**Bump the version BEFORE publishing** — package registries permanently reject a re-used
+version number, so a botched release can't be overwritten, only superseded. The release
+splits along the usual line (see "Git: I commit, you don't"): *you* (agent) stage the version
+bump and the changelog entry; *I* (the user) tag and publish. List/compare existing versions
+with a version-aware sort (see "Version numbers don't sort like strings").
+
+### What counts as "breaking" (the things a consumer must be told)
+
+- a public name **renamed or removed** — function, method, class, module, constant, CLI flag,
+  config key, env var;
+- a **default value or default behavior changed** (e.g. a tolerance that defaulted to `1e-5`
+  now defaults to `0.0`);
+- a **return type or accepted-input type changed**, or **validation tightened** so
+  previously-accepted input now errors;
+- a **new required parameter**, or a value type made **immutable / unhashable**;
+- **dropped support** for a platform, language version, or dependency;
+- a **license change** — not code-breaking, but consumers must know.
+
+The test when unsure: *would a consumer who bumps the pin have to change their code, or be
+surprised?* If yes, it is breaking — flag it as such.
+
+### The changelog: what goes in, and WHEN
+
+- **A `CHANGELOG.md` at the repo root**, newest-first: an **`[Unreleased]`** section at the
+  top, then `## [version] — date` per release. Group entries with the *Keep a Changelog*
+  categories (Added / Changed / Deprecated / Removed / Fixed / Security), and **call out
+  breaking items explicitly** — a `### Breaking` subsection or a **BREAKING** marker, because
+  that is the part consumers scan for. Lean is right; the bar is "would this break or surprise
+  someone who imports or pins this?" — *not* internal refactors, generated-file churn, or
+  task-tracking. Prefer a one-line entry that **links** the reference doc / task explaining the
+  *why* over re-explaining it inline.
+- **Write the entry WHEN you make the change**, into `[Unreleased]` — not reconstructed at
+  release time, which is exactly how changes get forgotten. **On release**, rename
+  `[Unreleased]` to `## [version] — date` and open a fresh empty `[Unreleased]`. The version
+  bump, the changelog promotion, and the tag belong to the **same** release commit.
+- **Retro-filling a project that never had one:** create the file, document *at least* the
+  recent releases a consumer would actually hit (verify which version each change shipped in
+  against the tags — don't guess), and say plainly that history before some cutoff predates the
+  changelog rather than inventing entries.
+
 ## Git: I commit, you don't — but you DO stage
 
 Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete. **Staging is your half of that handoff, and it is the default, not an option.**
