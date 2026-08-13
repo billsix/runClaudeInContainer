@@ -1,6 +1,18 @@
 # Human-readable Sphinx docs for gacalc's code generation, alongside the LLM markdown
 
-**Status:** ready — all decisions made; awaiting go-ahead to implement
+> **ARCHIVED 2026-08-13 — SUPERSEDED, not implemented.** Replaced by co-locating the
+> code-generation narrative *in the generator's own docstrings and comments* (gacalc
+> `tools/gen_specialized.py` / `astbuild.py`) instead of standing up a separate
+> human-readable Sphinx/RST doc set. The goal was a human-readable explanation of how the
+> generator works; a co-located narrative (module-docstring story + ASCII pipeline diagram
+> + a doctest'd worked trace) achieves that with **one source that cannot drift from the
+> code**, adds **no second Sphinx project** beside gacalc's existing `book/docs/` book, and
+> makes the **markdown↔RST drift-check obligation this task invented unnecessary** (dropped,
+> not built — so the planned addition to the mounted cross-project `CLAUDE.md` is *not*
+> made). New task: gacalc `tasks/narrate-code-generator-in-docstrings.md`.
+> (William Emerison Six <billsix@gmail.com>, 2026-08-13)
+
+**Status:** ARCHIVED — superseded (see note above). Was: ready, awaiting go-ahead.
 **Priority:** 5
 **Difficulty:** 6
 **Created:** 2026-08-12
