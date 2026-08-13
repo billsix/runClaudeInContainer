@@ -1071,6 +1071,15 @@ This is the working method the user wants applied to any "I can't figure out why
 
 The habit in one line: **turn an unknown into a measured list, isolate causes in disposable environments, fix by class while a metric and a regression gate both stay honest.**
 
+**The hand-instrumentation half — print/trace debugging.** The above is about tools as
+oracles; the complementary move is adding your own print/trace statements to watch control
+flow and values over time. The mechanics differ per language (emit to stderr, *flush* so a
+crash doesn't lose the last line, dump a compound value, tag with a grep-able `DBG` marker
+for clean removal). Correct per-language recipes — C, C++, Python, Java, Scheme, Haskell
+(`Debug.Trace` for pure code — the tricky one), Rust (`dbg!`), Go, shell (`set -x`) — plus
+the language-independent method are in **`~/.claude/reference/print-debugging.md`**. Read
+it before hand-instrumenting in an unfamiliar language.
+
 ## Auto-imported references
 
 Claude Code inlines `@`-path references from this file into context at load (recursively, up

@@ -1,11 +1,27 @@
 # Print-statement debugging guidance — augment source, then read the output — across languages
 
-**Status:** ready — all decisions made; awaiting go-ahead to implement
+**Status:** DONE 2026-08-13 — reference doc written + all 9 recipes verified in-sandbox;
+lean pointer added to the cross-project CLAUDE.md.
 **Priority:** 4
 **Difficulty:** 4
 **Created:** 2026-08-12
-**Updated:** 2026-08-12 — home = runClaudeInContainer; language set = C, Python, Java,
-Scheme, Haskell + C++, Rust, Go, shell
+**Updated:** 2026-08-13 — implemented.
+
+## Work log (2026-08-13)
+
+- Wrote **`tasks/reference/print-debugging.md`**: the language-independent method
+  (stderr, flush, bracket, self-label, `DBG` marker, diff-the-trace) + per-language
+  recipes (stderr+flush idiom, compound-value dump, gotcha) for **C, C++, Python, Java,
+  Scheme, Haskell, Rust, Go, shell** + a Removal section.
+- Added a lean pointer in the mounted cross-project `CLAUDE.md`
+  (`entrypoint/dotfiles/.claude/CLAUDE.md`) at the end of "Instrumentation-driven
+  debugging" — framed as the hand-instrumentation half, pointing at the reference doc.
+- **Every recipe verified in the sandbox** (not just written from memory): Python
+  `{x=}`, shell `>&2`/`declare -p`, C `fprintf`+`__FILE__`, C++ `std::cerr`, Rust
+  `eprintln!`/`dbg!` (confirmed `dbg!` prints `[file:line:col] expr = value` and returns
+  the value), Haskell `trace`/`traceShowId` (confirmed the lazy interleave), Go
+  `%+v`/`%#v`/`log`, Java `System.err`/`Arrays.toString`, Racket `eprintf`. All produced
+  the documented output.
 
 **Motivation:** print-based instrumentation is one of the most effective ways to debug
 an unfamiliar or misbehaving program, and it generalizes across every language — but the
