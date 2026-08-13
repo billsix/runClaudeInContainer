@@ -30,11 +30,11 @@ host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
 version-controlled here; auth, sessions, and credentials come from the host
 `~/.claude` mount instead. The `tasks/reference/` mount exists because the mounted
-`CLAUDE.md` **`@`-imports all four reference docs** (the overused-words catalog plus the
-nested-podman, sandbox-capability-map, and config-layering docs), so their content is
-inlined into every session — which means those paths must resolve in the container
-(2026-08-02: the three sandbox/config docs were promoted from read-on-demand to
-auto-import). Edits to the
+`CLAUDE.md` **`@`-imports all five reference docs** (the overused-words catalog plus the
+nested-podman, sandbox-capability-map, config-layering, and print-debugging docs), so their
+content is inlined into every session — which means those paths must resolve in the container
+(2026-08-02: the three sandbox/config docs were promoted from read-on-demand to auto-import;
+2026-08-13: print-debugging joined them). Edits to the
 conventions or commands go in `entrypoint/dotfiles/.claude/`; the reference docs are
 edited in `tasks/reference/` as usual — both flow back to git.
 

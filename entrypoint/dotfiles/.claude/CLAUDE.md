@@ -1077,23 +1077,29 @@ flow and values over time. The mechanics differ per language (emit to stderr, *f
 crash doesn't lose the last line, dump a compound value, tag with a grep-able `DBG` marker
 for clean removal). Correct per-language recipes — C, C++, Python, Java, Scheme, Haskell
 (`Debug.Trace` for pure code — the tricky one), Rust (`dbg!`), Go, shell (`set -x`) — plus
-the language-independent method are in **`~/.claude/reference/print-debugging.md`**. Read
-it before hand-instrumenting in an unfamiliar language.
+the language-independent method are in **`~/.claude/reference/print-debugging.md`**, which
+is `@`-imported (see *Auto-imported references* below), so those recipes are already in
+context when you hand-instrument in an unfamiliar language.
 
 ## Auto-imported references
 
 Claude Code inlines `@`-path references from this file into context at load (recursively, up
 to ~5 hops), so the referenced file's *content* is present every session rather than being
 something I have to remember to open. This is the deterministic fix for "CLAUDE.md tells me to
-read X but I skip it": the content is loaded by the harness, not by my choosing. All four
+read X but I skip it": the content is loaded by the harness, not by my choosing. All five
 reference docs are auto-imported. The overused-phrases catalog is always relevant; the three
 sandbox/config docs are small (~100 lines each) and broadly useful — nested-podman and the
 sandbox capability map come up whenever a project is built or run in a nested container,
-which happens across projects, not only when working on this repo. The earlier "bloat for no
-gain" concern didn't hold up in practice (Bill, 2026-08-02). All `@`-paths resolve in the
-container, where the Makefile mounts `tasks/reference/` to `~/.claude/reference/`.
+which happens across projects, not only when working on this repo. The print-debugging
+recipes (~160 lines) come up whenever a bug is hand-instrumented in an unfamiliar language —
+also across projects, and the moment they're needed is exactly when relying on *choosing* to
+open the file fails (William Emerison Six <billsix@gmail.com>, 2026-08-13). The earlier
+"bloat for no gain" concern didn't hold up in practice (Bill, 2026-08-02). All `@`-paths
+resolve in the container, where the Makefile mounts `tasks/reference/` to
+`~/.claude/reference/`.
 
 @~/.claude/reference/llm-overused-phrases.md
 @~/.claude/reference/nested-podman-design.md
 @~/.claude/reference/sandbox-capability-map.md
 @~/.claude/reference/claude-config-layering.md
+@~/.claude/reference/print-debugging.md

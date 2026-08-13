@@ -56,7 +56,7 @@ The run (`make shell`) mounts, on top of the image:
   `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
   this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
   `CLAUDE.md` `@`-imports into every session — the overused-words catalog plus the
-  nested-podman, sandbox-capability-map, and config-layering docs). This keeps your
+  nested-podman, sandbox-capability-map, config-layering, and print-debugging docs). This keeps your
   conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
