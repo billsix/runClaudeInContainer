@@ -1120,6 +1120,41 @@ exit $status
   multivariate-math, gltron fixed**; spimulator/texExpToPng safe by shape; the rest
   have no format script.
 
+## Write format/check scripts to run BOTH in the container AND on the host from the repo root
+
+**A `format.sh` (or `lint.sh` / any `make format` gate script) should be PORTABLE — runnable
+inside the container *and* on the host from the repo root — so I can format without spinning a
+container (Bill, 2026-08-14).** Exactly two things make a format script container-only; avoid
+both:
+
+1. **An unguarded `source /venv/bin/activate`.** On the host there is no `/venv`, so the bare
+   `source` errors. **Guard it:** `[ -f /venv/bin/activate ] && source /venv/bin/activate` —
+   activates the container venv when present, otherwise uses the caller's active env.
+2. **Absolute container tool paths** (`ty check /<proj>/src`, `/venv/bin/...`) — they only
+   resolve at the container mount path. **Use RELATIVE paths for every step** (`ruff check src`,
+   `ty check src`, `ty check tests`) and let the CALLER `cd` to the repo root. Then the script
+   runs identically from `cd /<proj> && format.sh` (in-container) and `cd <repo> && format.sh`
+   (host). **Trap the mvp exit hook hit:** a per-subdir `cd /<proj>/src && format.sh` makes the
+   script's own relative `ruff check src` resolve to `src/src` and fail — the shell-exit hook
+   must be a SINGLE `cd /<proj>/ && format.sh` from the root, not one call per subdir.
+3. **A hardcoded `cd /<proj>` INSIDE the script** — some scripts self-`cd` (needed in-container,
+   e.g. a C/C++ `find . … | xargs clang-format` that must run from the repo root). **Guard it** so
+   it no-ops on the host: `[ -d /<proj> ] && cd /<proj>` — replacing `cd /<proj> || exit 1` (which
+   hard-*exits* on the host, dir absent) or a bare `cd /<proj>` (which silently runs in the WRONG
+   directory on the host). In-container it `cd`s correctly; on the host it stays at the repo root
+   you invoked from. This is the alternative to rule 2's "no `cd`, caller `cd`s": a portable script
+   either has **no `cd`** (mvp/gacalc — the caller/exit-hook `cd`s) **or guards its `cd`** (the C/C++
+   repos, whose `find .` needs the root).
+
+The host run still needs the package importable in the caller's env for the type-checker step
+(editable install + deps); a portable script does not *set that up*, it just does not hardcode
+container paths that *fight* it. Worked example + the 2026-08-14 cross-repo sweep that applied all
+three rules: mvp `entrypoint/format.sh` (guarded venv + all-relative `ty check` paths, was absolute
+`/mvp/...`) and gltron were already portable; **gacalc** got rules 1+2 (guard venv, relative `ty
+check src/tests/tools`); **hanoi / multivariate-math / spimulator / texExpToPng** got rule 3 (`[ -d
+/<proj> ] && cd /<proj>`), and mvm also needed the venv guard. Pairs with the exit-status rule
+above: a good gate script both propagates every step's failure AND runs anywhere from the root.
+
 ## Instrumentation-driven debugging (make the tools tell you what to do)
 
 This is the working method the user wants applied to any "I can't figure out why this won't work / where to even start" problem — build fights, upgrades, ports, migrations, flaky behavior, unfamiliar codebases. It's language- and tool-agnostic; the examples below are just whatever tool happens to be in front of you. The through-line: **make the machine tell you the truth, and make being wrong cheap.** Don't reason abstractly about what's probably wrong — instrument it so the tools *emit* the answer, then let their output *be* the plan.
