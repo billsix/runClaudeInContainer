@@ -14,6 +14,14 @@ refer to them by that git identity rather than assuming a specific person.
   by name and email** — e.g. `(William Emerison Six <billsix@gmail.com>, 2026-08-12)` — so
   a multi-contributor history stays unambiguous about who decided what. (Existing
   historical stamps and authorship credits are left as written; they already record who.)
+  - **This is not just for git commits — it applies in TASK docs and especially REFERENCE
+    docs, because the reader may not be you.** A `tasks/reference/` doc is read by other
+    contributors (and future me) who do not know who "Bill" is; a bare first name there is
+    ambiguous and violates this rule. **Never use a bare first name as a stamp** — always the
+    full `Name <email>`. In doc *prose* (as opposed to a dated stamp), refer to the person by
+    **role** ("the maintainer", "the author") or the full identity, introduced once at first
+    use — not a first name the reader has to already know. (Learned 2026-08-14: I littered a
+    gacalc reference doc with bare "Bill"; the fix is role-in-prose + `Name <email>`-in-stamps.)
 - **When no git identity is available** (no `~/.gitconfig` mounted), treat the user as an
   unknown user rather than assuming a specific person.
 
