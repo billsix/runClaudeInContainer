@@ -22,7 +22,7 @@ user-facing overview.
 - **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`
   and `EXTRA_MOUNTS` populated.
 
-## The two-layer Claude config
+## The layered Claude config
 
 `entrypoint/dotfiles/.claude/CLAUDE.md` and `commands/` are **mounted over** the
 host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
@@ -38,6 +38,17 @@ content is inlined into every session — which means those paths must resolve i
 conventions or commands go in `entrypoint/dotfiles/.claude/`; the reference docs are
 edited in `tasks/reference/` as usual — both flow back to git.
 
+The mounted `CLAUDE.md` also `@`-imports **`~/.claude/ai-coding-conventions.personal.md`**, a personal
+overlay that keeps maintainer-specific content (identity, project→URL mapping, project
+template, standing authorizations) out of the portable conventions. The tracked default
+`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` is **blank**; `make shell` mounts the host's
+`~/.ai-coding-conventions.personal.md` over it (auto-`touch`ed if absent). This is what lets
+a fork adopt the portable conventions and swap in its own personal layer — see
+`FORKING.md`, `ai-coding-conventions.personal.example.md`, and `tasks/separate-general-and-personal-conventions.md`.
+The mounted `CLAUDE.md`'s opening section (**"This is the SHARED layer…"**) instructs the
+agent to route any maintainer-specific content to this overlay, never to the shared file,
+so the separation stays self-maintaining.
+
 This root `CLAUDE.md` (the one you're reading) is project-specific guidance for
 working on the container builder; it is distinct from the mounted cross-project
 conventions. The full layering design — what persists where, the `mkdir -p`
@@ -51,7 +62,11 @@ rationale, and the rejected alternatives — is in
   in **`entrypoint/01-install-base.sh`** sorted (the list lives in that host-runnable
   script now, not inline in the `Dockerfile` — per the cross-project convention
   "Host-agnostic setup belongs in a script the Dockerfile sources"). This repo has a
-  single package group and no feature flags, so there's just the one `01-install-base.sh`.
+  single package group, so there's just the one `01-install-base.sh` (no per-feature
+  install scripts). Its one build flag is **`USE_EMACS_CONFIG`** (Makefile default `1`,
+  Dockerfile ARG default `0` per fleet convention): `make image USE_EMACS_CONFIG=0`
+  drops the vendored `.emacs.d/` for a clean box — used by forks that don't want the
+  maintainer's Emacs setup.
 - **Preserve the dnf cache mounts** (`--mount=type=cache,...`) on `dnf` steps; they
   keep rebuilds fast.
 - **Keep host mounts conditional.** New host-file mounts in the `Makefile` should

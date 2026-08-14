@@ -1,6 +1,8 @@
 # Separate general-purpose from personal/project-specific content, so others can fork it
 
-**Status:** proposed — needs go-ahead
+**Status:** implemented 2026-08-14 — pending review. The maintainer still seeds
+`~/.ai-coding-conventions.personal.md` from the repo-root stopgap `ai-coding-conventions.personal.md`. Rebuild-
+verifying the Dockerfile Emacs flag is split out to `verify-emacs-config-build-flag.md`.
 **Priority:** 4
 **Difficulty:** 6
 
@@ -29,7 +31,7 @@ general layer without merge conflicts against their customizations.
   instrumentation-driven debugging, source-code generation, changelogs/versioning, the
   git *staging* discipline, and the task/reference/adhoc/stack **methodology** (the method
   is general even though this maintainer designed it).
-- **A personal overlay (e.g. `personal.md`, `@`-imported at the bottom of the portable
+- **A personal overlay (e.g. `ai-coding-conventions.personal.md`, `@`-imported at the bottom of the portable
   `CLAUDE.md`):** the GitHub-URL convention + the confirmed dir→repo mapping + the Pi
   remote (`pi@192.168.0.186`); "My project layout (the container-per-project template)"
   with its mvp/gacalc/spimulator/texExpToPng/hanoi/gltron examples; "Multi-repo sessions"
@@ -44,20 +46,20 @@ general layer without merge conflicts against their customizations.
 
 **Wiring (decided 2026-08-14):**
 
-- The portable `CLAUDE.md` ends with `@~/.claude/personal.md`, so a user's personal layer
+- The portable `CLAUDE.md` ends with `@~/.claude/ai-coding-conventions.personal.md`, so a user's personal layer
   is inlined every session without editing the tracked file.
-- The repo ships a **blank** `entrypoint/dotfiles/.claude/personal.md`, baked into the image
+- The repo ships a **blank** `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md`, baked into the image
   by the existing `COPY entrypoint/dotfiles/ /root/`. This is the default so that a bare
   `podman run` **without** the Makefile still resolves the `@`-import instead of dangling.
   (An empty `@`-imported file inlines nothing — that's the correct no-op default.)
-- The **Makefile mounts the host's `~/.claudeInContainerPersonal.md`** over
-  `/root/.claude/personal.md`, shadowing the blank baked default in normal `make shell` use.
+- The **Makefile mounts the host's `~/.ai-coding-conventions.personal.md`** over
+  `/root/.claude/ai-coding-conventions.personal.md`, shadowing the blank baked default in normal `make shell` use.
   The mount is built at parse time exactly like `CLAUDE_CONFIG_MOUNT`'s `mkdir -p`, so the
   Makefile **creates the host file if it doesn't exist**:
 
   ```make
-  CLAUDE_PERSONAL_MOUNT := $(shell touch $(HOME)/.claudeInContainerPersonal.md; \
-      echo "-v $(HOME)/.claudeInContainerPersonal.md:/root/.claude/personal.md:Z")
+  CLAUDE_PERSONAL_MOUNT := $(shell touch $(HOME)/.ai-coding-conventions.personal.md; \
+      echo "-v $(HOME)/.ai-coding-conventions.personal.md:/root/.claude/ai-coding-conventions.personal.md:Z")
   ```
 
   Add `$(CLAUDE_PERSONAL_MOUNT)` to `FILES_TO_MOUNT`. Two details that mirror the
@@ -65,9 +67,9 @@ general layer without merge conflicts against their customizations.
   (the var is `:=`-expanded at parse time, and `make` runs on the host, so this creates the
   host file itself — no manual step); and the mount is **unconditional** (always present),
   because the `@`-import target must always exist.
-- A `personal.example.md` with placeholders (name/email, GitHub user, repo mapping, mount
-  layout) documents what to put in `~/.claudeInContainerPersonal.md`. The in-repo
-  `personal.md` stays **blank** and tracked; the real content lives only on the host file.
+- A `ai-coding-conventions.personal.example.md` with placeholders (name/email, GitHub user, repo mapping, mount
+  layout) documents what to put in `~/.ai-coding-conventions.personal.md`. The in-repo
+  `ai-coding-conventions.personal.md` stays **blank** and tracked; the real content lives only on the host file.
 
 ### 2. The `@`-imported reference docs — sort by audience
 
@@ -93,27 +95,27 @@ general layer without merge conflicts against their customizations.
 ### 4. A new-user on-ramp (this is the missing piece)
 
 Add a `FORKING.md` (or a README section) that lists **exactly** what a new user must
-change: (a) copy `personal.example.md` → `personal.md`, fill in identity + repos + mounts;
+change: (a) copy `ai-coding-conventions.personal.example.md` → `ai-coding-conventions.personal.md`, fill in identity + repos + mounts;
 (b) swap the dotfiles (`.extrabashrc`, `.emacs.d/`); (c) edit `exampleRunClaude.example.sh`
 paths; (d) note that a host `~/.claude` supplies their own auth. Without this, a forker
 can't tell the portable parts from the parts they must overwrite.
 
 ## Verification
 
-- A fresh clone with a *different* `personal.md` (or none) still `make image` + `make
+- A fresh clone with a *different* `ai-coding-conventions.personal.md` (or none) still `make image` + `make
   shell`s and loads a coherent, non-contradictory convention set (no dangling references to
   the maintainer's repos).
 - The portable `CLAUDE.md` contains no proper-noun repo/host/identity references; grep for
   `billsix`, `192.168.0.186`, `/foo/opt`, `wsix`, `mvp`, `gacalc` should hit only the
   personal overlay + examples.
 - `@`-import chain still resolves in-container (the mount maps `tasks/reference/` and, if
-  used, `personal.md`).
+  used, `ai-coding-conventions.personal.md`).
 
 ## Open questions
 
-1. **Overlay file + tracking — DECIDED (2026-08-14):** `@~/.claude/personal.md` imported
-   from the portable `CLAUDE.md`; a **blank tracked** `personal.md` baked as the default;
-   the Makefile mounts the host's `~/.claudeInContainerPersonal.md` over it (auto-`touch`ed
+1. **Overlay file + tracking — DECIDED (2026-08-14):** `@~/.claude/ai-coding-conventions.personal.md` imported
+   from the portable `CLAUDE.md`; a **blank tracked** `ai-coding-conventions.personal.md` baked as the default;
+   the Makefile mounts the host's `~/.ai-coding-conventions.personal.md` over it (auto-`touch`ed
    if absent). Real personal content lives only on the host file, never committed. See
    Wiring above.
 2. **Worked examples:** generalize-in-place (strip project name, keep lesson) as the default,

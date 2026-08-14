@@ -112,5 +112,8 @@ From root `CLAUDE.md`: the package list is deliberately maximal — don't prune
 for cleanliness; add packages alphabetically in **`entrypoint/01-install-base.sh`**
 (the host-runnable install script the Dockerfile sources — the list is no longer
 inline in the `Dockerfile`); preserve the dnf cache mounts (those stay in the
-`Dockerfile`); keep host mounts conditional (except `~/.claude` — see
-`claude-config-layering.md` for why that one must never skip).
+`Dockerfile`); keep host mounts conditional (except `~/.claude` and the personal-overlay
+mount `~/.ai-coding-conventions.personal.md`, both unconditional — see
+`claude-config-layering.md` for why). The image's one build flag is **`USE_EMACS_CONFIG`**
+(added 2026-08-14; Makefile default `1`, Dockerfile ARG `0`): `USE_EMACS_CONFIG=0` drops
+the vendored `.emacs.d/` for a clean box, e.g. for a fork.

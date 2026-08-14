@@ -1,15 +1,16 @@
-# The two-layer `~/.claude` — what persists, what's tracked, and why
+# The layered `~/.claude` — what persists, what's tracked, and why
 
 **What this is:** the standing description of how the sandbox assembles
-`/root/.claude` from two sources — the host's private state and this repo's
-tracked config — plus the persistence rationale and the alternatives that were
-rejected. Read this before touching `CLAUDE_CONFIG_MOUNT`,
-`CLAUDE_DOTFILES_MOUNT`, or the `entrypoint/dotfiles/.claude/` layout.
+`/root/.claude` from the host's private state, this repo's tracked config, and a
+per-user personal overlay — plus the persistence rationale and the alternatives that
+were rejected. Read this before touching `CLAUDE_CONFIG_MOUNT`,
+`CLAUDE_DOTFILES_MOUNT`, `CLAUDE_PERSONAL_MOUNT`, or the
+`entrypoint/dotfiles/.claude/` layout.
 Consolidated 2026-07-30 from the root `CLAUDE.md`, `Makefile` comments, and the
 archived incident task
 (`tasks/archive/2026/07/09/persist-claude-login-across-containers.md`).
 
-## The three mounts, in stacking order
+## The four mounts, in stacking order
 
 The `shell` target mounts, in order (later mounts shadow earlier paths):
 
@@ -27,9 +28,26 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    ("read `~/.claude/reference/llm-overused-phrases.md` at session start")
    resolve in **every** session. The docs stay in their conventional
    `tasks/reference/` home; the mount is just an alias.
+4. **Host `~/.ai-coding-conventions.personal.md` → `/root/.claude/ai-coding-conventions.personal.md`**
+   (`CLAUDE_PERSONAL_MOUNT`, added 2026-08-14) — the *personal overlay*. The tracked
+   `CLAUDE.md` ends with `@~/.claude/ai-coding-conventions.personal.md`; the repo ships a **blank** default
+   (`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md`, baked by the Dockerfile `COPY`) so a bare
+   `podman run` resolves the import instead of dangling, and `make shell` shadows it with
+   the host's `~/.ai-coding-conventions.personal.md` — **`touch`ed if absent at parse time,
+   the same idiom as `CLAUDE_CONFIG_MOUNT`'s `mkdir -p` below, and unconditional because
+   the `@`-import target must always exist**. This keeps the *tracked* conventions
+   maintainer-agnostic while each user's specifics (identity, repo→URL mapping, project
+   template, standing authorizations) live only on their host file, never committed. **The
+   host and container basenames differ on purpose** — the host file is a hidden dotfile (out
+   of the way among the user's dotfiles), while the repo/container copy is un-dotted so the
+   baked default and the `.example` template stay visible in `ls`; the bind mount bridges the
+   two names. See
+   the root `CLAUDE.md` "personal overlay" note, `FORKING.md`,
+   `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`, and
+   `tasks/separate-general-and-personal-conventions.md`.
 
-Auth and sessions never live in git; conventions never live only in a container.
-That split is the whole design.
+Auth and sessions never live in git; conventions never live only in a container; personal
+specifics never live in the tracked repo. That split is the whole design.
 
 ## Why the host mount is `mkdir -p`, not an existence check
 
@@ -72,7 +90,7 @@ Rejected alternatives from the 2026-07-09 incident, kept rejected on purpose:
   from the ephemeral-container template every other project follows.
 - **A named volume for `/root/.claude`:** persists but hides state from the
   host filesystem. A plain host directory is inspectable, backupable, and is
-  what the two-layer design already reaches for.
+  what the layered design already reaches for.
 
 Persistence belongs in *host directories mounted in*, never in the container.
 
@@ -93,5 +111,5 @@ Persistence belongs in *host directories mounted in*, never in the container.
 ## Related
 
 - `tasks/reference/nested-podman-design.md` — the other big Makefile subsystem.
-- Root `CLAUDE.md` "The two-layer Claude config" — the short operational
+- Root `CLAUDE.md` "The layered Claude config" — the short operational
   summary of this doc.

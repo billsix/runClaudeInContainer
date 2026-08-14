@@ -32,6 +32,11 @@ see [Building containers inside the sandbox](#building-containers-inside-the-san
 
 `make help` lists the available targets.
 
+**Forking this for your own use?** See `FORKING.md`. In short: put your personal
+conventions in `~/.ai-coding-conventions.personal.md` (copy the template from
+`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`), swap the dotfiles, and build with
+`make image USE_EMACS_CONFIG=0` if you don't want the vendored Emacs config.
+
 ## How it works
 
 The build (`Dockerfile`):
@@ -60,6 +65,12 @@ The run (`make shell`) mounts, on top of the image:
   conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
+- Your **personal overlay**: the tracked `CLAUDE.md` `@`-imports
+  `~/.claude/ai-coding-conventions.personal.md`, over which `make shell` mounts your host's
+  `~/.ai-coding-conventions.personal.md` (auto-created empty if absent). This is where
+  your own identity, project→URL mapping, and mount layout go, so the portable
+  conventions stay maintainer-agnostic. See `FORKING.md` and
+  `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`.
 - X11 and Wayland sockets, so GUI programs (GTK Emacs, etc.) display on
   the host.
 
@@ -74,8 +85,9 @@ Use `EXTRA_MOUNTS` to bind additional host paths:
 make shell EXTRA_MOUNTS="-v /home/me/project:/project:Z"
 ```
 
-`exampleRunClaude.sh` is a saved example of this (it launches with nested Podman
-enabled and mounts a projects directory plus openstax and N64 trees).
+`exampleRunClaude.sh` is a saved example of this (nested Podman enabled, mounting
+several host directories). Its paths are the maintainer's — edit them for your own
+use; see `FORKING.md`.
 
 ### Building containers inside the sandbox (nested Podman)
 
@@ -146,7 +158,10 @@ sandbox: `podman build -t selftest .`.
 | `entrypoint/shell.sh` | `make shell` launcher (`cd /` then `exec bash`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
+| `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` | Blank personal-overlay default (`@`-imported; your host file mounts over it) |
+| `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md` | Template for your `~/.ai-coding-conventions.personal.md` |
 | `tasks/reference/` | Reference docs, mounted at `~/.claude/reference/` for the conventions to cite |
+| `FORKING.md` | What to change when adopting this sandbox for your own use |
 
 ## License
 

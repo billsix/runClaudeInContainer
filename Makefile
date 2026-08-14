@@ -90,6 +90,19 @@ CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claud
                          -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:Z \
                          -v ./tasks/reference:/root/.claude/reference:Z
 
+# Personal overlay. The tracked CLAUDE.md @-imports ~/.claude/ai-coding-conventions.personal.md; the repo
+# ships a BLANK ai-coding-conventions.personal.md as the baked default (so a bare `podman run` without this
+# mount still resolves the import). Here we shadow it with the host's
+# ~/.ai-coding-conventions.personal.md, so your personal conventions layer in without editing
+# the tracked file. The host and container basenames differ ON PURPOSE: the host file is a
+# hidden dotfile (tidy among your other dotfiles), while the repo/container copy is un-dotted
+# so the baked default and the .example template stay visible in `ls`; this mount bridges the
+# two names. touch (not an existence check) at parse time creates the host file if
+# absent — exactly like CLAUDE_CONFIG_MOUNT's mkdir -p above; make runs on the host, so
+# this creates it there. The mount is unconditional: the @-import target must always exist.
+CLAUDE_PERSONAL_FILE := $(HOME)/.ai-coding-conventions.personal.md
+CLAUDE_PERSONAL_MOUNT := $(shell touch $(CLAUDE_PERSONAL_FILE); echo "-v $(CLAUDE_PERSONAL_FILE):/root/.claude/ai-coding-conventions.personal.md:Z")
+
 
 PROJECT_DIR ?= $(notdir $(CURDIR))
 
@@ -126,12 +139,20 @@ else
   CONTROLLER_FLAGS_FOR_CONTAINER :=
 endif
 
+# The vendored ~/.emacs.d/ Emacs config (under entrypoint/dotfiles/) is the maintainer's
+# personal editor setup. It is opt-OUT: on by default for `make image`, but
+# USE_EMACS_CONFIG=0 builds a clean box without it (useful for forks). Fleet convention:
+# the Makefile defaults the flag ON while the Dockerfile ARG defaults it OFF, so a bare
+# `podman build` is lean and `make` opts the personal config in.
+USE_EMACS_CONFIG ?= 1
+
 .PHONY: all
 all: image  ## Build the image
 
 .PHONY: image
-image: ## Build the OCI image
+image: ## Build the OCI image (USE_EMACS_CONFIG=0 for a clean box without the vendored Emacs config)
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
+                         --build-arg USE_EMACS_CONFIG=$(USE_EMACS_CONFIG) \
                          .
 .PHONY: shell
 shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z", USE_CONTROLLER=0 (skip gamepad passthrough)
@@ -143,6 +164,7 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(NESTED_PODMAN_FLAGS) \
 		$(CLAUDE_CONFIG_MOUNT) \
 		$(CLAUDE_DOTFILES_MOUNT) \
+		$(CLAUDE_PERSONAL_MOUNT) \
 		$(X_FLAGS_FOR_CONTAINER) \
 		$(WAYLAND_FLAGS_FOR_CONTAINER) \
 		$(CONTROLLER_FLAGS_FOR_CONTAINER) \

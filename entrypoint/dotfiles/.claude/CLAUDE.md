@@ -1,5 +1,20 @@
 # Cross-project conventions
 
+## This file is the SHARED layer — personal specifics go in the overlay, not here
+
+This file holds **portable, cross-project** conventions meant for anyone who adopts this
+sandbox; it is version-controlled and shared. At the end it `@`-imports a **per-user
+personal overlay**, `@~/.claude/ai-coding-conventions.personal.md`, which is NOT committed
+to this repo — a blank default ships here, and each user's real file lives on their host and
+is mounted in (see `FORKING.md`).
+
+**So when you record or update anything maintainer-specific, write it to the personal
+overlay — never to this file.** That includes: the user's identity/attribution format,
+their project → repository-URL mapping, host/machine paths, mount layout, personal standing
+authorizations, and any private project template. Keep this file person- and agent-generic;
+the overlay carries "who I am and what my projects are." Its structure is shown in
+`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`.
+
 ## Who "the user" is — identified by git config
 
 Throughout these conventions the first person ("I", "me", "my") is the **user** — the
@@ -11,7 +26,7 @@ people will contribute over time; "the user" always means the current one, and y
 refer to them by that git identity rather than assuming a specific person.
 
 - **When you write a new dated attribution or decision stamp, identify the user uniquely
-  by name and email** — e.g. `(William Emerison Six <billsix@gmail.com>, 2026-08-12)` — so
+  by name and email** — e.g. `(Your Name <you@example.com>, 2026-08-12)` — so
   a multi-contributor history stays unambiguous about who decided what. (Existing
   historical stamps and authorship credits are left as written; they already record who.)
   - **This is not just for git commits — it applies in TASK docs and especially REFERENCE
@@ -930,119 +945,30 @@ For each mount found, read its `CLAUDE.md` if present and apply those rules when
 
 If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
 
-### Reference my projects by their GitHub URL in documentation, not the local path
+### Reference projects by their canonical URL in committed docs, not the container path
 
-My projects are **local git checkouts** bind-mounted at container paths (`/foo/opt/<name>`, `/mnt/sda1/<name>`, etc.); each is **published on GitHub** (typically `github.com/billsix/<repo>`). Those container-absolute paths exist **only inside this sandbox** — they are meaningless and non-portable to anyone reading the docs on GitHub. I'll often refer to a project by its local path in conversation; that's fine for chat.
+My projects are **local git checkouts** bind-mounted at container paths
+(`/foo/opt/<name>`, `/mnt/sda1/<name>`, etc.); those paths exist **only inside this
+sandbox** and are meaningless to anyone reading the docs elsewhere. Referring to a
+project by its local path in conversation is fine.
 
-But **in anything that gets committed or shared** — a `README.md`, a `CLAUDE.md`, a task or `tasks/reference/` doc, a code comment, a commit/PR body — **never write the container-absolute path for one of my projects; use its GitHub URL instead**, so a reader knows where the source actually lives.
-
-**Read the URL from a `github`-named remote — NOT from `origin`, and never guess it from the directory name.** As of 2026-08-14, every project's `origin` points at my **self-hosted Pi box** (`pi@192.168.0.186:/mnt/usbdrive2/gitRepos/billsix.github.com/<name>.git`), **not** a `github.com` URL — so `git remote get-url origin` does NOT give the GitHub URL. Read it from a remote named **`github`**: `git -C <local-path> remote get-url github`. **If there is no `github` remote, ASK me for the URL — I'll add a remote named `github`** — rather than inventing `github.com/billsix/<dirname>` (the mount's directory name can differ from the repo name: a `hanoi` dir might be `towersofhanoi`, a `gltron` dir `gltron-mirror`). **Confirmed mappings (local dir → GitHub repo, read from github.com/billsix, 2026-08-14):**
-`geometricalgebra`, `modelviewprojection`, `runClaudeInContainer`, `multivariate-math`, and `spimulator` each map to `github.com/billsix/<same-name>`; the three where the **dir ≠ repo name** are **`hanoi` → `github.com/billsix/towersofhanoi`**, **`gltron` → `github.com/billsix/gltron-mirror`**, and **`texExpToPng` → `github.com/billsix/tex-expression-to-png`**. Also referenced: `spimulator-examples` (SPIM demos), `pyMatrixStack`. **`galgebra` is third-party — `github.com/pygae/galgebra`, not billsix.** If a repo's GitHub URL still can't be confirmed, say so rather than inventing one. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`.)
+But **in anything committed or shared** — a `README.md`, `CLAUDE.md`, a task or
+`tasks/reference/` doc, a code comment, a commit/PR body — **use the project's canonical
+remote URL, not the container-absolute path**, so a reader knows where the source lives.
+**Read the URL from the appropriate git remote rather than guessing it from the directory
+name** (a mount's directory name can differ from the repo name), and **if you can't
+confirm it, ask rather than inventing one.** Which remote to read, and the specific
+project → URL mapping, are personal — see `ai-coding-conventions.personal.md`.
 
 ## My project layout (the container-per-project template)
 
-Almost all my projects follow one template: a **Fedora-44 + Podman, ephemeral-container dev environment**, driven by a `Makefile` whose targets each `podman run --rm` the project's image and hand it a script from `entrypoint/`. Use this as a **conformance reference**: when I mount a new project (often via `EXTRA_MOUNTS`), compare it against the tiers below and tell me where it diverges — a deliberate variation is fine, an *accidental* drift (stale copy-paste, wrong path, missing target) is what I want flagged. The tiers are **invariant** (true of every project), **common** (most), and **variant** (legitimately differs).
-
-### Directory layout
-
-```
-<project>/
-├── Dockerfile              # invariant
-├── Makefile                # invariant (rare exception: a Dockerfile-only project)
-├── entrypoint/             # invariant
-│   ├── shell.sh            #   invariant — cd into the project dir, exec bash
-│   ├── 01-install-base.sh  #   common   — dnf install of the base packages, host-runnable; feature groups are 0N-install-<group>.sh, dispatched by the Dockerfile's ARG ifs (see "Host-agnostic setup belongs in a script")
-│   ├── format.sh           #   common   — clang-format (C/C++) or ruff (Python)
-│   ├── entrypoint.sh       #   common   — the image's ENTRYPOINT target
-│   ├── <task>.sh           #   variant  — lint.sh, html/pdf/epub.sh, buildDebug.sh, jupyter.sh, …
-│   └── dotfiles/           #   optional — .extrabashrc, .emacs.d/, .tmux.conf, .lldbinit
-├── .clang-format / .clang-tidy   # C/C++ projects
-├── requirements.txt              # Python projects
-├── tools/                        #   common   — repo scripts / dev tooling: code generators, checkers, linters (e.g. gacalc's gen_specialized.py, mvp's check_doc_regions.py). The home a promoted ad-hoc script lands in.
-├── output/                       # docs/book projects — bind target for built artifacts
-└── tasks/                        # tasks/ (task docs) + tasks/reference/ (durable knowledge) + tasks/adhoc/ (transient scripts) — see conventions above
-```
-
-### Makefile contract
-
-- **Header (invariant):** `.DEFAULT_GOAL := shell` (or `help`); `CONTAINER_CMD = podman`; `CONTAINER_NAME = <project>`.
-- **`FILES_TO_MOUNT`** aggregates `-v $(shell pwd):/<name>/:Z`, the entrypoint-script mounts, and conditional host-config mounts built with the `readlink -f` + `if [ -f … ]` idiom (`TMUX_MOUNT`, sometimes `GITCONFIG_MOUNT` / `GNUPG_MOUNT`).
-- **Targets:** `all` → `image` → `shell`, plus `format`, optional `docs`/`html`/`pdf`/`epub`, and a `help` target using the standard `grep --extended-regexp '^[a-zA-Z0-9_-]+:.*?## .*$$' … awk '{printf "\033[36m%-30s\033[0m %s\n", …}'` one-liner. Every real target carries a `## description` for that help output.
-- **`run`-style targets** all share the shape `podman run -it --rm --entrypoint /bin/bash $(FILES_TO_MOUNT) … $(CONTAINER_NAME) /usr/local/bin/<script>.sh` — one image, many entrypoint scripts.
-- **`image-export` / `image-import`** (standard pair, being rolled out across projects): archive a built image to a tar and reload it without rebuilding — `image-export` does `$(CONTAINER_CMD) save $(CONTAINER_NAME) -o $(CONTAINER_NAME)-$(shell date +%m-%d-%Y_%H-%M-%S).tar` (timestamped tar in the repo root), `image-import` does `$(CONTAINER_CMD) load -i $(FILE)` (call as `make image-import FILE=foo.tar`). Both `.PHONY`, both `## `-documented. Use `$(CONTAINER_CMD)`/`$(CONTAINER_NAME)`, not hardcoded `podman`. **Gitignore the artifacts** (`$(CONTAINER_NAME)-*.tar` or `*.tar`) — they're large and must never be committed. `save`/`load` start no container, so they need no `--cgroups=disabled` and run fine nested. As of 2026-06-13 only `modelviewprojection` had this pair (its copy hardcodes `podman`, lacks `.PHONY`, and doesn't gitignore the tar — the rollout fixes all three); task docs to add it exist in `geometricalgebra`, `spimulator`, `texExpToPng`.
-- **`format` target** (standard, ruff/clang-format projects): a `.PHONY: format`, `## `-documented target that runs the repo's `entrypoint/format.sh` (ruff `check --fix` + `format`, or clang-format; Python repos may also `ty check`) **inside the container** — `format: image` then `$(CONTAINER_CMD) run … $(FILES_TO_MOUNT) $(CONTAINER_NAME) <format.sh path>`, source bind-mounted so fixes land on the host. Self-contained `format.sh` (C/asm, or ruff-only that `cd`s itself) runs directly; **Python repos whose `format.sh` runs `ty` need the shell's setup first** (`format.sh` is normally invoked by the interactive shell's exit trap, so it assumes venv-active + package-importable + right cwd): mirror that repo's `shell.sh` — e.g. `-c 'cd /mvp && loadpackages.sh && format.sh'` (mvp), `-c 'source /venv/bin/activate; cd /<dir>; pip install -e .; bash /format.sh'` (multivariate-math), or `-c 'cd /<dir>; <regenerate>; bash /format.sh'` (geometricalgebra regenerates gitignored modules first). **Gotcha:** the `cd` must be in the `bash -c` itself — a `cd` inside `loadpackages.sh`/`shell.sh` is subprocess-local and does NOT carry to `format.sh`, which uses relative paths (`ruff check src`), so without the outer `cd` ruff fails with "No such file or directory" (ty still passes — it uses absolute `/<dir>/src` paths). Good examples: `spimulator`, `texExpToPng` (C); added to `hanoi`/`lldbassemblyhelper`/`multivariate-math`/`geometricalgebra`/`modelviewprojection` 2026-06-13. **mvp exception (2026-08-14): its `format.sh` was made fully portable — ty paths are now relative too (`ty check src`, not `/mvp/src`) and the venv activation is guarded — so mvp's `format.sh` runs from the repo root in-container *and* on the host, the outer `cd` is now needed for its ty steps as well as ruff, and its exit hook is a single `cd /mvp && format.sh`.**
-- **Feature flags** are passed as `--build-arg` (`BUILD_DOCS`, `USE_EMACS`, `USE_GRAPHICS`, `USE_JUPYTER`/`SPYDER`/`IMGUI`/`X_WINDOWS`, `BUILD_TREE_SITTER`) and **default to `1` in the Makefile**.
-- **GUI:** an `USE_X` / X11 block and a `WAYLAND_FLAGS_FOR_CONTAINER` block for display passthrough. Every bind mount uses **`:Z`** (`U,z` only where ownership matters, e.g. the emacs `elpa` mount).
-
-### Dockerfile contract
-
-- **Invariant:** `FROM registry.fedoraproject.org/fedora:44`, then the dnf-cache idiom — `RUN --mount=type=cache,target=/var/cache/libdnf5 --mount=type=cache,target=/var/lib/dnf`, `keepcache=True` appended to `dnf.conf`, `dnf upgrade -y`, then the package install — which, per "Host-agnostic setup belongs in a script" below, runs the host-runnable `0N-install-*.sh` scripts rather than an inline `dnf install`.
-- **`ARG` feature flags default to `0`** — the mirror of the Makefile's `1`, so a bare `podman build` is lean and `make` opts features in.
-- COPY the entrypoint scripts to `/usr/local/bin` (or the whole `entrypoint/dotfiles/` to `/root/`); `echo "source ~/.extrabashrc" >> ~/.bashrc`.
-- **Variant:** `ENTRYPOINT ["/entrypoint.sh"]` *or* no entrypoint at all (then every Makefile target supplies `--entrypoint /bin/bash`). Some images build + test the project at image-build time and gate the build on tests (`ctest`, `meson test`).
-
-### Host-agnostic setup belongs in a script the Dockerfile sources (so it also runs without a container)
-
-**Much of what a Dockerfile does is not container-specific — it is ordinary host setup
-that happens to run inside a `RUN` line.** Extract that into **standalone scripts the
-Dockerfile invokes**, so the *same* setup can run on a bare Fedora host, or in a guest
-with no docker/podman, not only during `podman build`. The canonical case is **system
-package installation**.
-
-- **One optionless script per package group — the scripts take NO flags.** Put each
-  group in its own `entrypoint/0N-install-<group>.sh` (`01-install-base.sh`,
-  `02-install-docs.sh`, …), each a flat `dnf install -y …` of just that group. **Which
-  optional groups get installed is decided in the Dockerfile**, by its feature-flag ARG
-  `if` blocks (`if [ "$BUILD_DOCS" = "1" ]; then /usr/local/bin/02-install-docs.sh; fi`)
-  — the flag logic lives in exactly one place, the Dockerfile, not duplicated into the
-  scripts. A human on a bare host runs base then whichever groups they want. (This beats
-  a single script that re-reads the flags as env vars: no env plumbing, and each script
-  is a trivially readable package list.) Also extractable when it comes up: building a
-  pinned dependency from source, fetching + verifying a tool.
-- **Guard `dnf`:** the base script checks `command -v dnf` and **fails loudly** on a
-  non-dnf host rather than silently no-op'ing (the feature scripts inherit that path,
-  since base runs first).
-- **Keep in the Dockerfile (build-time or container-path):** the dnf **cache mount +
-  `keepcache=True`** (build plumbing — the scripts must not depend on it; the `RUN` keeps
-  the `--mount=type=cache` and calls the scripts), `FROM`/`ARG`/`COPY`/`ENTRYPOINT`, the
-  `if`-dispatch itself, and anything that writes **container paths** (`/venv` creation,
-  pip installs, jupyter/spyder config, `~/.bashrc`/`~/.bash_history` seeding) — those are
-  "set up this image", not "install packages on a machine". Where a feature mixes both
-  (e.g. `USE_JUPYTER` installs packages *and* writes config), the packages go in the
-  group script and the config stays in the Dockerfile, each under its own flag check.
-- **Exit status:** a single-`dnf` script's own exit *is* the gate (safe by shape). A
-  script with several `dnf` calls (e.g. base does upgrade + installs) must accumulate
-  (`… || status=1; exit $status`), not fail-fast — same rule as the format/gate scripts.
-  Dispatch the group scripts with `&&` so a failed install fails the build.
-- **Verify BOTH ways:** (a) the image still builds (`make image`, nested) — and across a
-  few **flag permutations**, checking each built image has each group's sentinel package
-  present iff its flag is on (the absent half proves the `if` gating works); (b) a group
-  script runs standalone in a fresh `fedora:44` container (the bare-guest case). Prove the
-  extraction changed nothing by diffing the **package set** old-Dockerfile vs the union of
-  the new scripts — it must be identical.
-- **These are not ad-hoc scripts** (they become permanent files the Dockerfile sources) —
-  they live in `entrypoint/`, committed, not under `tasks/adhoc/`.
-
-Worked example: **modelviewprojection** `entrypoint/0N-install-*.sh` (2026-08-12) — six
-group scripts whose union is proven identical (96 packages) to the prior inline
-Dockerfile via a dnf-arg diff; verified standalone in a fresh Fedora guest and by nested
-image builds across flag permutations.
-
-### entrypoint contract
-
-- **`shell.sh`** — cd into the project dir and `exec bash`. Python projects first install themselves editable: `uv pip install --no-deps --no-index --no-build-isolation -e .`.
-- **`format.sh`** — clang-format over `*.{c,cpp,h,hpp}`, or `ruff check --fix` + `ruff format --line-length=80`.
-- **Docs/book projects** — build HTML/PDF/EPUB and copy artifacts into a bind-mounted `/output/<proj>/`, with `touch /output/<proj>/.nojekyll` for GitHub Pages.
-- **C/C++ projects** — an `exit()` trap in `~/.bashrc` that runs `format.sh` (and `lint.sh`) on shell exit.
-
-### Two families
-
-- **Toolchain / source** (e.g. apue, spimulator, texExpToPng, gltron): a meson or cmake build, often performed at image-build time with tests gating the image.
-- **Book / docs** (e.g. programmingFromTheGroundUp, hanoi, modelviewprojection): a Sphinx pipeline → html/pdf/epub, artifacts to `/output`, heavy `BUILD_DOCS` TeX Live install.
-
-### Quick conformance check for a new project
-
-`Dockerfile` + `Makefile` + `entrypoint/shell.sh` present? Fedora-44 base with the dnf-cache idiom? `CONTAINER_NAME` matches the dir? `FILES_TO_MOUNT` mounts the repo at `/<name>/:Z`? `help` target with `##`-documented targets? Build-arg defaults `1` (Makefile) / `0` (Dockerfile)? Entrypoint scripts and the image's `ENTRYPOINT`/`--entrypoint` story consistent? Each `entrypoint/*.sh` references the *right* project's paths (a frequent copy-paste drift) — flag any that point at another project? Package installation extracted into host-runnable `entrypoint/0N-install-*.sh` group scripts the Dockerfile dispatches by ARG (per "Host-agnostic setup belongs in a script"), or still inline in a `RUN`?
+Most of my projects share one container-per-project template (a Fedora + Podman
+ephemeral-container dev environment: a `Dockerfile`, a `Makefile` of `podman run --rm`
+targets, and `entrypoint/` scripts). When a new project is mounted, use that template as
+a **conformance reference** — flag accidental drift (stale copy-paste, wrong paths,
+missing targets), while deliberate variation is fine. The detailed tier-by-tier spec and
+the per-project examples are personal — see `ai-coding-conventions.personal.md`; per-project specifics also
+belong in that project's own `CLAUDE.md`.
 
 ## Running projects in a nested container
 
@@ -1058,9 +984,10 @@ test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no
 
 **2. Every inner `podman run` / `docker run` needs `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is read-only, so without it *every* inner run dies with `/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. A project's Makefile won't have this flag, so its container target will fail until it's added. Running their containers nested is the whole point of the setup, but **don't silently edit a project's Makefile / run script — explain that the container target needs `--cgroups=disabled` to work nested, propose how I'd add it (a Makefile variable if one already threads extra flags through, otherwise the flag inline), and wait for the go-ahead** before changing it. A one-off run I can do directly by appending the flag to the `podman run` on the command line; persistent edits to their build files need a yes first.
 
-**Standing arrangement (Bill, 2026-06-08):** for the *specific* case of adding `--cgroups=disabled` so a containerized `make` target (`make dist` / `test` / `image`) runs nested, I'm **pre-authorized to add it as a transient edit and revert it in the same turn** — add the flag to the relevant `podman run`, run the target, then restore the Makefile so the committed version is never left changed. No need to ask each time. On subsequent runs I just repeat the add-run-revert cycle. I always revert in the same turn I add it; if I can't finish a run I still restore before ending, and I call out explicitly whenever I touch the Makefile so an interrupted run shows up as an obvious uncommitted diff rather than a surprise. (This covers *only* the `--cgroups=disabled` nested-podman flag; substantive or persistent build-file changes still need a yes first.)
-
-**Standing arrangement — temporary build-file additions (Bill, 2026-06-09):** generalizing the above beyond the cgroups flag. When a task genuinely needs a tool or dependency that the project's image/build doesn't ship — a sanitizer runtime (`libasan`), a debugger, a profiler, an extra dev package, a one-off build flag — I'm **pre-authorized to add it to the `Dockerfile` / build files (and rebuild the image) without asking each time, *as long as it's temporary*.** The contract: by the time the task is **done**, I've removed those additions so the committed build files are back to only what the project actually ships. While the task is in flight the addition can stay (image rebuilds are expensive, so I don't add-and-revert every turn the way I do for the cgroups flag) — but I **track what I added** so cleanup isn't forgotten: a note in the task doc *and* a comment in the Dockerfile marking the line dev-only / to-be-removed, and I call it out when I add it. **Exception — keep, don't remove:** anything whose only purpose is making *nested* podman runs work (the `--cgroups=disabled` flag, a `PODMAN_RUN_FLAGS`-style passthrough variable threaded through a Makefile, etc.) is fine to leave in permanently — it's harmless to a normal host build and saves re-adding it each session. What still needs a yes: a **permanent** change to what the image ships (a real runtime dependency the project should carry going forward), as opposed to a temporary dev/debug aid.
+**Any standing authorizations for nested runs are personal — see `ai-coding-conventions.personal.md`** (e.g. a
+blanket pre-approval to add `--cgroups=disabled` transiently, or to make temporary
+build-file additions a task needs). Absent such a grant, the default holds: propose the
+edit and wait for the go-ahead, per point 2 above.
 
 **Other specifics:**
 - **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (Bill, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
@@ -1289,8 +1216,16 @@ open the file fails (William Emerison Six <billsix@gmail.com>, 2026-08-13). The 
 resolve in the container, where the Makefile mounts `tasks/reference/` to
 `~/.claude/reference/`.
 
+
+Finally, `@~/.claude/ai-coding-conventions.personal.md` imports the **personal overlay** — the maintainer-specific
+layer (identity, project→URL mapping, project template, standing authorizations). The tracked
+default is blank; `make shell` mounts the host's `~/.ai-coding-conventions.personal.md` over it, so the
+conventions above stay portable while personal specifics layer in per-user. See
+`ai-coding-conventions.personal.example.md` and `FORKING.md`.
+
 @~/.claude/reference/llm-overused-phrases.md
 @~/.claude/reference/nested-podman-design.md
 @~/.claude/reference/sandbox-capability-map.md
 @~/.claude/reference/claude-config-layering.md
 @~/.claude/reference/print-debugging.md
+@~/.claude/ai-coding-conventions.personal.md
