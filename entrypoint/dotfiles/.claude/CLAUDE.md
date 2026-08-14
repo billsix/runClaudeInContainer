@@ -932,11 +932,11 @@ If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted re
 
 ### Reference my projects by their GitHub URL in documentation, not the local path
 
-My projects are **local git checkouts** bind-mounted at container paths (`/foo/opt/<name>`, `/bar/…`, etc.); each has a **GitHub remote** (typically `github.com/billsix/<repo>`). Those container-absolute paths exist **only inside this sandbox** — they are meaningless and non-portable to anyone reading the docs on GitHub. I'll often refer to a project by its local path in conversation; that's fine for chat.
+My projects are **local git checkouts** bind-mounted at container paths (`/foo/opt/<name>`, `/mnt/sda1/<name>`, etc.); each is **published on GitHub** (typically `github.com/billsix/<repo>`). Those container-absolute paths exist **only inside this sandbox** — they are meaningless and non-portable to anyone reading the docs on GitHub. I'll often refer to a project by its local path in conversation; that's fine for chat.
 
-But **in anything that gets committed or shared** — a `README.md`, a `CLAUDE.md`, a task or `tasks/reference/` doc, a code comment, a commit/PR body — **never write the container-absolute path for one of my projects; use its GitHub URL instead.**
+But **in anything that gets committed or shared** — a `README.md`, a `CLAUDE.md`, a task or `tasks/reference/` doc, a code comment, a commit/PR body — **never write the container-absolute path for one of my projects; use its GitHub URL instead**, so a reader knows where the source actually lives.
 
-**Confirm the URL from the actual git remote — don't guess it from the directory name.** The mount's directory name often differs from the GitHub repo name (a `hanoi` dir whose remote is `towersofhanoi`; a `gltron` dir whose remote is `gltron-mirror`). Read the real URL with `git -C <local-path> remote get-url origin` (or `git remote -v`) and use that. If a repo's remote isn't GitHub or can't be confirmed (e.g. a third-party checkout, or one with no billsix remote), say so rather than inventing a URL. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`, the URL read from the remote.)
+**Read the URL from a `github`-named remote — NOT from `origin`, and never guess it from the directory name.** As of 2026-08-14, every project's `origin` points at my **self-hosted Pi box** (`pi@192.168.0.186:/mnt/usbdrive2/gitRepos/billsix.github.com/<name>.git`), **not** a `github.com` URL — so `git remote get-url origin` does NOT give the GitHub URL. Read it from a remote named **`github`**: `git -C <local-path> remote get-url github`. **If there is no `github` remote, ASK me for the URL — I'll add a remote named `github`** — rather than inventing `github.com/billsix/<dirname>` (the mount's directory name can differ from the repo name: a `hanoi` dir might be `towersofhanoi`, a `gltron` dir `gltron-mirror`). Confirmed so far (from existing docs): **`github.com/billsix/geometricalgebra`** (gacalc), **`github.com/billsix/modelviewprojection`** (mvp), **`github.com/billsix/runClaudeInContainer`**. If a repo's GitHub URL can't be confirmed, say so rather than inventing one. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`.)
 
 ## My project layout (the container-per-project template)
 
@@ -1192,8 +1192,9 @@ context when you hand-instrument in an unfamiliar language.
 
 When you write a **code generator** (a tool that *emits* source in some language), these are
 the durable, language-agnostic lessons — distilled from gacalc's `tools/gen_specialized.py`,
-which moved from string concatenation to hand-built Python `ast` nodes → `ast.unparse`
-(2026-06-07; the A/B/C study is archived at `geometricalgebra` `tasks/archive/2026/06/07/codegen-via-python-ast.md`).
+(`github.com/billsix/geometricalgebra`), which moved from string concatenation to hand-built
+Python `ast` nodes → `ast.unparse` (2026-06-07; the A/B/C study is archived there at
+`tasks/archive/2026/06/07/codegen-via-python-ast.md`).
 
 - **Prefer building STRUCTURED output over concatenating strings, when the target language
   gives you the tools.** Python has `ast` + `ast.unparse`; many languages have an AST +
