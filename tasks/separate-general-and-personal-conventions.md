@@ -42,11 +42,32 @@ general layer without merge conflicts against their customizations.
   the portable layer) vs move-to-personal (the lesson is inseparable from the maintainer's
   repo). Most can be generalized — the *rule* is portable; only the citation is personal.
 
-Ship a `personal.example.md` (placeholders: your name/email, your GitHub user, your repo
-mapping, your mount layout) so a forker copies it to `personal.md` and fills it in. Add an
-`@`-import at the end of the portable `CLAUDE.md` (`@~/.claude/personal.md`) so a user's
-own conventions layer in without editing the tracked file. Decide whether `personal.md` is
-gitignored (a fork keeps it out of git) or tracked-as-template.
+**Wiring (decided 2026-08-14):**
+
+- The portable `CLAUDE.md` ends with `@~/.claude/personal.md`, so a user's personal layer
+  is inlined every session without editing the tracked file.
+- The repo ships a **blank** `entrypoint/dotfiles/.claude/personal.md`, baked into the image
+  by the existing `COPY entrypoint/dotfiles/ /root/`. This is the default so that a bare
+  `podman run` **without** the Makefile still resolves the `@`-import instead of dangling.
+  (An empty `@`-imported file inlines nothing — that's the correct no-op default.)
+- The **Makefile mounts the host's `~/.claudeInContainerPersonal.md`** over
+  `/root/.claude/personal.md`, shadowing the blank baked default in normal `make shell` use.
+  The mount is built at parse time exactly like `CLAUDE_CONFIG_MOUNT`'s `mkdir -p`, so the
+  Makefile **creates the host file if it doesn't exist**:
+
+  ```make
+  CLAUDE_PERSONAL_MOUNT := $(shell touch $(HOME)/.claudeInContainerPersonal.md; \
+      echo "-v $(HOME)/.claudeInContainerPersonal.md:/root/.claude/personal.md:Z")
+  ```
+
+  Add `$(CLAUDE_PERSONAL_MOUNT)` to `FILES_TO_MOUNT`. Two details that mirror the
+  `~/.claude` mount and must not be "cleaned up": the `touch` lives **inside** `$(shell …)`
+  (the var is `:=`-expanded at parse time, and `make` runs on the host, so this creates the
+  host file itself — no manual step); and the mount is **unconditional** (always present),
+  because the `@`-import target must always exist.
+- A `personal.example.md` with placeholders (name/email, GitHub user, repo mapping, mount
+  layout) documents what to put in `~/.claudeInContainerPersonal.md`. The in-repo
+  `personal.md` stays **blank** and tracked; the real content lives only on the host file.
 
 ### 2. The `@`-imported reference docs — sort by audience
 
@@ -90,10 +111,11 @@ can't tell the portable parts from the parts they must overwrite.
 
 ## Open questions
 
-1. **Overlay file name + tracking:** `personal.md` `@`-imported and **gitignored** (cleanest
-   for forks — your customization never conflicts with upstream), or tracked as
-   `personal.example.md` + a gitignored real `personal.md`? Recommend: **both** — track
-   `personal.example.md`, gitignore `personal.md`, `@`-import `personal.md`.
+1. **Overlay file + tracking — DECIDED (2026-08-14):** `@~/.claude/personal.md` imported
+   from the portable `CLAUDE.md`; a **blank tracked** `personal.md` baked as the default;
+   the Makefile mounts the host's `~/.claudeInContainerPersonal.md` over it (auto-`touch`ed
+   if absent). Real personal content lives only on the host file, never committed. See
+   Wiring above.
 2. **Worked examples:** generalize-in-place (strip project name, keep lesson) as the default,
    moving to the personal overlay only when the lesson can't survive without the repo?
    Recommend **yes** — most rules are portable; only the citation is personal.
