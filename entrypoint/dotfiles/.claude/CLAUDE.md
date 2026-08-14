@@ -936,7 +936,8 @@ My projects are **local git checkouts** bind-mounted at container paths (`/foo/o
 
 But **in anything that gets committed or shared** — a `README.md`, a `CLAUDE.md`, a task or `tasks/reference/` doc, a code comment, a commit/PR body — **never write the container-absolute path for one of my projects; use its GitHub URL instead**, so a reader knows where the source actually lives.
 
-**Read the URL from a `github`-named remote — NOT from `origin`, and never guess it from the directory name.** As of 2026-08-14, every project's `origin` points at my **self-hosted Pi box** (`pi@192.168.0.186:/mnt/usbdrive2/gitRepos/billsix.github.com/<name>.git`), **not** a `github.com` URL — so `git remote get-url origin` does NOT give the GitHub URL. Read it from a remote named **`github`**: `git -C <local-path> remote get-url github`. **If there is no `github` remote, ASK me for the URL — I'll add a remote named `github`** — rather than inventing `github.com/billsix/<dirname>` (the mount's directory name can differ from the repo name: a `hanoi` dir might be `towersofhanoi`, a `gltron` dir `gltron-mirror`). Confirmed so far (from existing docs): **`github.com/billsix/geometricalgebra`** (gacalc), **`github.com/billsix/modelviewprojection`** (mvp), **`github.com/billsix/runClaudeInContainer`**. If a repo's GitHub URL can't be confirmed, say so rather than inventing one. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`.)
+**Read the URL from a `github`-named remote — NOT from `origin`, and never guess it from the directory name.** As of 2026-08-14, every project's `origin` points at my **self-hosted Pi box** (`pi@192.168.0.186:/mnt/usbdrive2/gitRepos/billsix.github.com/<name>.git`), **not** a `github.com` URL — so `git remote get-url origin` does NOT give the GitHub URL. Read it from a remote named **`github`**: `git -C <local-path> remote get-url github`. **If there is no `github` remote, ASK me for the URL — I'll add a remote named `github`** — rather than inventing `github.com/billsix/<dirname>` (the mount's directory name can differ from the repo name: a `hanoi` dir might be `towersofhanoi`, a `gltron` dir `gltron-mirror`). **Confirmed mappings (local dir → GitHub repo, read from github.com/billsix, 2026-08-14):**
+`geometricalgebra`, `modelviewprojection`, `runClaudeInContainer`, `multivariate-math`, and `spimulator` each map to `github.com/billsix/<same-name>`; the three where the **dir ≠ repo name** are **`hanoi` → `github.com/billsix/towersofhanoi`**, **`gltron` → `github.com/billsix/gltron-mirror`**, and **`texExpToPng` → `github.com/billsix/tex-expression-to-png`**. Also referenced: `spimulator-examples` (SPIM demos), `pyMatrixStack`. **`galgebra` is third-party — `github.com/pygae/galgebra`, not billsix.** If a repo's GitHub URL still can't be confirmed, say so rather than inventing one. (Worked example, 2026-07-22: mvp's reference docs referred to gacalc as `/foo/opt/geometricalgebra`; corrected to `github.com/billsix/geometricalgebra`.)
 
 ## My project layout (the container-per-project template)
 
@@ -1077,6 +1078,36 @@ test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no
 - **Manage inner images by RAM pressure, not eagerly.** The store is a small **RAM-backed** tmpfs (`/var/lib/containers`, sized by `NESTED_PODMAN_TMPFS_SIZE`, **default 8g**), so every pulled/built image costs real memory. **Don't** `rmi` an image the moment you're done with it — keeping it avoids an expensive rebuild if you need it again this session. Instead, **before building or pulling a new image**, estimate its size (a Fedora/full-toolchain image is multiple GB; a slim base is hundreds of MB) and check headroom with `df -h /var/lib/containers`. Only if there isn't enough room, **evict** — `podman rmi` an existing image that seems unlikely to be needed again soon (and `podman image prune -f` for dangling layers) to make space. (`--rm` removes the *container*; the *image* persists until you `rmi` it.) The goal is fewest rebuilds within the RAM budget, not a clean store. Also: when validating in a throwaway image, install the baseline tools your check depends on first — a minimal base (e.g. `ubuntu:24.04`) ships no `python3`, which can make a check *silently pass*.
 - **Storage is fuse-overlayfs**; `podman info --format '{{.Store.GraphDriverName}}'` reports `overlay` driven by it.
 - The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.
+
+## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
+
+**In this sandbox my Bash tool executes each command through the user's interactive
+login shell, which is `zsh`, not `bash`** — a wrong assumption I keep making, then
+watching commands fail with `zsh`-flavoured errors (`parse error near 'head'`,
+`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (Bill flagged it
+2026-08-14: "why do you keep running zsh instead of bash?"):
+
+- **Unquoted globs error instead of passing through.** `ls *.md` with no match is a
+  hard `no matches found` error under zsh's default `nomatch`, where bash would pass
+  the literal `*.md` on. Same for `grep [^a-z]` / `foo|bar` in an unquoted arg — zsh
+  parses the `[...]`/`|` as glob/pipe syntax before the tool sees them.
+- **`(eval):N:` and `parse error near '<word>'` in the output** are the tell that
+  zsh, not bash, parsed the line — so a heredoc/process-substitution/`[[ ]]` construct
+  written for bash tripped a zsh parsing difference.
+
+**The fix — wrap any command that uses shell patterns, bashisms, or multi-line
+constructs in `bash -c '…'`:**
+
+```sh
+bash -c 'grep -rnE "foo|bar" src --include="*.md" | head'
+```
+
+The single-quoted `bash -c` body is handed to bash verbatim, so globs, `[...]`,
+`|`, `[[ ]]`, `for`/`done`, and heredocs all behave as written. **A bare, simple
+command (`git status`, `ls`, a single tool with quoted args) is fine as-is** — reach
+for `bash -c` specifically when the line contains a glob, a character class, a pipe
+inside an argument, or bash-only syntax. (This is about the *interactive login shell
+the tool wraps*, which is host-configurable; don't assume it's bash on any machine.)
 
 ## Verification gates in nested containers
 
