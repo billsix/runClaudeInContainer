@@ -103,6 +103,20 @@ CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claud
 CLAUDE_PERSONAL_FILE := $(HOME)/.ai-coding-conventions.personal.md
 CLAUDE_PERSONAL_MOUNT := $(shell touch $(CLAUDE_PERSONAL_FILE); echo "-v $(CLAUDE_PERSONAL_FILE):/root/.claude/ai-coding-conventions.personal.md:Z")
 
+# Optional non-interactive auth, passed THROUGH from the host env (never stored
+# in the repo). The ~/.claude mount above already persists your login across
+# runs, but a subscription's OAuth *session* token still expires periodically —
+# so you re-login now and then. To stop that entirely, generate a long-lived
+# (~1yr) token once with `claude setup-token` and export it on the host:
+#     export CLAUDE_CODE_OAUTH_TOKEN=...   # in ~/.bashrc / ~/.zshrc
+# It uses your existing SUBSCRIPTION (no per-token billing). ANTHROPIC_API_KEY is
+# also honored (Console API key, separate per-token billing) for forks that want
+# it. Each `-e VAR` is added ONLY when the host var is set, so an unset var never
+# shadows the mounted credentials with an empty value. See README.md ("Auth").
+CLAUDE_AUTH_ENV := $(shell \
+	[ -n "$$CLAUDE_CODE_OAUTH_TOKEN" ] && printf -- '-e CLAUDE_CODE_OAUTH_TOKEN '; \
+	[ -n "$$ANTHROPIC_API_KEY" ]       && printf -- '-e ANTHROPIC_API_KEY ')
+
 
 PROJECT_DIR ?= $(notdir $(CURDIR))
 
@@ -165,20 +179,13 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(CLAUDE_CONFIG_MOUNT) \
 		$(CLAUDE_DOTFILES_MOUNT) \
 		$(CLAUDE_PERSONAL_MOUNT) \
+		$(CLAUDE_AUTH_ENV) \
 		$(X_FLAGS_FOR_CONTAINER) \
 		$(WAYLAND_FLAGS_FOR_CONTAINER) \
 		$(CONTROLLER_FLAGS_FOR_CONTAINER) \
 		$(CONTAINER_NAME) \
 		/shell.sh
 
-# .PHONY: claude
-# claude: ## Run Claude Code in an ephemeral container with project mounted
-# 	$(CONTAINER_CMD) run -it --rm \
-# 		--entrypoint /usr/local/bin/claude \
-# 		$(FILES_TO_MOUNT) \
-# 		-e ANTHROPIC_API_KEY=$(ANTHROPIC_API_KEY) \
-# 		-w /geometricalgebra \
-# 		$(CONTAINER_NAME)
 .PHONY: image-export
 image-export: ## export the OCI image to a timestamped tar in the repo root
 	$(CONTAINER_CMD) save $(CONTAINER_NAME) -o $(CONTAINER_NAME)-$(shell date +%m-%d-%Y_%H-%M-%S).tar

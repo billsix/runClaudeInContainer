@@ -16,6 +16,36 @@ the Claude Code native binary.
 - A host `~/.claude` directory (for Claude auth/sessions) — optional but recommended
 - For GUI apps: an X11 or Wayland session on the host
 
+## Auth — staying logged in
+
+Two layers keep you signed in to Claude Code, so you don't re-authenticate every run:
+
+1. **The `~/.claude` mount (automatic).** `make shell` bind-mounts your host `~/.claude` into
+   the container, so your login, sessions, and agent memory **persist** across the ephemeral
+   (`--rm`) containers. The directory is created for you on first `make shell` if it doesn't
+   exist. Sign in once and it sticks. *(This is the fix from
+   `tasks/archive/2026/07/09/persist-claude-login-across-containers.md` — before it, the mount
+   silently no-op'd and you re-signed-in every time.)*
+
+2. **A long-lived token (optional, stops expiry re-logins).** Even with the mount, a
+   **subscription's OAuth *session* token expires periodically**, so you'll occasionally be asked
+   to log in again. To stop that for good, generate a long-lived (~1 year) token **once** and
+   export it on the host — `make shell` passes it through automatically:
+
+   ```sh
+   claude setup-token                    # prints a token; uses your existing SUBSCRIPTION
+   # then add to your ~/.bashrc / ~/.zshrc so it's always set:
+   export CLAUDE_CODE_OAUTH_TOKEN=...
+   ```
+
+   The env var name is **`CLAUDE_CODE_OAUTH_TOKEN`** (same on host and in the container). It is
+   read from your host environment and **never stored in this repo**. `make shell` only adds the
+   `-e` passthrough when the variable is actually set, so leaving it unset changes nothing.
+   *(Forks that bill per-token instead of a subscription can export `ANTHROPIC_API_KEY` instead —
+   also passed through — but that uses the metered Console API, not a subscription.)*
+
+   Until a token is set, `make shell` prints a one-line reminder of these steps at startup.
+
 ## Quick start
 
 ```sh

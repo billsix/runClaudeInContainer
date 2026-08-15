@@ -29,7 +29,14 @@ host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `~/.claude/reference/` alongside them (see `CLAUDE_DOTFILES_MOUNT` in the
 `Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
 version-controlled here; auth, sessions, and credentials come from the host
-`~/.claude` mount instead. The `tasks/reference/` mount exists because the mounted
+`~/.claude` mount instead. **Auth has a second, optional layer:** `CLAUDE_AUTH_ENV`
+(in the `Makefile`) passes a host `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`)
+through with `-e` **only when set** — a long-lived token from `claude setup-token`
+that stops the periodic re-logins the mount alone can't (a subscription's OAuth
+*session* token still expires). `entrypoint/shell.sh` prints a setup hint at startup
+until it's set. Never commit the token; it lives only in the host env. See README.md
+("Auth") and the archived `persist-claude-login-across-containers.md`.
+The `tasks/reference/` mount exists because the mounted
 `CLAUDE.md` **`@`-imports all five reference docs** (the overused-words catalog plus the
 nested-podman, sandbox-capability-map, config-layering, and print-debugging docs), so their
 content is inlined into every session — which means those paths must resolve in the container
