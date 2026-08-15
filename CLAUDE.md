@@ -29,12 +29,22 @@ host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `~/.claude/reference/` alongside them (see `CLAUDE_DOTFILES_MOUNT` in the
 `Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
 version-controlled here; auth, sessions, and credentials come from the host
-`~/.claude` mount instead. **Auth has a second, optional layer:** `CLAUDE_AUTH_ENV`
-(in the `Makefile`) passes a host `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`)
-through with `-e` **only when set** — a long-lived token from `claude setup-token`
-that stops the periodic re-logins the mount alone can't (a subscription's OAuth
-*session* token still expires). `entrypoint/shell.sh` prints a setup hint at startup
-until it's set. Never commit the token; it lives only in the host env. See README.md
+`~/.claude` mount instead. **Auth persistence needs TWO host mounts, because Claude Code
+splits its auth state across two files:** `~/.claude/.credentials.json` (OAuth tokens —
+covered by the `~/.claude` mount, `CLAUDE_CONFIG_MOUNT`) **and `~/.claude.json`**
+(onboarding state: `hasCompletedOnboarding`, account info). The latter is a *sibling* of
+`~/.claude`, so the dir mount misses it; unmounted it dies with the `--rm` container, and
+Claude — seeing no onboarding record — shows the "Select login method" menu on **every**
+launch despite valid mounted credentials. `CLAUDE_JSON_MOUNT` (in the `Makefile`) fixes this
+by seeding host `~/.claude.json` to `{}` if absent and bind-mounting it; log in once and it
+sticks. **This ephemeral-`~/.claude.json` issue — not token expiry — was the real "log in
+every session" cause** (diagnosed 2026-08-16; see
+`tasks/archive/2026/08/16/long-lived-auth-token-env-var.md`). Separately, **`CLAUDE_AUTH_ENV`** passes a host
+`CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`) through with `-e` **only when set** — a
+long-lived `claude setup-token` token for **headless/CI/`-p`** use; it authenticates API
+calls but does **not** silence the interactive login menu (that's gated on onboarding state,
+above), so it is not the fix for interactive re-logins. `entrypoint/shell.sh` prints a setup
+hint until it's set. Never commit the token; it lives only in the host env. See README.md
 ("Auth") and the archived `persist-claude-login-across-containers.md`.
 The `tasks/reference/` mount exists because the mounted
 `CLAUDE.md` **`@`-imports all five reference docs** (the overused-words catalog plus the
@@ -61,6 +71,29 @@ working on the container builder; it is distinct from the mounted cross-project
 conventions. The full layering design — what persists where, the `mkdir -p`
 rationale, and the rejected alternatives — is in
 `tasks/reference/claude-config-layering.md`.
+
+## Host shell vs container shell
+
+Two environments are in play and a command means different things in each, so when you
+write instructions for the maintainer, **label them `[HOST]` vs `[CONTAINER]`**. `[HOST]`
+is the machine you run `make shell` / `exampleRunClaude.sh` from; `[CONTAINER]` is the
+sandbox it launches.
+
+- **The container's interactive shell is bash.** `entrypoint/entrypoint.sh` and
+  `entrypoint/shell.sh` both `exec bash`, and root's login shell is `/bin/bash`. (Claude
+  Code's own Bash *tool* may run through whatever login shell the *outer* sandbox happens
+  to set — e.g. `$SHELL=/usr/bin/zsh` in some sandboxes — which is independent of this
+  image and is the cross-project note's concern, not this repo's.)
+- **An env var crosses HOST → CONTAINER only if it is _exported_ on the host.** The
+  `Makefile`'s `CLAUDE_AUTH_ENV` (and any `-e VAR` passthrough) is computed by
+  `$(shell …)` at parse time, and that subshell inherits only **exported** variables. A
+  var that is merely *set* — `echo ${#VAR}` prints a length, but `declare -p VAR` shows no
+  `-x` — is invisible to make, so the flag is never added and the container never sees it.
+  This is the usual reason a `CLAUDE_CODE_OAUTH_TOKEN` "that's set" still doesn't reach
+  Claude Code. Fix: put `export VAR=…` in the host shell's rc (`~/.bashrc` for bash),
+  start a fresh shell, and confirm with `make -n shell | grep -- '-e VAR'` **[HOST]**
+  before launching — a fresh `make shell` is required, since a running container predates
+  the export.
 
 ## Conventions for changing this repo
 

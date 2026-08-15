@@ -10,7 +10,7 @@ Consolidated 2026-07-30 from the root `CLAUDE.md`, `Makefile` comments, and the
 archived incident task
 (`tasks/archive/2026/07/09/persist-claude-login-across-containers.md`).
 
-## The four mounts, in stacking order
+## The five mounts, in stacking order
 
 The `shell` target mounts, in order (later mounts shadow earlier paths):
 
@@ -18,17 +18,30 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    *unversioned* layer: OAuth credentials (`.credentials.json`), session
    history and resumable transcripts, per-project **agent memory**
    (`projects/<project>/memory/`), settings, plugins, file-history.
-2. **`entrypoint/dotfiles/.claude/CLAUDE.md` → `/root/.claude/CLAUDE.md`** and
+2. **Host `~/.claude.json` → `/root/.claude.json`** (`CLAUDE_JSON_MOUNT`, added
+   2026-08-16) — Claude Code's **onboarding / login-menu state**
+   (`hasCompletedOnboarding`, `oauthAccount`, `userID`), which it keeps **separate** from
+   the credentials in mount 1. Critically, `~/.claude.json` is a *sibling* of `~/.claude`,
+   **not** inside it, so `CLAUDE_CONFIG_MOUNT` does **not** cover it — and unmounted it lives
+   on the ephemeral `--rm` overlay and dies each launch. Result: Claude sees no onboarding
+   record and shows the "Select login method" menu **every session even with valid
+   credentials mounted**. Seeded to `{}` if absent, then bind-mounted — same `touch`-at-parse
+   idiom as `CLAUDE_PERSONAL_MOUNT`. **This ephemeral-`~/.claude.json`, not OAuth *session*
+   token expiry, was the true root cause of "I log in via the web every session"** (diagnosed
+   2026-08-16; the token-env-var task had mis-attributed it to expiry / a "stale sandbox" —
+   see `tasks/archive/2026/08/16/long-lived-auth-token-env-var.md`). The `CLAUDE_CODE_OAUTH_TOKEN` env var can't
+   fix it because the menu is gated on this onboarding state, not on API auth.
+3. **`entrypoint/dotfiles/.claude/CLAUDE.md` → `/root/.claude/CLAUDE.md`** and
    **`.../commands/ → /root/.claude/commands/`** (`CLAUDE_DOTFILES_MOUNT`) —
    the *tracked* layer: cross-project conventions and slash commands,
    version-controlled in this repo. Edits made in a live session flow straight
    back to the git working tree.
-3. **`tasks/reference/ → /root/.claude/reference/`** (same variable) — this
+4. **`tasks/reference/ → /root/.claude/reference/`** (same variable) — this
    repo's reference docs, mounted so that pointers in the tracked `CLAUDE.md`
    ("read `~/.claude/reference/llm-overused-phrases.md` at session start")
    resolve in **every** session. The docs stay in their conventional
    `tasks/reference/` home; the mount is just an alias.
-4. **Host `~/.ai-coding-conventions.personal.md` → `/root/.claude/ai-coding-conventions.personal.md`**
+5. **Host `~/.ai-coding-conventions.personal.md` → `/root/.claude/ai-coding-conventions.personal.md`**
    (`CLAUDE_PERSONAL_MOUNT`, added 2026-08-14) — the *personal overlay*. The tracked
    `CLAUDE.md` ends with `@~/.claude/ai-coding-conventions.personal.md`; the repo ships a **blank** default
    (`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md`, baked by the Dockerfile `COPY`) so a bare
@@ -48,6 +61,23 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
 
 Auth and sessions never live in git; conventions never live only in a container; personal
 specifics never live in the tracked repo. That split is the whole design.
+
+## If the login menu returns despite the mounts
+
+The onboarding persistence (mount 2) only works if `~/.claude.json` is actually bind-mounted
+*and* carries a completed-onboarding record. If a **second** fresh sandbox still shows
+"Select login method", diagnose in order:
+
+1. **[CONTAINER]** `ls -la ~/.claude.json` — expect a real file, not an empty `{}`. If it's
+   `{}`-only or missing, the mount didn't attach → check step 2.
+2. **[HOST]** `make -n shell | grep -- '/root/.claude.json'` — expect one
+   `-v …:/root/.claude.json:Z` line. Empty means an old `Makefile` without `CLAUDE_JSON_MOUNT`.
+3. **[CONTAINER]** `grep -o 'hasCompletedOnboarding[^,]*' ~/.claude.json` — expect
+   `hasCompletedOnboarding":true`. `false`/absent means no browser login has completed yet;
+   run `claude`, log in once, and it sticks.
+
+Also: `/logout` deliberately resets onboarding (log in once more), and ~28 days of disuse
+lapses the mounted refresh token (a single browser login renews it).
 
 ## Why the host mount is `mkdir -p`, not an existence check
 
@@ -80,6 +110,48 @@ Two details that matter and are easy to "clean up" into a regression:
 Caveat: `:Z` relabels host `~/.claude` with a container SELinux type —
 harmless to the (unconfined) host user's own processes; `:z`/no flag would also
 work since the sandbox runs `label=disable`.
+
+## Auth beyond the mount — a long-lived token env var (2026-08-15)
+
+**This token is for headless/CI/`-p` use only — it does *not* silence the interactive login
+menu.** That menu is gated on onboarding state and is fixed by `CLAUDE_JSON_MOUNT` (mount 2
+above); the token authenticates API calls, not the menu. See
+`tasks/archive/2026/08/16/long-lived-auth-token-env-var.md`.
+
+The `~/.claude` mount persists `.credentials.json`, whose access token auto-refreshes via a
+~28-day refresh token (persisted, since it's in the mount) — so interactive login already
+survives across runs once mounts 1–2 are in place. For **non-interactive** use where you want
+auth independent of the mounted login entirely, use a **long-lived token passed through from
+the host env**, never stored in the repo (so it honors the 2026-07-09 "don't put
+`.credentials.json` in git" decision):
+
+- The Makefile var **`CLAUDE_AUTH_ENV`** adds `-e CLAUDE_CODE_OAUTH_TOKEN` (and `-e
+  ANTHROPIC_API_KEY`) to the `shell:` `podman run` **only when the host var is set** — computed
+  via `$(shell [ -n "$$VAR" ] && printf …)` at parse time, so an *unset* var never shadows the
+  mounted credentials with an empty value.
+- **`CLAUDE_CODE_OAUTH_TOKEN`** (recommended, subscription-friendly) is a ~1-year token from
+  `claude setup-token`; export it on the host (`~/.bashrc`/`~/.zshrc`). `ANTHROPIC_API_KEY` also
+  works but bills per-token on a separate API account — for forks, not the subscription path.
+- **`entrypoint/shell.sh`** prints a one-time setup hint at container start while no token is set.
+
+Precedence: an env-var token **overrides** the mounted session login — per the
+[auth docs](https://code.claude.com/docs/en/authentication.md), `CLAUDE_CODE_OAUTH_TOKEN`
+(rank 5) is read before the stored `/login` credentials (rank 7), so it authenticates even with
+valid mounted creds present. The image must be Claude Code **≥ 2.1.225** (a pre-2.1.225 bug
+replaces the env token mid-session with a short-lived stored token, 401-ing later); this repo's
+Dockerfile runs `claude update` at build, so a rebuilt image is current.
+
+**Gotcha that bit the maintainer (2026-08-15) — "set" must mean *exported*.** `CLAUDE_AUTH_ENV`
+is a `$(shell …)` evaluated at Makefile-parse time, and that subshell inherits only **exported**
+host vars. A var that is merely *set* — `echo ${#VAR}` prints a length but `declare -p VAR` shows
+`--`, not `-x` — is invisible to make, so no `-e` flag is added and the container never sees it.
+And a **running container predates a newly-added export**: only a fresh `make shell` picks it up.
+Both were the whole of a "still prompts for web auth" report where the wiring was already correct.
+Confirm on the host with `declare -p CLAUDE_CODE_OAUTH_TOKEN` (want `-x`) and
+`make -n shell | grep -- '-e CLAUDE_CODE_OAUTH_TOKEN'` (want the flag emitted), then relaunch.
+
+See `README.md` ("Auth"), the root `CLAUDE.md` ("The layered Claude config" and "Host shell vs
+container shell"), and `tasks/archive/2026/08/16/long-lived-auth-token-env-var.md`.
 
 ## Why the container stays ephemeral (`--rm`)
 

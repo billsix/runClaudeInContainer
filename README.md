@@ -18,33 +18,46 @@ the Claude Code native binary.
 
 ## Auth — staying logged in
 
-Two layers keep you signed in to Claude Code, so you don't re-authenticate every run:
+**Log in through the browser once, and it sticks.** `make shell` bind-mounts the **two**
+files Claude Code keeps its auth in, so a fresh browser login is needed only rarely (roughly
+monthly, or after `/logout`) — not every run:
 
-1. **The `~/.claude` mount (automatic).** `make shell` bind-mounts your host `~/.claude` into
-   the container, so your login, sessions, and agent memory **persist** across the ephemeral
-   (`--rm`) containers. The directory is created for you on first `make shell` if it doesn't
-   exist. Sign in once and it sticks. *(This is the fix from
-   `tasks/archive/2026/07/09/persist-claude-login-across-containers.md` — before it, the mount
-   silently no-op'd and you re-signed-in every time.)*
+1. **`~/.claude/` — your credentials & sessions.** Holds `.credentials.json` (the OAuth
+   tokens, which auto-refresh), your sessions, and agent memory. Persisting it is the fix from
+   `tasks/archive/2026/07/09/persist-claude-login-across-containers.md` (before it, the mount
+   silently no-op'd and you re-signed-in every time).
 
-2. **A long-lived token (optional, stops expiry re-logins).** Even with the mount, a
-   **subscription's OAuth *session* token expires periodically**, so you'll occasionally be asked
-   to log in again. To stop that for good, generate a long-lived (~1 year) token **once** and
-   export it on the host — `make shell` passes it through automatically:
+2. **`~/.claude.json` — your onboarding state.** Holds `hasCompletedOnboarding` and your
+   account info. It's a **sibling** of `~/.claude`, so the mount above doesn't cover it; left
+   unmounted it died with each `--rm` container, and Claude — seeing no onboarding record —
+   showed the **"Select login method"** menu on *every* launch, even with valid credentials
+   mounted. `make shell` now bind-mounts it too (seeding an empty `{}` on the host the first
+   time), so onboarding persists. **This, not token expiry, was the real "log in every
+   session" cause.** Both files are created for you on first `make shell`.
 
-   ```sh
-   claude setup-token                    # prints a token; uses your existing SUBSCRIPTION
-   # then add to your ~/.bashrc / ~/.zshrc so it's always set:
-   export CLAUDE_CODE_OAUTH_TOKEN=...
-   ```
+Both mounts are automatic — sign in once and you're done.
 
-   The env var name is **`CLAUDE_CODE_OAUTH_TOKEN`** (same on host and in the container). It is
-   read from your host environment and **never stored in this repo**. `make shell` only adds the
-   `-e` passthrough when the variable is actually set, so leaving it unset changes nothing.
-   *(Forks that bill per-token instead of a subscription can export `ANTHROPIC_API_KEY` instead —
-   also passed through — but that uses the metered Console API, not a subscription.)*
+### Optional: a long-lived token for headless / scripted use
 
-   Until a token is set, `make shell` prints a one-line reminder of these steps at startup.
+If you run Claude Code **non-interactively** (`claude -p "…"`, CI, cron) and want auth
+independent of the mounted login, generate a ~1-year token. **This is not needed for the
+interactive login above** — and it does *not* silence the interactive menu (that menu is
+gated on onboarding state, item 2 above, not on this token):
+
+```sh
+claude setup-token                    # prints a token; uses your existing SUBSCRIPTION
+# then add to your ~/.bashrc / ~/.zshrc so it's always set:
+export CLAUDE_CODE_OAUTH_TOKEN=...
+```
+
+The env var name is **`CLAUDE_CODE_OAUTH_TOKEN`** (same on host and in the container). It is
+read from your host environment and **never stored in this repo**. `make shell` only adds the
+`-e` passthrough when the variable is actually set, so leaving it unset changes nothing.
+*(Forks that bill per-token instead of a subscription can export `ANTHROPIC_API_KEY` instead —
+also passed through — but that uses the metered Console API, not a subscription.)* Until a
+token is set, `make shell` prints a one-line reminder at startup. A token crosses to the
+container only if it's **exported** (`declare -p CLAUDE_CODE_OAUTH_TOKEN` shows `declare -x`,
+not `--`) and only a **fresh** sandbox picks up a new export.
 
 ## Quick start
 

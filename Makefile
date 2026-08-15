@@ -80,6 +80,20 @@ CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # creates the host-side dir itself.
 CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
 
+# ~/.claude.json holds Claude Code's ONBOARDING / login-menu state
+# (hasCompletedOnboarding, oauthAccount, userID) — tracked SEPARATELY from the
+# credentials in ~/.claude/.credentials.json. It is a sibling of ~/.claude, so it
+# is NOT caught by CLAUDE_CONFIG_MOUNT above; on the ephemeral --rm container it
+# starts absent every launch, so Claude Code treats onboarding as never completed
+# and shows the "Select login method" menu EVERY session — even though valid
+# credentials are mounted. (This, not token expiry, is the usual "why do I log in
+# every session" cause; CLAUDE_CODE_OAUTH_TOKEN does not fix it because the menu is
+# gated on onboarding state, not API auth.) Seed it to {} if absent, then bind-mount
+# it so onboarding persists across runs: log in once, and the menu never returns.
+# touch/seed at parse time, like CLAUDE_CONFIG_MOUNT's mkdir -p; make runs on the host.
+CLAUDE_JSON_FILE := $(HOME)/.claude.json
+CLAUDE_JSON_MOUNT := $(shell [ -f $(CLAUDE_JSON_FILE) ] || echo '{}' > $(CLAUDE_JSON_FILE); echo "-v $(CLAUDE_JSON_FILE):/root/.claude.json:Z")
+
 # Repo-tracked Claude config (CLAUDE.md + slash commands + reference docs)
 # layered on top of the host's ~/.claude mount so edits flow back to git.
 # Auth/sessions/credentials still come from the host mount above. tasks/reference
@@ -177,6 +191,7 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(EXTRA_MOUNTS) \
 		$(NESTED_PODMAN_FLAGS) \
 		$(CLAUDE_CONFIG_MOUNT) \
+		$(CLAUDE_JSON_MOUNT) \
 		$(CLAUDE_DOTFILES_MOUNT) \
 		$(CLAUDE_PERSONAL_MOUNT) \
 		$(CLAUDE_AUTH_ENV) \
