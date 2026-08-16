@@ -201,6 +201,14 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(CONTAINER_NAME) \
 		/shell.sh
 
+.PHONY: format
+format: image ## Format the repo's shell scripts in place with shfmt (fixes land on the host)
+	$(CONTAINER_CMD) run --rm \
+		--entrypoint /bin/bash \
+		$(FILES_TO_MOUNT) \
+		$(CONTAINER_NAME) \
+		-c 'cd /$(PROJECT_DIR) && bash entrypoint/format.sh'
+
 .PHONY: image-export
 image-export: ## export the OCI image to a timestamped tar in the repo root
 	$(CONTAINER_CMD) save $(CONTAINER_NAME) -o $(CONTAINER_NAME)-$(shell date +%m-%d-%Y_%H-%M-%S).tar
