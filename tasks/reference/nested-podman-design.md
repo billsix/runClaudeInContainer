@@ -111,12 +111,23 @@ not override a ro mount:
   that the project's own *confined* `make shell` then can't read
   (`cd: Permission denied`). Use `:z` or no label flag on `EXTRA_MOUNTS`; fix
   damage on the host with `restorecon -R`.
+- **A large image can overflow the RAM store at *commit*, not just at install.**
+  Building a big image completes the `dnf install`, then dies at the layer commit
+  with `no space left on device` — the commit needs base+diff+temp resident at
+  once, so peak use exceeds the final image size. Seen 2026-08-19 building the
+  runCrushInContainer client (a 22.3 GB full-toolchain rootfs): it failed to commit
+  in a 32g store even though the install itself finished. Fixes: relaunch with a
+  bigger `NESTED_PODMAN_TMPFS_SIZE`, or — mid-session, if RAM allows — grow the live
+  tmpfs: `mount -o remount,size=50g /var/lib/containers` let the 22.3 GB image
+  commit. The durable fix is the disk-backed store (Open thread).
 
 ## Open thread
 
 `tasks/dir-backed-nested-podman-storage.md` (proposed) investigates swapping the
-RAM tmpfs for a host-directory store — motivated by a ~6 GB TeX Live inner image
-overflowing even a 16g tmpfs. If implemented, its findings belong in this doc.
+RAM tmpfs for a host-directory store — motivated by large inner images overflowing
+the RAM store: a ~6 GB TeX Live image overflowing even a 16g tmpfs, and (2026-08-19)
+a 22.3 GB runCrushInContainer client image that failed to *commit* in a 32g tmpfs
+(a `remount,size=50g` unblocked it). If implemented, its findings belong in this doc.
 
 ## Sources
 

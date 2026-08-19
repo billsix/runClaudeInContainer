@@ -8,7 +8,11 @@
 (default 8g, `NESTED_PODMAN_TMPFS_SIZE`). Large inner image builds overflow it: on 2026-07-06 a nested
 `make image` for an OpenStax book (Fedora + **TeX Live**, ~6 GB image) failed with
 `write .../texlive/.../*.vf: no space left on device` even at `NESTED_PODMAN_TMPFS_SIZE=16g` once a
-prior ~6 GB image was already resident. RAM is the scarce resource; disk is plentiful. Investigate
+prior ~6 GB image was already resident. Second data point (2026-08-19): building the
+runCrushInContainer client image (a 22.3 GB full-toolchain rootfs) completed the `dnf install` but
+failed at the *layer commit* with `no space left on device` in a 32g tmpfs — commit peak
+(base+diff+temp) exceeds the final image size; a `mount -o remount,size=50g /var/lib/containers`
+unblocked it. RAM is the scarce resource; disk is plentiful. Investigate
 backing the inner store with a **host directory (bind mount)** instead of tmpfs.
 
 ## Goal
