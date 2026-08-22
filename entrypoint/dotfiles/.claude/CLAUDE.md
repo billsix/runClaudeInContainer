@@ -834,6 +834,38 @@ Scope it to what the session actually touched — don't rewrite docs wholesale, 
 updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
 `/audit-repo` does, but scoped to the always-read docs and triggered automatically at session end.)
 
+## A project's README is commands-forward; prose belongs in reference docs
+
+**A README's job is to get me running, not to explain itself.** Keep it explicit and concise —
+**commands forward, rationale trimmed.** The happy path should read as a short, copy-pasteable
+sequence: ideally **few invocations** (prefer one wrapper / `make` target over five hand-run steps
+where combining them hides nothing I need to see), each labelled with the environment it runs in
+(`[HOST]` / `[CONTAINER]` / `[MAC]`, per "Host shell vs container shell") and a **one-line** "what it
+does" — not a paragraph.
+
+The prose-heavy material — *why* it works this way, design rationale, declined alternatives, deep
+mechanics, the reasoning behind a flag — **is worth keeping, but does not belong in the README.** Move
+it to a **reference doc** (`tasks/reference/<slug>.md`, per "Reference documents") and **link to it**
+from the README with a one-liner ("Design details: `tasks/reference/architecture.md`"). The README
+*points*; the reference doc *explains*. That keeps the README scannable for whoever just wants to run
+the thing, while the *why* stays discoverable — and lives in the place I actually re-read.
+
+- **Commands forward:** lead each step with the command block; put the one-line gloss after, not a
+  preamble before.
+- **Trim, don't delete:** a caveat that actually matters (a flag you MUST pass, a footgun that
+  silently corrupts the output) stays inline — condensed to a `>`-quote or a single bold clause — but
+  the *explanation* of why moves to the reference doc.
+- **This is the same split as "harvest durable knowledge into reference docs," applied to the README:**
+  task docs track the work, reference docs hold the *why*, the README holds the lean *how-to-run* and
+  links to the other two.
+
+**Worked example (William Emerison Six <billsix@gmail.com>, 2026-08-22).** runCrushInContainer's
+"Airgapped rebuild" README section had grown to ~58 lines — three actual steps buried under paragraphs
+explaining *why* the base image isn't vendored, *why* `hf` is flag-gated, and so on. Rewritten to ~41
+lines: three numbered steps, command blocks first, each critical warning condensed to a one-line
+`>`-quote, and the design rationale pushed into `tasks/reference/architecture.md` and linked. The
+README now answers "what do I type?" at a glance; the "why" is one hop away for whoever needs it.
+
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
 **What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
