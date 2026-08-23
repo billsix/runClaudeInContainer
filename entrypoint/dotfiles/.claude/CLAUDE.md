@@ -605,7 +605,7 @@ For non-trivial work — multi-step features, refactors, investigations, anythin
 
 Every task doc carries two 1–10 ratings in its header, directly under `**Status:**`:
 
-- **`**Priority:** N`** — `1` = highest (do first), `10` = least. Judge by value × urgency × whether finishing it unblocks other work. Parked / not-approved / someday tasks get a *high* number (low priority).
+- **`**Priority:** N`** — `1` = highest (do first), `10` = least. Judge by value × urgency × whether finishing it unblocks other work. Parked / not-approved / someday tasks get a *high* number (low priority) — as do **blocked** tasks (see "Blocked tasks" below), which aren't actionable until an external condition clears.
 - **`**Difficulty:** N`** — `1` = easiest, `10` = hardest. Effort + design risk + blast radius.
 
 **The scale is geometric — each step is ~1.5× the previous** (so a 10 is ~1.5⁹ ≈ 38× a 1). The high end deliberately compresses many hard/low-priority items; this is for *rough ranking to decide what's next*, not for estimation. Rough anchors:
@@ -615,11 +615,23 @@ Every task doc carries two 1–10 ratings in its header, directly under `**Statu
 
 **Use them to choose next work:** scan a project's `tasks/` for the **lowest priority-number combined with the lowest difficulty-number** — high-value easy wins first. Assign both at creation (via `/new-task`) and revise as scope becomes clear.
 
+### Blocked tasks — deferred until an external condition changes
+
+Some tasks can't start until something **outside our control** changes — an upstream tool ships a feature, a dependency cuts a release, an external standard stabilizes, or *I* run a hands-on verification only I can do (hardware, a display). Mark these `**Status:** blocked` and give them two fields directly under the header, alongside Priority/Difficulty:
+
+- **`**Blocked on:**`** — the external condition, in one line ("Zed dev-container support loses its 'still in development' caveat").
+- **`**Recheck:**`** — a **cheap, runnable** check that answers *"has it cleared yet?"* without re-deriving anything: a URL to `WebFetch` **plus the exact signal to look for**, a version/release to compare (with a version-aware sort — see "Version numbers don't sort like strings"), or a command to run. For a human-gated block, name the one manual step I have to run. State what a *cleared* result looks like. (This is the task-doc twin of the reference-doc "re-sync check" — a pinned condition plus a one-line way to detect drift.)
+
+**Blocked ≠ parked:** *parked* is a subjective "not approved / not now" (just a high Priority number); *blocked* is a concrete, **testable** gate. Both get a **high priority-number** (neither is next-work) and both are **excluded from the easy-wins ranking** — but a blocked task carries a check anyone can run.
+
+- **`/recheck-blocked`** runs the `Recheck:` of every blocked task and reports which gates cleared, offering to flip `blocked` → actionable and re-rate Priority. Re-checking is **on demand — never automatic**: don't fire network checks on your own at session start/end (that manufactures work and is slow); just surface that blocked tasks exist and that the command can test them.
+- When a gate clears, drop the `Blocked on:`/`Recheck:` fields, set a real Status/Priority, and proceed.
+
 When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
 
 Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
 
-At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off — **list each with its Priority/Difficulty, sorted easy-wins first** (lowest priority-number, then lowest difficulty-number) so it's immediately clear what's worth doing next. Don't trawl `tasks/archive/` unless I ask about prior work.
+At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off — **list each with its Priority/Difficulty, sorted easy-wins first** (lowest priority-number, then lowest difficulty-number) so it's immediately clear what's worth doing next. **List any `blocked` tasks separately** — call them out as not-actionable (with their one-line `Blocked on:`) and keep them out of the easy-wins ranking, since their gate hasn't cleared; note that `/recheck-blocked` can test whether it has. Don't trawl `tasks/archive/` unless I ask about prior work.
 
 Don't create a task file for one-off questions, trivial edits, or anything resolvable in a single response. Task files are for work that spans turns or sessions.
 
@@ -627,7 +639,7 @@ If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. B
 
 **When a task you create (or substantially flesh out) has open questions, surface them to me at report time — don't bury them in the doc.** If the task's **Open questions** section is non-empty, repeat those questions as a **numbered list at the very end of the message** that tells me you made the task (this is the "Questions for me go inline AND in a closing list" rule, applied to task creation — I should see what you need from me in the message, not have to open the file to find it). Number them, name the positions, and include your recommendation per question. And per "Every question must be addressed before you implement anything": a question that blocks the work still blocks it even though the task is "made" — don't start implementing until I've addressed the numbered questions, and don't read a bare "go ahead" as answering them unless it actually resolves each one.
 
-Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive.
+Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive, `/recheck-blocked` to test whether any blocked task's external gate has cleared.
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
 
@@ -829,6 +841,10 @@ docs don't drift from what the session actually changed:
 5. **Stage everything the session touched** (`git add` by path, per "Git: I commit, you don't —
    but you DO stage"), including the doc updates from this sweep, so the session ends with the
    work handed off rather than sitting loose in the working tree.
+6. **Blocked-task reminder.** If any touched project has `blocked` tasks (per "Blocked tasks"),
+   list them one line each with their `Blocked on:`, and remind me `/recheck-blocked` can test
+   whether their gate cleared. **Don't run the network re-checks yourself** — just surface that
+   they're there.
 
 Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
 updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
