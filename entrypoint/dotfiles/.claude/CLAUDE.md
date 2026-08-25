@@ -1134,6 +1134,26 @@ exit $status
   multivariate-math, gltron fixed**; spimulator/texExpToPng safe by shape; the rest
   have no format script.
 
+## Rewriting a script's contents drops its executable bit — restore it
+
+`Write` (and any full-file rewrite) creates the file at mode 644, so **rewriting a committed
+script silently strips its `+x`** — even a content-only pass like adding a license/SPDX header
+or reflowing comments. A script **invoked directly** then fails at the point of use, not at edit
+time: a Dockerfile `RUN /usr/local/bin/foo.sh`, a `./script.sh`, a Makefile recipe naming the
+file by path — all die with `Permission denied`. Scripts invoked as `bash foo.sh` survive, which
+is exactly why this is easy to miss: some callers keep working while the build-critical one
+breaks, often several commits later.
+
+- **After editing any script — especially a bulk header/format pass over several — check the
+  modes and restore the bit in the same change.** `git diff --stat` shows a `mode change 100755
+  => 100644` line; `git ls-files -s -- '*.sh'` prints each tracked mode. Restore with `chmod +x
+  <paths> && git add --chmod=+x <paths>` (the `--chmod=+x` fixes git's mode even when the
+  working-tree bit is already correct).
+- **This bit me (runCrushInContainer, 2026-08-25):** an "add Apache SPDX headers" pass rewrote
+  six entrypoint scripts `100755 → 100644`; the Dockerfile invokes two directly
+  (`01-install-base.sh`, `02-install-vendor-tools.sh`), so the next `make image` failed with
+  `Permission denied` — the header edit and the build break were four commits apart.
+
 ## Write format/check scripts to run BOTH in the container AND on the host from the repo root
 
 **A `format.sh` (or `lint.sh` / any `make format` gate script) should be PORTABLE — runnable
