@@ -1022,13 +1022,13 @@ belong in that project's own `CLAUDE.md`.
 
 I run inside a Podman sandbox (the `runClaudeInContainer` / `claudecontainer` image). Most of my projects build and run *themselves* in a container — usually via a `Makefile` target (`make run`, `make shell`, `make test`, `make image`) wrapping a `podman run` / `docker run`. I can run those **nested** inside this sandbox, but there are two things to get right. Don't assume a project's container command works as-is; apply these.
 
-**1. The sandbox must have been launched with nested support.** Nested podman only works if `make shell NESTED_PODMAN=1` was used to start this sandbox. Check before trying:
+**1. Assume nested support is present — act on it, verify only if a run errors.** Nested podman needs `make shell NESTED_PODMAN=1` at launch, but **default to assuming it's on and just run the nested command** (with `--cgroups=disabled`, point 2) rather than pre-checking every time — the pre-check is noise, and the run itself is the real test. **Only if a nested run actually fails** do you diagnose:
 
 ```sh
 test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no nested — relaunch with NESTED_PODMAN=1"
 ```
 
-`/dev/fuse` is the tell: absent ⇒ plain `make shell`, nested won't work. If it's not available, tell the user to relaunch the sandbox from the `runClaudeInContainer` repo with **`make shell NESTED_PODMAN=1`** — I can't add those flags from inside an already-running container.
+`/dev/fuse` is the tell: absent ⇒ plain `make shell`, nested won't work — then tell the user to relaunch the sandbox from the `runClaudeInContainer` repo with **`make shell NESTED_PODMAN=1`** (I can't add those flags from inside an already-running container).
 
 **2. Every inner `podman run` / `docker run` needs `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is read-only, so without it *every* inner run dies with `/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. A project's Makefile won't have this flag, so its container target will fail until it's added. Running their containers nested is the whole point of the setup, but **don't silently edit a project's Makefile / run script — explain that the container target needs `--cgroups=disabled` to work nested, propose how I'd add it (a Makefile variable if one already threads extra flags through, otherwise the flag inline), and wait for the go-ahead** before changing it. A one-off run I can do directly by appending the flag to the `podman run` on the command line; persistent edits to their build files need a yes first.
 
