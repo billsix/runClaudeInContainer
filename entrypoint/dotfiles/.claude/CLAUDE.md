@@ -728,6 +728,17 @@ The *investigation* may be a task ("research X vs Y"); its *deliverable* is a re
 Reference docs routinely **spawn** tasks (promote a row of a gap analysis into a `tasks/` item)
 and get **updated** as those tasks land — that cross-linking is expected, not a smell.
 
+**When you archive a survey / investigation / research task, create the follow-on task your
+recommendation implies — do NOT leave the recommendation stranded in the archived doc.** A survey that
+concludes "embed Lua," an investigation that concludes "use a texture array," a gap analysis that says
+"port feature X" — each has a *next action*. The moment you write the lean archived record + the
+reference doc, also scaffold a `tasks/<slug>.md` for that action: `proposed — needs go-ahead` if it's
+just awaiting my nod, or `blocked` on the single decision it hinges on (with `Blocked on:`/`Recheck:`),
+cross-linked both ways to the reference doc. The reference doc holds the *why*; the new task carries the
+*do*. This is not optional — an archived recommendation with no task is exactly how a good conclusion
+gets lost. (Corollary: a "don't do X" recommendation needs no task; and findings that belong in an
+existing task should be folded there rather than spawning a duplicate.)
+
 - Create `tasks/reference/` the first time it's needed. Committable by default, like tasks.
 - **Session start & orientation:** the in-flight `tasks/` scan stays **top-level only** —
   `tasks/reference/` and `tasks/archive/` are never pending work. But treat `tasks/reference/`
