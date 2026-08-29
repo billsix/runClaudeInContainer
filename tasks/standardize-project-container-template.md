@@ -80,8 +80,9 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 
 The `shell`/`shell-exec` PAIR is now normalized everywhere. The remaining drift (items 1, 2, 5, 8, and
 the baked-vs-bind-mount of the *setup*, not the launcher) is a separate migration:
-- one `shell.sh` mount path (`/usr/local/bin/shell.sh`), always bind-mounted (migrate the baked ones:
-  regardingBritt, runCrush client);
+- one `shell.sh` mount path (`/usr/local/bin/shell.sh`) — a cosmetic unification of the remaining
+  `/shell.sh` projects (low value; the paths already work). **Baked launchers: runCrush client is now
+  bind-mounted (done 2026-08-29); regardingBritt stays baked — it's a dead project.**
 - one X11 flag var name (`$(X_FLAGS_FOR_CONTAINER)`; rename `$(USE_X)` in mvp/apue);
 - encode the whole standard + a conformance checklist in the contract doc (the personal overlay already
   got the `shell-exec`/`shell.sh` half, 2026-08-29).

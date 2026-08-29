@@ -34,7 +34,7 @@ runs a script/command in the *same* container env as `shell` and exits — no TT
 | Aspect | Variants in the fleet |
 | --- | --- |
 | `shell.sh` invocation path | `/shell.sh` (gacalc, mvm, hanoi[bare], runClaude, regardingBritt, runCrush client) vs `/usr/local/bin/shell.sh` (mvp, texExpToPng, apue, spimulator, billsEmacs, osbooks, graphicalcontainer) |
-| `shell.sh` delivery | **bind-mounted** (edit is live) vs **BAKED via COPY** (regardingBritt, runCrush client — edit needs `make image`) |
+| `shell.sh` delivery | **bind-mounted** (edit is live) — now including runCrush client (bind-mounted 2026-08-29). regardingBritt is BAKED but is a dead project (left as-is). |
 | repo mount path (`REPO_MOUNT`) | `/gacalc`, `/mvm`, `/mvp`, `/spimulator`, `/apue`, `/root/texExpToPng`, `/work`, `/$(CONTAINER_NAME)` — often ≠ dir name |
 | what's mounted | whole repo vs **selective files** (texExpToPng, apue, billsEmacs mount only source) |
 | nested passthrough | `$(PODMAN_RUN_FLAGS)` present (regardingBritt, billsEmacs, osbooks, runCrush) vs absent |
@@ -51,9 +51,12 @@ invocation builds/reformats, then prints usage. Test the guard via `make -n` on 
 - **Applied everywhere:** the `shell`/`shell-exec` pair + `SHELL_RUN_FLAGS` + `exec bash "$@"` +
   `set -e` (core 9 incl. graphicalcontainer standardized-in; billsEmacs 20; osbooks 16; runCrush
   client). `shell-exec: image` (not `format`). `USE_X`→`X_FLAGS_FOR_CONTAINER` (mvp, apue).
-- **Still open** (`standardize-project-container-template.md`): unify `shell.sh` to one path
-  (`/usr/local/bin/shell.sh`) always bind-mounted (migrate baked launchers: regardingBritt, runCrush
-  client); encode the full conformance checklist in the contract doc.
+- **Also done 2026-08-29:** runCrush client launcher bind-mounted (was baked) — the metaproject you
+  actively develop shouldn't need a 22 GB rebuild to tweak `shell.sh`.
+- **Still open** (`standardize-project-container-template.md`): the cosmetic path unification (one
+  `shell.sh` path, `/usr/local/bin/shell.sh`) across the remaining `/shell.sh` projects; encode the
+  full conformance checklist in the contract doc. (regardingBritt's baked launcher is left as-is — a
+  dead project.)
 
 ## Cross-links
 

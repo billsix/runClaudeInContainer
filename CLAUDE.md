@@ -1,8 +1,14 @@
 # runClaudeInContainer — project notes
 
-This repo builds the **Podman container that Claude Code itself runs in**. When you
-work here, you are editing the recipe for your own sandbox. See `README.md` for the
-user-facing overview.
+This repo builds the **Podman container that Claude Code itself runs in** — a tool for
+**developing your other codebases with Claude Code in a disposable container**. Its job
+is two-fold: **run the agent** (pointed at whatever project you mount in), and **deliver
+to the agent the conventions** that teach it how your projects are structured and built —
+the layered `CLAUDE.md` + your personal `.ai` overlay + the reference docs (see "The
+layered Claude config"). When you work here, you are editing the recipe for your own
+sandbox — the *runner*, not a template for the codebases you build with it (those follow
+the container-per-project conventions the agent is taught, which live in the personal
+overlay). See `README.md` for the user-facing overview.
 
 ## What the pieces do
 
