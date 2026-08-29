@@ -92,15 +92,15 @@ mercurial. Networking in *nested* containers: see
 ## Containers inside the sandbox
 
 Opt-in `NESTED_PODMAN=1` (podman, buildah, skopeo are in the image). The
-design, flags, constraints (`--cgroups=disabled` on every inner run, RAM-backed
+design, flags, constraints (the PODMAN_RUN_FLAGS convention for inner runs, RAM-backed
 store) and operating lore live in **`nested-podman-design.md`** — read that
 before nested work.
 
 ## Hard limits (what the sandbox can NOT do)
 
 - No host root, ever — the ceiling is host UID 1000 (rootless host podman).
-- `/sys/fs/cgroup` and (by default) `/proc/sys` are read-only; no resource
-  limiting of inner containers (`--cgroups=disabled` is mandatory nested).
+- `/sys/fs/cgroup` (historically ro; rw on the current stack) and (by default) `/proc/sys` restricted; no resource
+  limiting of inner containers (inner runs use the PODMAN_RUN_FLAGS convention; the cgroups-ro wall is gone on the current stack but the flag is kept as belt-and-braces).
 - No udev events (hotplug of any device won't be seen mid-session).
 - Nothing in the container survives exit except what's on a host mount.
 - systemd is not PID 1 — services start manually (`postgres -D …`,

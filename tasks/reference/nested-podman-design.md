@@ -43,11 +43,20 @@ not override a ro mount:
 
 1. **`/proc/sys` ro** → broke bridged networking. **Solved** by `unmask=ALL`
    (above).
-2. **`/sys/fs/cgroup` ro** → breaks *every* inner run: crun cannot write
-   `cgroup.subtree_control`. **Not solved — worked around**: every inner
-   `podman run` must pass **`--cgroups=disabled`**. Acceptable on a dev box that
-   enforces no resource limits. Real cgroup-v2 delegation was considered and
-   declined.
+2. **`/sys/fs/cgroup` ro** → historically broke *every* inner run: crun could not
+   write `cgroup.subtree_control`, so every inner `podman run` had to pass
+   **`--cgroups=disabled`** (acceptable on a dev box that enforces no resource
+   limits; real cgroup-v2 delegation was considered and declined).
+   **UPDATE 2026-08-29: this wall is GONE on the current host stack** — inside a
+   `NESTED_PODMAN=1` sandbox, `/proc/mounts` shows cgroup2 mounted **rw**
+   (`nsdelegate`) and a plain inner `podman run` with no flag succeeds
+   (empirically verified: fedora-minimal run + a full 37-step image build, both
+   flagless). The flag remains **harmless** when passed, so the
+   `PODMAN_RUN_FLAGS` convention below still applies it as belt-and-braces for
+   older/other stacks. Host podman version at the time of the change was not
+   recorded from inside the sandbox — if inner runs ever fail with the
+   `cgroup.subtree_control: Read-only file system` error again, the wall is back
+   and the flag is the fix.
 
 ## Findings that were disproven (don't re-try these)
 
@@ -80,10 +89,56 @@ not override a ro mount:
   lacking `/dev/fuse`/`/dev/net/tun`, and reserve the tmpfs each session. The
   personal launcher (`exampleRunClaude.sh`) opts in instead.
 
+## The `PODMAN_RUN_FLAGS` convention (2026-08-29) — no more hand-edited runs
+
+The old workflow (hand-append `--cgroups=disabled` via `make -n` + re-run, or
+transient Makefile edits reverted per turn) is replaced by a standing two-part
+convention:
+
+1. **The sandbox exports the signal.** A `NESTED_PODMAN=1` launch adds
+   `-e NESTED_PODMAN=1` to the session (in `NESTED_PODMAN_FLAGS`, this repo's
+   `Makefile`); a plain `make shell` exports nothing. runCrushInContainer's
+   client already exported it; now both sandboxes do.
+2. **Project Makefiles carry a `PODMAN_RUN_FLAGS` variable that defaults itself
+   from that signal** and is threaded into every `$(CONTAINER_CMD) run`
+   invocation (NEVER `build` — `podman build` rejects `--cgroups` and does not
+   need it):
+
+   ```make
+   # Extra flags for every container `run`. Auto-set when running nested inside a
+   # runClaudeInContainer/runCrushInContainer sandbox (which exports NESTED_PODMAN=1);
+   # empty — and byte-identical behavior — on a normal host. Overridable:
+   #   make test PODMAN_RUN_FLAGS='--cgroups=disabled --network=host'
+   PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)
+   ```
+
+   So `make test` inside a nested sandbox Just Works, and on the maintainer's
+   host nothing changes (the env var is absent → the variable is empty).
+   Deliberate side effect: launching one sandbox from inside another inherits
+   `NESTED_PODMAN=1` through the environment (`?=`), carrying nested capability
+   inward — coherent for the three-deep runCrush-client case.
+
+   Rolled out fleet-wide 2026-08-29 (pilot: geometricalgebra, then apue,
+   graphicalcontainer, hanoi, multivariate-math, modelviewprojection, regardingBritt —
+   which had the manual-`?=`-empty prototype, upgraded; repo deleted by the maintainer
+   later that day — spimulator, texExpToPng, the runCrushInContainer client, and the
+   16 openstax `osbooks-*` repos, which had a hardcoded `PODMAN_RUN_FLAGS =
+   --cgroups=disabled` — flag always on, host included — replaced with the conditional
+   auto-default, deliberately changing host runs to flagless). Work record:
+   runClaudeInContainer `tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`.
+   A deeper symlink-following scan the same day found four more groups on older
+   variants; all converted with maintainer approval (also 2026-08-29): the 20
+   billsEmacsConfigs per-language Makefiles and smalltalk (manual empty `?=` →
+   auto-default), epix-mirror (same; its separate `PODMAN_BUILD_FLAGS` untouched — the
+   run flag was verified absent from its `build` line), and spimulator/pgu (full
+   insert + threading). Every mounted Makefile+Dockerfile project now carries the
+   convention.
+
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 
-- **Every inner `podman run` needs `--cgroups=disabled`.** Project Makefiles
-  don't carry it; the cleanest no-edit pattern is `make -n <target>` to print the
+- **Inner `podman run`s and `--cgroups=disabled`:** superseded — see the wall-2
+  update and the `PODMAN_RUN_FLAGS` convention above. For a project not yet
+  converted, the old pattern still applies: `make -n <target>` to print the
   expanded `podman run`, then re-run it by hand with the flag added (and `-it`
   dropped — no TTY in agent sessions).
 - **Short names fail without a TTY** (`short-name resolution enforced but cannot

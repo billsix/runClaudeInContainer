@@ -23,7 +23,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 | `shell.sh` delivery | bind-mounted (edit is live) vs **BAKED via COPY** (regardingBritt — edit needs `make image`) |
 | repo mount path | `/gacalc`, `/mvm`, `/mvp`, `/spimulator`, `/apue`, `/root/texExpToPng`, `/$(CONTAINER_NAME)`, `/osbooks-*` — often ≠ the directory name |
 | what's mounted | whole repo (`-v .:/x`) vs **selective files** (texExpToPng, apue, billsEmacs mount only source) |
-| nested passthrough | `$(PODMAN_RUN_FLAGS)` present (regardingBritt, billsEmacs, osbooks) vs absent (gacalc, mvp, …) |
+| nested passthrough | RESOLVED 2026-08-29: the `NESTED_PODMAN`-keyed `$(PODMAN_RUN_FLAGS)` auto-default is present everywhere (see `tasks/reference/nested-podman-design.md`) |
 | `shell:` prereqs | none / `image` / `format` |
 | X11 flag var name | `$(X_FLAGS_FOR_CONTAINER)` vs `$(USE_X)` |
 | `shell.sh` mode | 755 vs 644 |
@@ -42,8 +42,8 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
    flagged in-Makefile, not the norm.
 4. **`SHELL_RUN_FLAGS` shared by `shell` + `shell-exec`** (already the fan-out pattern) — the one
    source of truth for the invocation; scoped to that pair only.
-5. **`$(PODMAN_RUN_FLAGS)` passthrough on every project** (harmless on a normal host, enables nested
-   `--cgroups=disabled` without re-editing) — standardize its presence and position (on the `run` line).
+5. **`$(PODMAN_RUN_FLAGS)` passthrough on every project** — DONE 2026-08-29: the `NESTED_PODMAN`-keyed
+   auto-default was rolled out fleet-wide (see `tasks/reference/nested-podman-design.md`).
 6. **`shell.sh` = `set -e` (fail-fast setup) then `exec bash "$@"`** — the fan-out convention.
 7. **Prereq policy — DECIDE:** should `shell` / `shell-exec` carry `image` / `format` prereqs? Open
    question: a `format` prereq means `make shell-exec` **reformats the tree before running the script**,

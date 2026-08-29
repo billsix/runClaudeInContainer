@@ -41,21 +41,27 @@ NESTED_PODMAN_RUNTIME_TMPFS := $(if $(XDG_RUNTIME_DIR),--tmpfs $(XDG_RUNTIME_DIR
 # so even with CAP_NET_ADMIN that write fails ("set sysctl ...: Read-only file system") and
 # bridged networking breaks. --security-opt unmask=ALL unmasks /proc/sys (and friends) so
 # the inner netavark can write them. Verified: without it, only --network=host works.
-# cgroup v2: the sandbox's /sys/fs/cgroup is mounted read-only, so the inner crun can't
-# create its cgroup ("/sys/fs/cgroup/cgroup.subtree_control: read-only file system").
-# --cgroupns=private alone does NOT fix this (tested: cgroup2 stayed ro). The supported
-# path is to run the inner container with `--cgroups=disabled`, e.g.
-#   podman run --cgroups=disabled ...
-# which is fine on a dev box that isn't enforcing resource limits. See README / task doc.
+# cgroup v2: historically the sandbox's /sys/fs/cgroup was mounted read-only, so the inner
+# crun couldn't create its cgroup ("/sys/fs/cgroup/cgroup.subtree_control: read-only file
+# system") and every inner `podman run` needed `--cgroups=disabled`. As of 2026-08-29 the
+# host stack mounts cgroup2 rw (nsdelegate) inside the sandbox and inner runs work with NO
+# flag — but --cgroups=disabled remains harmless and is kept as the belt-and-braces default
+# on older/other stacks. See tasks/reference/nested-podman-design.md.
 # (--device /dev/net/tun is retained for the rootless/pasta path; the rootful netavark
 # path above does not use it.)
+# -e NESTED_PODMAN=1 tells the SESSION it is nested-podman-capable. Project Makefiles key
+# their PODMAN_RUN_FLAGS auto-default off it (adding --cgroups=disabled to inner runs), so
+# containerized make targets work nested with no hand-edits — and on a normal host, where
+# this env var is absent, they behave byte-identically. (A plain `make shell` exports
+# nothing, matching "nested not available".)
 NESTED_PODMAN_FLAGS := --device /dev/fuse \
                        --device /dev/net/tun \
                        --security-opt label=disable \
                        --security-opt unmask=ALL \
                        --cap-add=sys_admin,mknod,net_admin \
                        --tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE) \
-                       $(NESTED_PODMAN_RUNTIME_TMPFS)
+                       $(NESTED_PODMAN_RUNTIME_TMPFS) \
+                       -e NESTED_PODMAN=1
 else
 NESTED_PODMAN_FLAGS :=
 endif

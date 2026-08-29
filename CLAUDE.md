@@ -142,11 +142,16 @@ uses memory as inner images are written, but a full store costs that much RAM+sw
 Bump it for a large inner build via `NESTED_PODMAN_TMPFS_SIZE`, e.g.
 `make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`.
 
-**Inner runs need `--cgroups=disabled`.** The sandbox's `/sys/fs/cgroup` is mounted
-read-only and `--cgroupns=private` does *not* make it writable (tested — it stayed `ro`),
-so without `--cgroups=disabled` every inner `podman run` fails with
-`/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. Acceptable on a dev box
-not enforcing resource limits; real cgroup-v2 delegation was declined for now.
+**Inner runs and `--cgroups=disabled` — the `PODMAN_RUN_FLAGS` convention (2026-08-29).**
+Historically the sandbox's `/sys/fs/cgroup` was mounted read-only (and `--cgroupns=private`
+did *not* make it writable), so every inner `podman run` failed without `--cgroups=disabled`;
+on the current host stack cgroup2 mounts rw and flagless inner runs work, but the flag is
+kept as harmless belt-and-braces. A `NESTED_PODMAN=1` launch now exports `NESTED_PODMAN=1`
+into the session, and converted project Makefiles auto-apply the flag via
+`PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` on their `run`
+lines — so containerized targets Just Work nested and are unchanged on a host. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
+2026-08-29 (work record:
+`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`).
 
 Non-obvious flags and why they exist:
 - **`--cap-add=...,net_admin`** — the inner podman runs *rootful* (container-root), so it

@@ -17,8 +17,9 @@ trusting it.
 ## Verify
 
 Build both flag values and check the sentinel — `/root/.emacs.d` present **iff** the flag
-is on. Nested podman here needs `--cgroups=disabled` on inner runs (see the nested-podman
-reference doc); a plain host `make image` is simplest if not nested.
+is on. The raw `podman run` checks below pass `--cgroups=disabled` explicitly — harmless
+belt-and-braces for nested runs (see the nested-podman reference doc); a plain host
+`make image` is simplest if not nested.
 
 - **Default / on:** `make image` (flag defaults to `1`) → the built image **has**
   `/root/.emacs.d`.

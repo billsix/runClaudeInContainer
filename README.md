@@ -171,10 +171,13 @@ podman info --format '{{.Store.GraphDriverName}}'   # -> overlay (driven by fuse
 podman run --rm -it --cgroups=disabled -v "$(pwd)":/workspace:Z ubuntu:latest bash
 ```
 
-`--cgroups=disabled` is **required** on every inner run: the sandbox's `/sys/fs/cgroup` is
-mounted read-only, so without it crun fails with
-`/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`. Disabling cgroups is fine
-on a dev box that isn't enforcing resource limits.
+`--cgroups=disabled` was historically **required** on every inner run (the sandbox's
+`/sys/fs/cgroup` was mounted read-only, so crun failed with
+`/sys/fs/cgroup/cgroup.subtree_control: Read-only file system`); on current host stacks
+cgroup2 mounts rw and it's optional, but it stays harmless — keep it for portability.
+Project Makefiles converted to the `PODMAN_RUN_FLAGS` convention apply it automatically
+inside the sandbox (which exports `NESTED_PODMAN=1`) and stay flag-free on a host — see
+`tasks/reference/nested-podman-design.md`.
 
 The run above leaves networking at the **default (bridged/netavark)** path, which is
 **verified working** — `apt update` inside a nested `ubuntu` reaches the network end-to-end.
