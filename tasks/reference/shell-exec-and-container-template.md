@@ -37,7 +37,7 @@ runs a script/command in the *same* container env as `shell` and exits — no TT
 | `shell.sh` delivery | **bind-mounted** (edit is live) — now including runCrush client (bind-mounted 2026-08-29). regardingBritt was BAKED; its repo was deleted by the maintainer 2026-08-29. |
 | repo mount path (`REPO_MOUNT`) | `/gacalc`, `/mvm`, `/mvp`, `/spimulator`, `/apue`, `/root/texExpToPng`, `/work`, `/$(CONTAINER_NAME)` — often ≠ dir name |
 | what's mounted | whole repo vs **selective files** (texExpToPng, apue, billsEmacs mount only source) |
-| nested passthrough | RESOLVED 2026-08-29: the `NESTED_PODMAN`-keyed `$(PODMAN_RUN_FLAGS)` auto-default is present everywhere (see `nested-podman-design.md`) |
+| nested passthrough | RESOLVED 2026-08-29: the `NESTED_PODMAN`-keyed `$(PODMAN_RUN_FLAGS)` auto-default is present everywhere except osbooks-anatomy-physiology (kept hardcoded by choice — see `nested-podman-design.md`) |
 | `shell:` prereqs | none / `image` / `format` |
 | X11 flag var name | `$(X_FLAGS_FOR_CONTAINER)` (now standard) — was `$(USE_X)` in mvp/apue (renamed 2026-08-29) |
 | `shell.sh` mode | 755 vs 644 (invoked as `bash shell.sh`, so +x not required) |

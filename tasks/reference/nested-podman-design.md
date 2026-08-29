@@ -124,7 +124,10 @@ convention:
    later that day — spimulator, texExpToPng, the runCrushInContainer client, and the
    16 openstax `osbooks-*` repos, which had a hardcoded `PODMAN_RUN_FLAGS =
    --cgroups=disabled` — flag always on, host included — replaced with the conditional
-   auto-default, deliberately changing host runs to flagless). Work record:
+   auto-default, deliberately changing host runs to flagless — except
+   **osbooks-anatomy-physiology**, whose conversion the maintainer discarded the same
+   day, keeping the hardcoded always-on flag: nested runs still work there, host runs
+   keep the harmless flag). Work record:
    runClaudeInContainer `tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`.
    A deeper symlink-following scan the same day found four more groups on older
    variants; all converted with maintainer approval (also 2026-08-29): the 20
@@ -132,7 +135,8 @@ convention:
    auto-default), epix-mirror (same; its separate `PODMAN_BUILD_FLAGS` untouched — the
    run flag was verified absent from its `build` line), and spimulator/pgu (full
    insert + threading). Every mounted Makefile+Dockerfile project now carries the
-   convention.
+   convention, with the single deliberate exception of osbooks-anatomy-physiology
+   (above).
 
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 

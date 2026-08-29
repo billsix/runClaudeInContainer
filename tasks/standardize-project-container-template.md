@@ -23,7 +23,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 | `shell.sh` delivery | bind-mounted (edit is live) vs **BAKED via COPY** (regardingBritt — edit needs `make image`) |
 | repo mount path | `/gacalc`, `/mvm`, `/mvp`, `/spimulator`, `/apue`, `/root/texExpToPng`, `/$(CONTAINER_NAME)`, `/osbooks-*` — often ≠ the directory name |
 | what's mounted | whole repo (`-v .:/x`) vs **selective files** (texExpToPng, apue, billsEmacs mount only source) |
-| nested passthrough | RESOLVED 2026-08-29: the `NESTED_PODMAN`-keyed `$(PODMAN_RUN_FLAGS)` auto-default is present everywhere (see `tasks/reference/nested-podman-design.md`) |
+| nested passthrough | RESOLVED 2026-08-29: the `NESTED_PODMAN`-keyed `$(PODMAN_RUN_FLAGS)` auto-default is present everywhere except osbooks-anatomy-physiology (kept hardcoded by choice — see `tasks/reference/nested-podman-design.md`) |
 | `shell:` prereqs | none / `image` / `format` |
 | X11 flag var name | `$(X_FLAGS_FOR_CONTAINER)` vs `$(USE_X)` |
 | `shell.sh` mode | 755 vs 644 |
