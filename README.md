@@ -65,10 +65,18 @@ not `--`) and only a **fresh** sandbox picks up a new export.
 make image                  # build the OCI image (tagged "claudecontainer")
 make shell                  # interactive shell in an ephemeral (--rm) container
 make shell NESTED_PODMAN=1  # ^ same, but also able to run `podman` inside the sandbox
+make shell-exec SCRIPT=path/to/script.sh   # run a script in that same env (no TTY), then exit
+make shell-exec CMD='some command'         # ^ or an inline command
 ```
 
 Inside the shell you start at `/`, with your current project mounted at
 `/<project-dir-name>`. Run `claude` to launch Claude Code.
+
+`make shell-exec` is the batch twin of `make shell`: the same container and mounts (graphics
+and `NESTED_PODMAN=1` included), but it runs a script (`SCRIPT=`, repo-relative, run from the
+repo root) or an inline `CMD=` and exits, instead of dropping you into bash — for ad-hoc or CI
+use. `SCRIPT=` is best for anything non-trivial; `CMD=` is for simple one-liners (a `$VAR` in
+`CMD=` expands on the host, and single quotes in it need care).
 
 To run containers *inside* the sandbox (podman-in-podman), add `NESTED_PODMAN=1` —
 see [Building containers inside the sandbox](#building-containers-inside-the-sandbox-nested-podman).
@@ -194,11 +202,11 @@ sandbox: `podman build -t selftest .`.
 | Path | Purpose |
 | --- | --- |
 | `Dockerfile` | Image definition (Fedora base + toolchain + Claude Code) |
-| `Makefile` | `make image` / `make shell`; host-mount detection; X11/Wayland passthrough |
+| `Makefile` | `make image` / `make shell` / `make shell-exec` (shared `SHELL_RUN_FLAGS`); host-mount detection; X11/Wayland passthrough |
 | `exampleRunClaude.sh` | Saved `make shell` invocation with extra mounts |
 | `entrypoint/01-install-base.sh` | The ~430-package `dnf install`, host-runnable; the Dockerfile sources it |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
-| `entrypoint/shell.sh` | `make shell` launcher (`cd /` then `exec bash`) |
+| `entrypoint/shell.sh` | `make shell` / `make shell-exec` launcher (`set -e` setup, then `exec bash "$@"`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` | Blank personal-overlay default (`@`-imported; your host file mounts over it) |

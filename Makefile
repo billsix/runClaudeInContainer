@@ -182,9 +182,11 @@ image: ## Build the OCI image (USE_EMACS_CONFIG=0 for a clean box without the ve
 	$(CONTAINER_CMD) build -t $(CONTAINER_NAME) \
                          --build-arg USE_EMACS_CONFIG=$(USE_EMACS_CONFIG) \
                          .
-.PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z", USE_CONTROLLER=0 (skip gamepad passthrough)
-	$(CONTAINER_CMD) run -it --rm \
+# --- shell / shell-exec share ONE container invocation, defined here so the two
+# targets can never drift. Scoped to this pair ONLY -- do NOT fold in
+# format/image-*/etc, which carry different mount sets. See
+# tasks/add-shell-exec-target.md.
+SHELL_RUN_FLAGS = \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		-v ./entrypoint/shell.sh:/shell.sh:Z \
@@ -197,9 +199,23 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMP
 		$(CLAUDE_AUTH_ENV) \
 		$(X_FLAGS_FOR_CONTAINER) \
 		$(WAYLAND_FLAGS_FOR_CONTAINER) \
-		$(CONTROLLER_FLAGS_FOR_CONTAINER) \
-		$(CONTAINER_NAME) \
-		/shell.sh
+		$(CONTROLLER_FLAGS_FOR_CONTAINER)
+
+# In-container repo mount path (shared with FILES_TO_MOUNT via PROJECT_DIR).
+REPO_MOUNT = /$(PROJECT_DIR)
+
+# shell-exec payload: cd to the repo root (independent of shell.sh's own cd), then
+# run the inline CMD, else the repo-relative SCRIPT. Prefers CMD when both are set.
+SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT))'
+
+.PHONY: shell
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z", USE_CONTROLLER=0 (skip gamepad passthrough)
+	$(CONTAINER_CMD) run -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
+
+.PHONY: shell-exec
+shell-exec: ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
+	@[ -n "$(SCRIPT)$(CMD)" ] || { echo 'usage: make shell-exec SCRIPT=<repo-relative path> | CMD="..."'; exit 2; }
+	$(CONTAINER_CMD) run --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh $(SHELL_EXEC_ARGS)
 
 .PHONY: format
 format: image ## Format the repo's shell scripts in place with shfmt (fixes land on the host)
