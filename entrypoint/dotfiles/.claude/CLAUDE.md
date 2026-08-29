@@ -601,6 +601,11 @@ I'll normally ask for the cleanup explicitly ("squash the history"). Don't rewri
 
 For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
 
+**Write every task doc to be executed COLD.** Assume whoever picks it up — a fresh LLM session, you months later, a colleague — has **none** of the conversation that produced it. Everything a fresh reader needs is in the doc, or in files it points to: what to read first, the current state of the relevant code, links to related/prior tasks and reference docs, and any decisions already made **with their rationale** (not just the conclusion). Never lean on session memory or "as we discussed." This is the **standing default, so a task never *announces* that it's self-contained — it just is.** It's the task-level form of the same "assume the reader lacks context" discipline the response rules already demand (gloss every label; cite the file path). Concretely, a non-trivial task **leads with two short standard sections** (scaled to the task — a tiny task may need neither):
+
+- **`## BLUF`** (Bottom Line Up Front) — 1–4 sentences: what this task *is* and what "done" means, right under the header. From US-Army writing (AR 25-50): the main point / conclusion / required action goes **first**, so a reader grasps the essence immediately without wading through detail. Full write-up: `~/.claude/reference/bluf-bottom-line-up-front.md`.
+- **`## Context`** — the cold-start orientation: what to **read first** (files, related/prior tasks, reference docs), the **current state** of the relevant code, and **decisions already made with their rationale** — enough that a fresh reader can act without the originating conversation.
+
 ### Priority & difficulty (rough triage for "what to work on next")
 
 Every task doc carries two 1–10 ratings in its header, directly under `**Status:**`:

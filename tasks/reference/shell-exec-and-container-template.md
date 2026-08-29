@@ -3,7 +3,7 @@
 **Reference document** — the design of the `shell-exec` target and the per-project template
 variations the fleet-wide fan-out (~45 projects, 2026-08-29) surfaced. States what is true; the
 *open* standardization migration is `tasks/standardize-project-container-template.md`. The
-cross-project *contract* (for all projects) lives in the personal `.ai` overlay
+cross-project *contract* (for all projects) lives in the personal overlay
 (`~/.ai-coding-conventions.personal.md`, source at `github.com/billsix/dotfiles`). Harvested from the
 now-archived `add-shell-exec-target.md` + `fan-out-shell-exec-to-projects.md`.
 
@@ -61,6 +61,6 @@ invocation builds/reformats, then prints usage. Test the guard via `make -n` on 
 ## Cross-links
 
 - `tasks/standardize-project-container-template.md` — the open migration + the agreed standard.
-- Personal `.ai` overlay — the cross-project Makefile/entrypoint *contract* (has the `shell-exec` half).
+- Personal overlay (`ai-coding-conventions.personal.md`) — the cross-project Makefile/entrypoint *contract* (has the `shell-exec` half).
 - `tasks/archive/2026/08/29/add-shell-exec-target.md` / `.../fan-out-shell-exec-to-projects.md` — work records.
 - The bulk codemod (`tasks/adhoc/fan-out-shell-exec/apply_bulk.py`) — one-shot; removed at archive (in git history).
