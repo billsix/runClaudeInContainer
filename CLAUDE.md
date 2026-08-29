@@ -12,11 +12,16 @@ user-facing overview.
   `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is
   `/entrypoint.sh`.
 - **`Makefile`** — the control surface. `make image` builds; `make shell` runs an
-  ephemeral (`--rm`) container. It conditionally mounts host `~/.tmux.conf`,
-  `~/.gitconfig`, `~/.gnupg`, and `~/.claude` (each only if it exists), mounts the
-  CWD at `/<project-dir>`, and sets up X11 + Wayland passthrough.
+  ephemeral (`--rm`) container; **`make shell-exec SCRIPT=… | CMD=…`** is its batch
+  twin (runs a script/command in the same env, no TTY). `shell` and `shell-exec`
+  share one **`SHELL_RUN_FLAGS`** variable so they can't drift. It conditionally
+  mounts host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, and `~/.claude` (each only
+  if it exists), mounts the CWD at `/<project-dir>`, and sets up X11 + Wayland
+  passthrough.
 - **`entrypoint/entrypoint.sh`** — image entrypoint; just `exec bash`.
-- **`entrypoint/shell.sh`** — what `make shell` runs; `cd /` then `exec bash`.
+- **`entrypoint/shell.sh`** — what `make shell` / `make shell-exec` run; `set -e`,
+  `cd /`, then **`exec bash "$@"`** (interactive with no args; runs the `shell-exec`
+  payload otherwise).
 - **`entrypoint/dotfiles/`** — copied into `/root/` at build time: `.extrabashrc`
   (prompt, `GPG_TTY`, `ls` alias), `.emacs.d/`, and `.claude/`.
 - **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`

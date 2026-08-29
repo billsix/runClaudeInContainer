@@ -88,6 +88,8 @@ the baked-vs-bind-mount of the *setup*, not the launcher) is a separate migratio
 
 ## Cross-links
 
-- `tasks/fan-out-shell-exec-to-projects.md` — the fan-out that surfaced all of this (full kinks log).
-- `tasks/add-shell-exec-target.md` — the `shell-exec` reference implementation.
+- `tasks/reference/shell-exec-and-container-template.md` — the harvested design + divergence table.
+- `tasks/archive/2026/08/29/fan-out-shell-exec-to-projects.md` — the fan-out that surfaced all of this
+  (full kinks log; archived).
+- `tasks/archive/2026/08/29/add-shell-exec-target.md` — the `shell-exec` reference implementation (archived).
 - runCrushInContainer: the sibling standardization task (same standard, that meta-repo's contract doc).
