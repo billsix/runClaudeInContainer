@@ -576,6 +576,7 @@ surprised?* If yes, it is breaking — flag it as such.
 Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete. **Staging is your half of that handoff, and it is the default, not an option.**
 
 - **Stage finished work automatically — don't wait to be asked.** When a coherent piece of work is done, `git add` the files it touched and say so in your summary. A finished change left unstaged is a change I might not notice and might overwrite. By the end of any work chunk, `git status` should read as a handoff: staged = "this is the work," unstaged = "this is still in flight or isn't mine to give you."
+- **A finished unit's DOC DELTAS ship in that same staging (Bill, 2026-08-31).** "Finished" includes the always-read docs the unit conceptually touches: update the project's `CLAUDE.md` (module layout, counts, API/operator lists), its `README`, and the pertinent `tasks/reference/` doc *alongside the code*, and stage them together — so staged = complete handoff, docs included. Scope it to the docs the unit implies, **not** a full always-read re-read (that stays the session-end sweep's job — see "Ending a session", now a verification pass expected to find nothing from properly finished units). A unit redesigned later in the session gets its docs rewritten — the same cost the code pays; the trigger is deliberately "verified + staged", not "every edit". (Origin: a 2026-08-31 gacalc session whose end-of-session sweep applied CLAUDE.md/README/reference updates knowable the moment the feature passed its gate — see runClaudeInContainer `tasks/archive/2026/08/31/doc-deltas-ship-with-staged-work.md`.)
 - **Why staging specifically: `git add` writes the content into `.git/objects`, so it survives.** An unstaged edit is only bytes on disk — a later overwrite, a bad `checkout`, or a botched `sed` loses it with no recovery. Staged content can always be recovered (`git fsck --lost-found`) even if the working tree is clobbered. It is the cheapest possible backup and it costs nothing, so err toward staging early and often rather than once at the end.
 - **Stage the files your work touched, by path** (`git add <paths>`), **never `git add -A`.** A blanket add sweeps in build artifacts, scratch files, and anything I was editing myself — that makes the handoff *less* useful, not more. If something is generated or gitignored, leave it out and mention it.
 - **Stage, then stop.** Never `git commit`, and never `git push`, unless I ask in that moment. Turning staged work into commits is mine.
@@ -839,7 +840,14 @@ plain member — before any reached a doc.
 
 **When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
 it for now", etc.), before we stop do a **documentation-reconciliation pass** so the always-read
-docs don't drift from what the session actually changed:
+docs don't drift from what the session actually changed.
+
+**This sweep is a VERIFICATION NET, not the primary mechanism (Bill, 2026-08-31):** per "Git: I
+commit, you don't — but you DO stage", each finished unit already ships its own doc deltas at
+staging time, so the sweep should expect to find **nothing** from properly finished units. What
+it still exists to catch: decisions made only in conversation that never became a staged unit,
+cross-repo drift, misplaced detail, and units redefined mid-session. Finding a finished unit's
+doc updates here means the staging-time rule was missed — do the update, and tighten up.
 
 1. **Read**, for each project we touched this session: its **`CLAUDE.md`**, **every
    `tasks/reference/*` doc**, and its **`README.md`**. (Scope to projects we touched — don't sweep
