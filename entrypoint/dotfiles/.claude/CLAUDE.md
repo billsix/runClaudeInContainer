@@ -635,6 +635,16 @@ Some tasks can't start until something **outside our control** changes — an up
 
 When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
 
+**Archiving is yours to do, at the moment of completion — unprompted (Bill, 2026-08-31).** The
+instant a task's done-state is met and its gates are green, do the archive — harvest to reference
+docs, fix inbound pointers, `git mv`, stage — as part of finishing the unit, in the same handoff
+its code and doc deltas ship in. **Don't ask, and don't hold** because the staged work awaits my
+commit (the `git mv` just joins the staged set; my commit timing is independent) or because a
+status says "pending review" (that applies to the *work*, not the lifecycle move). Ask only when
+the done-state itself is genuinely ambiguous. (Origin: two verifiably-done gacalc tasks presented
+as archive *candidates* with a go/no-go question — "I'm just surprised you didn't archive what
+you thought was done.")
+
 Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
 
 At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off — **list each with its Priority/Difficulty, sorted easy-wins first** (lowest priority-number, then lowest difficulty-number) so it's immediately clear what's worth doing next. **List any `blocked` tasks separately** — call them out as not-actionable (with their one-line `Blocked on:`) and keep them out of the easy-wins ranking, since their gate hasn't cleared; note that `/recheck-blocked` can test whether it has. Don't trawl `tasks/archive/` unless I ask about prior work.
