@@ -5,7 +5,12 @@
 #  make shell                 interactive shell in an ephemeral container
 #  make shell NESTED_PODMAN=1 ^ same, but ALSO able to run `podman` inside the
 #                               sandbox (podman-in-podman). Opt-in; see below.
-#  make shell EXTRA_MOUNTS="-v /host/path:/path:Z"   bind extra host dirs
+#  make shell EXTRA_MOUNTS="-v /host/path:/path:z"   bind extra host dirs
+#                               (":z" or no flag — NEVER ":Z": the sandbox runs
+#                               label=disable so ":Z" gains nothing, and it
+#                               relabels the host repo with this container's
+#                               SELinux category pair, locking out normal
+#                               confined containers until `restorecon -R`)
 # ============================================================================
 
 CONTAINER_CMD = podman
@@ -215,7 +220,7 @@ REPO_MOUNT = /$(PROJECT_DIR)
 SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT))'
 
 .PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:Z", USE_CONTROLLER=0 (skip gamepad passthrough)
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:z" (":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
 	$(CONTAINER_CMD) run -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
 
 .PHONY: shell-exec

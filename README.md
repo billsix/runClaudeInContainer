@@ -133,8 +133,15 @@ host directories that are mounted in.
 Use `EXTRA_MOUNTS` to bind additional host paths:
 
 ```sh
-make shell EXTRA_MOUNTS="-v /home/me/project:/project:Z"
+make shell EXTRA_MOUNTS="-v /home/me/project:/project:z"
 ```
+
+> **Use `:z` or no label flag — never `:Z`.** The sandbox runs
+> `--security-opt label=disable`, so `:Z` gains it nothing — but it still
+> relabels the mounted host directory with this container's private SELinux
+> category pair, which locks every normal *confined* container (e.g. a
+> `podman build` of that repo on the host) out of those files until you run
+> `sudo restorecon -R <dir>`.
 
 `exampleRunClaude.sh` is a saved example of this (nested Podman enabled, mounting
 several host directories). Its paths are the maintainer's — edit them for your own
