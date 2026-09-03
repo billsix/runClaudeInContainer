@@ -1,6 +1,6 @@
 # Convention: on "I'm going to squash", harvest the full decision history into the task doc first
 
-**Status:** proposed — needs go-ahead (which conventions file + exact wording)
+**Status:** proposed — needs go-ahead (placement settled: both nested CLAUDE.md; wording only)
 **Priority:** 3
 **Difficulty:** 2
 
