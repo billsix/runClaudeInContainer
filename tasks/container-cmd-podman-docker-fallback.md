@@ -70,11 +70,20 @@ carry it in their own Makefiles *and* in whatever generates a new project's Make
 
 ## Status / next
 
-Design settled (above). **Not yet executed** — executing means editing ~45 fleet Makefiles + both sandbox repos +
-the new-project scaffolding, a large multi-repo mutation, so it awaits an explicit "do the rollout" go-ahead.
+**Makefile rollout DONE 2026-09-03** (William Emerison Six <billsix@gmail.com>: "edit and stage in non-impo, but
+go ahead"). Applied the `?=` auto-detect to **47 Makefiles** via the idempotent codemod
+`tasks/adhoc/container-cmd-podman-docker-fallback/rollout.py` (double-run proven; parse-clean, 0 syntax errors):
+apue, billsEmacsConfigs ×20, geometricalgebra, graphicalcontainer, hanoi, modelviewprojection,
+multivariate-math, runClaudeInContainer, runCrushInContainer/client, spimulator (+pgu), texExpToPng, and
+**impo's 16 book Makefiles**. **Skipped the 16 upstream OpenStax source checkouts** (`/mnt/sda1/openstax/osbooks-*`,
+each its own repo rooted at `/openstax/osbooks-<name>`) per the read-only rule — impo's own copies got it instead.
+Git: **impo committed** (`6355242`); **all non-impo repos staged, not committed** (the maintainer commits those).
 
-## Open questions
+### Remaining (not blocking the Makefile rollout)
 
-1. **Execute the fleet rollout now, or leave queued?** The design is settled; this is just timing. *Recommend
-   queuing it as its own focused session (a ~45-repo mechanical sweep deserves undivided attention + per-repo
-   `make -n` verification), rather than interleaving it with the current impo work.*
+- **Document the convention** in the personal-overlay Makefile-contract section (beside `PODMAN_RUN_FLAGS`).
+  Left for the maintainer — it's their personal conventions file, not mine to edit autonomously.
+- **New-project scaffolding**: update whatever generates a new project's Makefile in the two sandboxes to emit
+  the `?=` line, so this doesn't regress on the next new project. Needs locating each sandbox's project template.
+- **docker-runtime compatibility** (the `:Z`/`--cgroups`/userns differences) is a separate task, only if the
+  intent is to actually *run* on docker vs. just detect it.

@@ -13,7 +13,7 @@
 #                               confined containers until `restorecon -R`)
 # ============================================================================
 
-CONTAINER_CMD = podman
+CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CONTAINER_NAME = claudecontainer
 
 EXTRA_MOUNTS ?=
