@@ -60,13 +60,21 @@ carry it in their own Makefiles *and* in whatever generates a new project's Make
 5. Save the rollout as an ad-hoc codemod under `tasks/adhoc/` (idempotent; prove with a double-run), per the
    ad-hoc-script convention — the same way the PODMAN_RUN_FLAGS fan-out was recorded.
 
+## Decisions (settled with the maintainer, 2026-09-03)
+
+1. **Single fan-out task, not one per project.** This doc IS the rollout task; the project list is enumerated here
+   (the PODMAN_RUN_FLAGS fleet list). Matches the two prior fleet rollouts (PODMAN_RUN_FLAGS, shell-exec).
+2. **Scope = the `CONTAINER_CMD` swap only.** Genuine docker-runtime compatibility (the `:Z` SELinux relabel,
+   `--cgroups=disabled` being podman-only, rootless UID mapping) is a **separate** task to open only if the intent is
+   to actually *run* on docker, not merely detect it. This task just makes the runtime auto-detected.
+
+## Status / next
+
+Design settled (above). **Not yet executed** — executing means editing ~45 fleet Makefiles + both sandbox repos +
+the new-project scaffolding, a large multi-repo mutation, so it awaits an explicit "do the rollout" go-ahead.
+
 ## Open questions
 
-1. **One fan-out task or one per project?** The maintainer said "a task per project," but the established pattern
-   (PODMAN_RUN_FLAGS, shell-exec) was a **single** rollout task + one ad-hoc codemod across the fleet, which is far
-   less overhead than ~45 near-identical task docs. *Recommend the single fan-out task (this doc), with the project
-   list enumerated inside it — matching the two prior fleet rollouts.* Confirm.
-2. **Include docker-specific gotchas now, or podman-first only?** podman and docker differ on a few flags
-   (`--cgroups=disabled` is podman-only; rootless UID mapping; `:Z` SELinux relabel is a no-op/needs care on docker).
-   *Recommend scope this task to the `CONTAINER_CMD` swap only, and open a separate task for genuine docker-runtime
-   compatibility (the `:Z`/`--cgroups`/userns differences) if you actually intend to run on docker, not just detect it.*
+1. **Execute the fleet rollout now, or leave queued?** The design is settled; this is just timing. *Recommend
+   queuing it as its own focused session (a ~45-repo mechanical sweep deserves undivided attention + per-repo
+   `make -n` verification), rather than interleaving it with the current impo work.*
