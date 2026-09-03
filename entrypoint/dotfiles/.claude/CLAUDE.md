@@ -598,6 +598,8 @@ Mechanics — the container has **no interactive editor, so a literal `git rebas
 
 I'll normally ask for the cleanup explicitly ("squash the history"). Don't rewrite history that's already pushed/shared without me saying so.
 
+**Before a squash, harvest the commit history into the task doc.** When I say I'm going to squash, first walk **every commit in the unpushed range** (`<upstream>..HEAD` — find `<upstream>` from the remote-tracked branch, `git rev-parse --abbrev-ref @{u}`), reading the **task-doc AND code diffs** at each. Then update the task doc so it records, **in chronological order, every decision we made and why** — what changed and why, what we rejected and why, what each step discovered. Only then squash. The reason: the squash collapses the per-commit trail, so after it the **archived task doc is the only record of the reasoning** — it has to carry the full play-by-play *before* the granular history is flattened. Do this as part of the squash, unprompted (like staging). (Harvesting durable knowledge into a *reference* doc still happens separately, at archive time.)
+
 ## Task documents
 
 For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
