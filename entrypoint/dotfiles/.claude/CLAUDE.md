@@ -362,7 +362,13 @@ long status update with two questions in different paragraphs and the user's rep
 are you asking me?").
 
 - **Number them (1., 2., 3.)**, not bullets, so I can answer by number.
-- One item per question, phrased so it can be answered on its own.
+- One item per question, phrased so it can be answered on its own. **Exactly one ask per
+  numbered item — never staple a second, independent question onto the same one** (the tells
+  are "…and separately, do you want X?", "also, should Y?", "…, and do you want it merged?").
+  Two asks in one item means a one-word reply ("sure", "yes", "go ahead") answers only one and
+  leaves you to silently drop or guess the other — split them into two numbered items instead.
+  (2026-09-05: I bundled "archive the 8 now?" with "merge the branch or not?" into a single
+  item; a bare "sure" could not decode to both, which is the whole failure this rule prevents.)
 - **It is fine — preferred, even — to say "see above for detail"** and keep the item
   short. The list is a checklist of what's blocking, not a re-explanation.
 - If you have a recommendation, put it in the item, so I can just say "yes."
@@ -968,7 +974,11 @@ duplicates one.
   and re-investigated from scratch.
 
 The stack lives at `~/.claude/stack.md` and is **global, not per-repo** — diversions cross
-repos routinely (a book change in one repo turning into a generator change in another).
+repos routinely (a book change in one repo turning into a generator change in another). It is
+**`@`-imported into every session** (see *Auto-imported references*), so its current contents
+are always in your context — you are never relying on *remembering* to open it. That makes
+keeping it current non-optional: the stack is right in front of you, so a stale stack is a
+visible failure, not a hidden one.
 
 **I do NOT manage this stack — you do. That is the whole point (Bill, 2026-07-19: "I
 don't want to have to remember those as commands").** The slash commands exist as manual
@@ -987,10 +997,14 @@ four operations below as things you *do*, not commands you wait for me to type:
 - **Drop, only with my say-so.** Discarding an entry we won't do is the one operation that
   loses work, so this one you *do* confirm with me — but you still initiate it (notice the
   entry is dead and propose dropping it), rather than waiting for a command.
-- **Surface it yourself.** At session start, and whenever the current conversation has
-  drifted off the top item, **say so unprompted** — "note: the top of the stack is X, but
-  we've been on Y for a while." Catching that drift is your job, not mine; the stack is
-  useless if I have to remember to ask.
+- **Surface it yourself, and reconcile at session start.** The auto-imported stack is in
+  your context from the first message, so **at session start, check it against reality and
+  reconcile it before doing other work** — if the "live thread" it names is not what we're
+  actually doing (a prior session's thread, say), fix it (push the real current thread, move
+  the stale one to a paused/deferred section) and say so briefly. Likewise, whenever the
+  conversation has **drifted off the top item**, **say so unprompted** — "note: the top of the
+  stack is X, but we've been on Y for a while." Catching that drift is your job, not mine; the
+  stack is useless if I have to remember to ask.
 
 **The point is depth-awareness, not "what to do now."** The trail's job is to keep the
 root purpose in view, so the guidance is:
@@ -1331,6 +1345,15 @@ open the file fails (William Emerison Six <billsix@gmail.com>, 2026-08-13). The 
 resolve in the container, where the Makefile mounts `tasks/reference/` to
 `~/.claude/reference/`.
 
+`@~/.claude/stack.md` imports the **global diversion stack** (see "The diversion trail" above),
+so its current contents are in context at the start of every session — you never have to
+remember to open it, and it cannot silently drift out of sync with what we're actually doing.
+This is the enforcement the stack always lacked: the trail's rule is that YOU keep it current
+unprompted, and auto-importing it makes "is the stack stale?" a question you can always answer,
+because the stack is right there. It resolves through the `~/.claude` mount
+(`CLAUDE_CONFIG_MOUNT`); the Makefile seeds a starter `stack.md` if the host has none, so the
+import never dangles. Keep it SMALL — a breadcrumb trail that points at task docs, never a task
+log (a big `stack.md` bloats every session's context).
 
 Finally, `@~/.claude/ai-coding-conventions.personal.md` imports the **personal overlay** — the maintainer-specific
 layer (identity, project→URL mapping, project template, standing authorizations). The tracked
@@ -1343,4 +1366,5 @@ conventions above stay portable while personal specifics layer in per-user. See
 @~/.claude/reference/sandbox-capability-map.md
 @~/.claude/reference/claude-config-layering.md
 @~/.claude/reference/print-debugging.md
+@~/.claude/stack.md
 @~/.claude/ai-coding-conventions.personal.md

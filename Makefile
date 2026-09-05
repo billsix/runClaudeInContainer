@@ -89,7 +89,14 @@ CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # (re-sign-in every launch). Created here at parse time — a recipe-line mkdir
 # would run after this := is already expanded. make runs on the host, so this
 # creates the host-side dir itself.
-CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
+#
+# Also seed ~/.claude/stack.md (the global diversion stack) if absent. The shared
+# CLAUDE.md @-imports it, so its contents load into context EVERY session — the
+# deterministic fix for the stack silently drifting untracked. It lives inside this
+# same mounted dir, so it needs no separate -v; it only needs to EXIST so the
+# @-import never dangles on a fresh host. (\043 is printf's octal for '#', used so
+# no literal '#' appears in this Makefile line, which would start a make comment.)
+CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); [ -f $(CLAUDE_CONFIG_DIR)/stack.md ] || printf '\043 Work stack\n\nRead BOTTOM-up: the bottom of each descent names its root purpose. Empty for now.\n' > $(CLAUDE_CONFIG_DIR)/stack.md; echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
 
 # ~/.claude.json holds Claude Code's ONBOARDING / login-menu state
 # (hasCompletedOnboarding, oauthAccount, userID) — tracked SEPARATELY from the
