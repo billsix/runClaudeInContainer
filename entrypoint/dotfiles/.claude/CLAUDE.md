@@ -802,7 +802,45 @@ existing task should be folded there rather than spawning a duplicate.)
 - **This structure is standard across every one of my projects** — use it (and create
   `tasks/reference/` as needed) in any repo, even ones that don't obviously need it yet.
 
-Helper command: `/new-reference <slug>` to scaffold one.
+### Layered reference documents — levels of detail (LoD)
+
+A reference doc need not be one flat file. For a big topic — or a *set* of
+related topics — write it at **layered levels of detail**, so a reader enters at
+the altitude they need:
+
+- **L0 — capsule** (≤1 paragraph): the whole topic in a breath. Every L0 of a
+  set aggregates into one top **map doc** (`tasks/reference/<set>/README.md`),
+  which doubles as the set's table of contents and status board.
+- **L1 — orientation** (~1 page, NO code): the mental model. Written only when
+  it earns its place (below).
+- **L2 — mechanism** (the anchored core): the full algorithm / data flow.
+- **L3 — the source itself**; cite it by **stable named anchor** (a symbol name,
+  or a `doc-region`/`literalinclude` marker), **not a line number** — line
+  numbers rot (a run once found a function that had moved 1065 -> 2251).
+
+Naming: L2 = `<topic>.md`, L1 = `<topic>-overview.md`, L0 = a row in the set's
+`README.md` map. Each doc links UP to its capsule and DOWN to its detail.
+
+Rules (learned building a 23-topic set — imps mario64, 2026-09):
+
+1. **Generate deepest-first, then compress upward**, each level ~half the lines
+   of the one below — a size budget, not delete-half; write each level fresh at
+   its altitude (an L0 is a re-conception, not a shrunken L2).
+2. **Write L1 only when the mental model is non-obvious AND self-contained AND
+   not another topic's job.** Levels are horizontal as well as vertical: if the
+   idea belongs to another topic, cross-link to that owner, don't duplicate it.
+3. **Compare to a baseline the reader knows** (a course, a prior system) — that
+   framing forces the right altitude and turns a code tour into teaching text.
+4. **The set is grown top-down too:** writing an L0 map (or a book on top of the
+   set) surfaces gaps that spawn new topics and deeper levels.
+5. **A "what's absent" capsule** (with the check that proves it) is durable
+   negative knowledge — give it a map row so nobody re-searches for it.
+
+Not every topic needs every level; small ones fuse L0+L2. Scaffold a layered set
+with `/new-reference-set`.
+
+Helper commands: `/new-reference <slug>` (single doc) and
+`/new-reference-set <set> [topic]` (a layered set) to scaffold.
 
 ### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
 
