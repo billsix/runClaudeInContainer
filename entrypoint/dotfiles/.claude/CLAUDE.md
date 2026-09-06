@@ -670,7 +670,7 @@ At the start of a session in a project, check `tasks/` (top-level, **not** `task
 
 Don't create a task file for one-off questions, trivial edits, or anything resolvable in a single response. Task files are for work that spans turns or sessions.
 
-If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. By default these docs are committable — only add `tasks/` to `.gitignore` if I explicitly ask.
+If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. By default these docs are committable — only add `tasks/` to `.gitignore` if I explicitly ask. Give every convention directory an empty `.keep` when you create it (see "Ad-hoc scripts" for why).
 
 **When a task you create (or substantially flesh out) has open questions, surface them to me at report time — don't bury them in the doc.** If the task's **Open questions** section is non-empty, repeat those questions as a **numbered list at the very end of the message** that tells me you made the task (this is the "Questions for me go inline AND in a closing list" rule, applied to task creation — I should see what you need from me in the message, not have to open the file to find it). Number them, name the positions, and include your recommendation per question. And per "Every question must be addressed before you implement anything": a question that blocks the work still blocks it even though the task is "made" — don't start implementing until I've addressed the numbered questions, and don't read a bare "go ahead" as answering them unless it actually resolves each one.
 
@@ -706,7 +706,13 @@ While doing a task I often write throwaway scripts — codemods, bulk edits, one
 - **Investigate whether it should run as a make target.** Read the repo's `Makefile`, `Dockerfile`, and entrypoint scripts to see whether it belongs in an existing gate (`format` / `check-*` / `test`), wants its own `## `-documented target, must run **in-container after setup** (some checks can only run once generated/populated files exist — so they live in `entrypoint.sh`, not a host-side target), and/or needs a Dockerfile dependency. Then **propose** the specific wiring — shaped to the gate conventions (a multi-step check script must propagate every step's failure; the real gate runs in the container). **Do not auto-wire it**; changing the build/gate is the user's to approve. "Manual tool, documented, not gated" is a valid outcome — not everything reusable should be a pass/fail gate (an informational audit like a dead-marker report shouldn't fail the build).
 - **Default to delete; promote only when the ongoing-use case is clear, and ASK when borderline.** A wrongly-promoted script rots in `tools/`; a wrongly-deleted one is still in git history.
 
-The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask.
+The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask. **A directory the conventions promise must survive being empty: git tracks files, not
+directories, so put an empty `.keep` file in `tasks/adhoc/` (and in `tasks/reference/`,
+`tasks/archive/`, `tools/` — any directory these conventions tell a reader to look in) the moment
+you create it, and never `git rm` the `.keep`.** Otherwise the first cleanup that removes the last
+file removes the directory from the repo, and the next reader finds the conventions pointing at a
+path that isn't there (2026-09-06, mvp: archiving the last one-shot codemods `git rm`'d
+`tasks/adhoc/` itself; the maintainer restored it with a `.keep`).
 
 ## Reference documents — durable knowledge that isn't tracked work
 
@@ -774,7 +780,7 @@ cross-linked both ways to the reference doc. The reference doc holds the *why*; 
 gets lost. (Corollary: a "don't do X" recommendation needs no task; and findings that belong in an
 existing task should be folded there rather than spawning a duplicate.)
 
-- Create `tasks/reference/` the first time it's needed. Committable by default, like tasks.
+- Create `tasks/reference/` the first time it's needed (with an empty `.keep` — see "Ad-hoc scripts"). Committable by default, like tasks.
 - **Session start & orientation:** the in-flight `tasks/` scan stays **top-level only** —
   `tasks/reference/` and `tasks/archive/` are never pending work. But treat `tasks/reference/`
   like a table of contents I *know exists*: note what entries are there (listing their titles
