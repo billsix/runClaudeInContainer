@@ -1,6 +1,9 @@
 # Archiving is its own commit AFTER the work commit — stop bundling the archive into the work handoff
 
-**Status:** proposed — needs go-ahead (do NOT edit the conventions until approved)
+**Status:** DONE 2026-09-07 — reworded the archiving guidance + adhoc One-shot note in this repo's
+`CLAUDE.md`, mirrored in runCrushInContainer, and corrected the agent memory
+`archive-on-completion-no-asking`. Verified: no leftover "same handoff" phrasing; both files carry the
+three-commit lifecycle and both commit modes.
 **Priority:** 3
 **Difficulty:** 3
 
