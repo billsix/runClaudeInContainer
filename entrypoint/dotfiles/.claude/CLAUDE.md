@@ -665,15 +665,30 @@ For a **multi-step initiative** too big for one task doc — a refactor that run
 
 When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
 
-**Archiving is yours to do, at the moment of completion — unprompted (Bill, 2026-08-31).** The
-instant a task's done-state is met and its gates are green, do the archive — harvest to reference
-docs, fix inbound pointers, `git mv`, stage — as part of finishing the unit, in the same handoff
-its code and doc deltas ship in. **Don't ask, and don't hold** because the staged work awaits my
-commit (the `git mv` just joins the staged set; my commit timing is independent) or because a
-status says "pending review" (that applies to the *work*, not the lifecycle move). Ask only when
-the done-state itself is genuinely ambiguous. (Origin: two verifiably-done gacalc tasks presented
-as archive *candidates* with a go/no-go question — "I'm just surprised you didn't archive what
-you thought was done.")
+**Archiving is yours to do, proactively, at the moment of completion — no go/no-go question (Bill,
+2026-08-31; timing corrected 2026-09-07).** The instant a task's done-state is met and its gates are
+green, the archive is *owed*: harvest to reference docs, fix inbound pointers, `git mv` the task into
+`tasks/archive/…`, and `git rm` any one-shot adhoc scripts. **Never ask whether to archive, and never
+present a done task as an archive *candidate*** — that surprise-me-by-asking behavior is the failure
+this rule exists to stop (origin: two verifiably-done gacalc tasks presented with a go/no-go question
+— "I'm just surprised you didn't archive what you thought was done"). Ask only when the done-state
+itself is genuinely ambiguous.
+
+**BUT the archive is its own commit, AFTER the work commit — never bundled into the work's staged
+handoff (Bill, 2026-09-07).** The maintainer's lifecycle is **three commits**: (1) task-add, ideally
+standalone; (2) work + adhoc scripts, together; (3) archive-move + the one-shot adhoc `git rm`,
+together, in a *separate* commit after the work commit — so `git log` shows "work + its scripts" and
+"archive + script deletion" as two related, self-contained points. So **do NOT `git mv` the task or
+`git rm` its scripts into the same staged set as the work.** Instead: stage the work and stop; once
+its commit exists (by default *I* make it — see "Git: I commit, you don't"), **proactively** stage the
+archive set (the `git mv`, the reference harvest, the one-shot `git rm`) as commit 3. At completion the
+archive is therefore an **owed, tracked** action — record it in the task's `Status` or the stack —
+executed the moment the work commit lands (same session if I commit then, next session otherwise); say
+so plainly (*"done and staged; I'll archive it in its own commit once you've committed the work"*),
+never as a question. **When I've authorized you to commit this session** (per-project, per-session —
+the quick-save mode), you make the commits yourself: commit the work (+ adhoc scripts), then commit the
+archive-move + one-shot `git rm` as a **separate** commit — the same two boundaries, never one combined
+"work + archive" commit. "Pending review" applies to the *work*, not the lifecycle move.
 
 Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
 
@@ -707,7 +722,7 @@ While doing a task I often write throwaway scripts — codemods, bulk edits, one
 
 **Make a file-mutating codemod idempotent, and PROVE it by running it twice — the second run must report zero changes.** A transform that re-matches its own output silently corrupts on any re-run, and that is exactly the failure the revert-and-rerun rule above depends on *not* happening. Worked example (mvp gacalc-0.0.16 adoption, 2026-08-13): a codemod split `from …mathutils import Vector3, helper` into a `from gacalc.g3 import Vector` line plus the leftover helper import — but it fired whenever the mathutils line matched, not only when `Vector3` was still on it, so a second run re-fired and inserted a **duplicate** `from gacalc.g3 import Vector` every time (58 files, then 13 more on the next run). Guarding it to act only when the suffixed name is actually present made re-runs a clean no-op. The double-run check is the cheapest proof the saved script reproduces its own diff, and it's the "formatter idempotent (`--check` reports no changes)" discipline applied to your own codemods — cheap to run, and it catches the whole class of self-re-matching bugs before they reach my tree. At archive time, `/archive-task` triages each script:
 
-- **One-shot** — a codemod / bulk edit whose job is done and that you would not run again: **remove from version control** (`git rm -r`). The history survives in the work commits, so nothing is lost — `git log` / `git show` still recover it. (A task archived before its scripts were ever committed just deletes them — an accepted edge case, not a bug.) **Timing under "I commit, you don't": the `git rm` cannot happen at archive time.** When you stage but I commit later, a one-shot must first land in a commit (that IS the audit trail) before it can be removed — staging an *add* and a *remove* of the same file before any commit nets to nothing and the script never reaches history. So the removal **trails the archive by one commit boundary**: record the owed deletion (in the archived task doc or the stack) and perform the `git rm` once the carrying commit exists, rather than assuming archive-time removal. (mvp, 2026-09-06: two one-shot codemods were archived alongside their tasks but only `git rm`'d a commit later, after the work commit that carried them landed — correct for this workflow, but I had not *tracked* the owed deletion, so it waited until the maintainer asked. Track it.)
+- **One-shot** — a codemod / bulk edit whose job is done and that you would not run again: **remove from version control** (`git rm -r`). The history survives in the work commits, so nothing is lost — `git log` / `git show` still recover it. (A task archived before its scripts were ever committed just deletes them — an accepted edge case, not a bug.) **Timing: the one-shot's `git rm` belongs IN the archive commit (commit 3), paired with the task's `git mv` — after the work commit that carried the script.** When you stage but I commit later, a one-shot must first land in the work commit (that IS the audit trail); staging an *add* and a *remove* of the same file before any commit nets to nothing and the script never reaches history. So the removal is an **owed action performed with the archive**, after the work commit — never bundled into the work's staged set (see the three-commit lifecycle under "When a task is complete" above). Record the owed deletion (in the archived task doc or the stack). (mvp, 2026-09-06: two one-shot codemods were archived with their tasks but `git rm`'d only after the work commit that carried them landed — correct, but I had not *tracked* the owed deletion, so it waited until the maintainer asked. Track it.)
 - **Reusable** — a checker / linter / report / proof-harness you *would* run again against future changes (the test is exactly that: *would I re-run this?*): **promote it** instead of deleting.
 
 **Promotion — a reusable script becomes a first-class tool.** When a script has ongoing value:
