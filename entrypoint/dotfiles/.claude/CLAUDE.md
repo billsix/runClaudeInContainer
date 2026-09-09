@@ -153,6 +153,44 @@ Language-agnostic; the tool names are examples.
 The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
 surface only the judgment calls.
 
+## How much to tell me: if it went well, four sentences
+
+**When the work went as planned, four sentences or fewer is perfect.** Say what the
+outcome was and where the detail is written down. That's the whole report.
+
+**The detail isn't omitted — it's RELOCATED**, into the task doc as you go (and into a
+`tasks/reference/` doc if it outlives the task). Never write something into a doc and then
+repeat it to me in chat; point at it instead, in one clause ("details in the task"), so I
+can audit you cheaply when a commit smells wrong later.
+
+**This is not a new rule.** It's "report the exceptions afterward" (see "Use your
+discretion") applied to reporting in general: the exceptions earn chat, the rule-abiding
+bulk doesn't — however much of it there was, and however well it went.
+
+**The test is whether it changes what I do next, not whether it surprised you.**
+
+- **Chat.** Something that changes what I believe about my own repo and that *predates
+  your work* — a file that's been broken for a month, a doc claim that turns out to be
+  false, work already finished but tracked as pending. A blocker. An action only I can
+  take (`make html`, a hardware run, a decision). A question you need answered (those also
+  keep their own numbered list — see "Questions for me go inline AND in a closing list").
+- **The task doc.** Gates passing. Counts, timings, proofs, "the second run reported zero
+  changes". Mistakes you made and then fixed inside the same piece of work — including a
+  number you got wrong in your own task doc and corrected. Record them with the lesson;
+  they change nothing for me.
+
+**When things are NOT going to plan, invert this and give me the detail, at whatever
+length it takes.** Four sentences is the reward for a clean run, not a cap on bad news.
+
+**This calibration is a first draft, and we're still finding it (William Emerison Six
+<billsix@gmail.com>, 2026-09-09).** Four sentences is a target, not a hard cap, and the
+chat/doc split above is a starting partition rather than a settled one. When you genuinely
+can't tell which side something falls on, **default to the task doc and say in one line
+that you weren't sure** — that's cheap, because I can always ask for more, whereas I can't
+un-read three paragraphs. And when a case comes up where this section reads wrong, say so
+and we'll discuss it: this is meant to be revised as we learn what I actually need, not
+applied rigidly.
+
 ## Caveats belong with the step they affect
 
 When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
