@@ -750,7 +750,17 @@ While doing a task I often write throwaway scripts — codemods, bulk edits, one
 - **Skip:** trivial shell pipelines, `grep`/`sed`/`awk` one-liners, `python -c` snippets, and interactive exploration (they belong in the terminal/scratchpad — saving them buries the meaningful scripts); **a script that merely reproduces a permanent file edit** (a `Dockerfile`/`Makefile`/config change — scripting it only duplicates what is already committed in the file, so edit the file directly); and **environment setup outside the project** (`dnf install`ing into the sandbox/container is not project work — its durable form is the project's own `Dockerfile`, or it's just sandbox state — so it is never an ad-hoc script).
 - **The test when unsure:** *would the diff alone leave you wondering how I did this, or whether it was safe?* If yes → save it.
 
-**Write them repo-relative and self-contained** — runnable from the repo root, no absolute scratchpad paths — so the saved copy is a meaningful, re-runnable record rather than a dead artifact.
+**Write them relative — to themselves or to the repo root — and NEVER to a container-absolute path.** A saved script is committed and re-run later, on another machine or a differently-launched sandbox, so it must not encode where this session happened to see the repo. A mount path like `/foo/opt/<project>` exists **only** because *this* `make shell` was launched with that `EXTRA_DIRS`; a different launch, a different user, or a plain host checkout puts the same repo somewhere else and the script is dead on arrival. Same for the ephemeral session scratchpad. Derive the repo from the script's own location — a script at `tasks/adhoc/<slug>/<name>` sits three directories below the root:
+
+```python
+REPO = pathlib.Path(__file__).resolve().parents[3]   # tasks/adhoc/<slug>/ -> repo root
+```
+
+```sh
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"   # or: git rev-parse --show-toplevel
+```
+
+— then address everything from there (`REPO / "src" / …`). **This covers the paths the script READS and WRITES, not just where it starts:** an output file, a baseline copy, a log, a temp directory. Each belongs under the repo, or under a path passed in as an argument — never a hardcoded mount path. A script that only runs under one sandbox launch is not a re-runnable record, it is a dead artifact with comments.
 
 **Comment them for a reader with basic command-line knowledge** — explain the tool's flags and any non-obvious step, but don't explain piping, environment variables, or redirection (assume those are known). A saved scaffold is meant to *teach* the how, so a newcomer can follow it and learn from it, not just re-run it.
 
