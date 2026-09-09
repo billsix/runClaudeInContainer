@@ -83,8 +83,8 @@ container-root to the logged-in host user); if SELinux denies, add
 
 ## Network and services
 
-Full client tooling (curl/wget/httpie/aria2, nmap, tcpdump, iperf3, mtr, mosh,
-wireguard-tools, bind-utils) and local services for integration testing:
+Full client tooling (curl/wget/httpie/aria2, nmap, nmap-ncat (`nc`/`ncat`), tcpdump,
+iperf3, mtr, mosh, wireguard-tools, bind-utils) and local services for integration testing:
 postgresql, mariadb, redis, memcached, nginx, sqlite. `gh` for GitHub, git-lfs,
 mercurial. Networking in *nested* containers: see
 `nested-podman-design.md` (bridged netavark works; `--network=host` fallback).
