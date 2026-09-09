@@ -266,6 +266,7 @@ dnf install -y \
     ninja-build \
     nlohmann-json-devel \
     nmap \
+    nmap-ncat \
     nodejs \
     npm \
     nss-tools \
