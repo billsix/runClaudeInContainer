@@ -151,7 +151,12 @@ into the session, and converted project Makefiles auto-apply the flag via
 `PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` on their `run`
 lines — so containerized targets Just Work nested and are unchanged on a host. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
 2026-08-29 (work record:
-`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`).
+`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`). **The same signal is becoming
+the lean-image switch (2026-09-10):** a project's optional build flags default lean when
+`NESTED_PODMAN=1` (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`), so a nested `make image`
+fits the RAM store — proven in runCrushInContainer, surveyed fleet-wide in
+`tasks/reference/minimal-nested-images.md`, rollout tracked by
+`tasks/minimal-image-for-nested-podman-standard.md` (proposed; children in each project).
 
 Non-obvious flags and why they exist:
 - **`--cap-add=...,net_admin`** — the inner podman runs *rootful* (container-root), so it

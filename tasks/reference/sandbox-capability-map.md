@@ -94,7 +94,8 @@ mercurial. Networking in *nested* containers: see
 Opt-in `NESTED_PODMAN=1` (podman, buildah, skopeo are in the image). The
 design, flags, constraints (the PODMAN_RUN_FLAGS convention for inner runs, RAM-backed
 store) and operating lore live in **`nested-podman-design.md`** — read that
-before nested work.
+before nested work. Which project images fit the nested store, and the lean-image-when-nested
+standard (2026-09-10): **`minimal-nested-images.md`**.
 
 ## Hard limits (what the sandbox can NOT do)
 
