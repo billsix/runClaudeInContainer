@@ -138,6 +138,13 @@ convention:
    convention, with the single deliberate exception of osbooks-anatomy-physiology
    (above).
 
+   **The same signal can pick a build variant, not just a run flag (runCrushInContainer,
+   2026-09-10):** its `client/Makefile` defaults `FULL_TOOLCHAIN ?= $(if $(filter
+   1,$(NESTED_PODMAN)),0,1)`, so a nested `make image` builds the 1.65 GB minimal image and a
+   host `make image` the full 22 GB one, with no flag to remember either way — the 22 GB image
+   never fit the RAM store (see "Operating it" below). Any project whose image has a lean variant
+   can copy the idiom; `--build-arg` is fine on `podman build` (only `--cgroups` is not).
+
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 
 - **Inner `podman run`s and `--cgroups=disabled`:** superseded — see the wall-2
