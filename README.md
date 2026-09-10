@@ -217,7 +217,7 @@ sandbox: `podman build -t selftest .`.
 | `entrypoint/01-install-base.sh` | The ~430-package `dnf install`, host-runnable; the Dockerfile sources it |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
 | `entrypoint/shell.sh` | `make shell` / `make shell-exec` launcher (`set -e` setup, then `exec bash "$@"`) |
-| `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.claude/` |
+| `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.vimrc` (baked vim defaults; a host `~/.vimrc` mounts over it), `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` | Blank personal-overlay default (`@`-imported; your host file mounts over it) |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md` | Template for your `~/.ai-coding-conventions.personal.md` |

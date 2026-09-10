@@ -12,6 +12,12 @@ rootless host podman). Ephemeral `--rm` containers; persistent state only in
 host mounts (see `claude-config-layering.md`). Claude Code installed as the
 native binary via the official installer, updated at image build.
 
+**Editors:** Emacs (the vendored config, `USE_EMACS_CONFIG`), **vim** (`vim-enhanced` +
+`vim-default-editor`, so `$EDITOR`/`git commit` open vim; plugins as Fedora rpms — fugitive,
+commentary, nerdtree, ale, gitgutter — driven by the baked `~/.vimrc`, shadowed by the host's
+`~/.vimrc` when `make shell` finds one; no clipboard/X11 build, so `"+y` is unavailable), neovim
+(unconfigured), nano. Added 2026-09-10 (`tasks/vim-user-toolkit-in-base-image.md`).
+
 ## Language toolchains (compilers/interpreters in the image)
 
 C/C++ (gcc, clang + analyzer/tools-extra, lld/mold/gold, ccache/distcc/bear),

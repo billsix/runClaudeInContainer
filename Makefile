@@ -83,6 +83,12 @@ GNUPG_FILE := $(HOME)/.gnupg
 GNUPG_REAL_PATH := $(shell readlink -f $(GNUPG_FILE))
 GNUPG_MOUNT := $(shell if [ -d $(GNUPG_REAL_PATH) ]; then echo "-v $(GNUPG_REAL_PATH):/root/.gnupg:Z" ; fi)
 
+# Host ~/.vimrc shadows the baked entrypoint/dotfiles/.vimrc when present (2026-09-10); conditional
+# like tmux/gitconfig — a vim user without a dotfile gets the baked defaults, nothing breaks.
+VIMRC_FILE := $(HOME)/.vimrc
+VIMRC_REAL_PATH := $(shell readlink -f $(VIMRC_FILE))
+VIMRC_MOUNT := $(shell if [ -f $(VIMRC_REAL_PATH) ]; then echo "-v $(VIMRC_REAL_PATH):/root/.vimrc:Z" ; fi)
+
 CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # mkdir -p, not an existence check: if the host dir is missing, a conditional
 # silently skips the mount and auth/sessions/memory die with the container
@@ -156,7 +162,8 @@ FILES_TO_MOUNT = -v $(shell pwd):/$(PROJECT_DIR)/:Z \
 		-v ./entrypoint/entrypoint.sh:/entrypoint.sh:Z \
                 $(TMUX_MOUNT) \
                 $(GNUPG_MOUNT) \
-                $(GITCONFIG_MOUNT)
+                $(GITCONFIG_MOUNT) \
+                $(VIMRC_MOUNT)
 
 X_FLAGS_FOR_CONTAINER = -e DISPLAY=$(DISPLAY) \
 	-v /tmp/.X11-unix:/tmp/.X11-unix \
