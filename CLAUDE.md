@@ -149,7 +149,12 @@ on the current host stack cgroup2 mounts rw and flagless inner runs work, but th
 kept as harmless belt-and-braces. A `NESTED_PODMAN=1` launch now exports `NESTED_PODMAN=1`
 into the session, and converted project Makefiles auto-apply the flag via
 `PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` on their `run`
-lines — so containerized targets Just Work nested and are unchanged on a host. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
+lines — so containerized targets Just Work nested and are unchanged on a host. Because that
+exported signal is inherited by every nested `make` via `?=`, the agent runs plain
+`make image`/`make test` and **never passes `NESTED_PODMAN=1` on a downstream command** — it
+belongs only on the outermost host launch. The signal is deliberately **not** baked into the
+image (`ENV NESTED_PODMAN=1`): it must stay coupled to the launch flags, or a plain non-nested
+`make shell` would falsely advertise nested capability that isn't there. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
 2026-08-29 (work record:
 `tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`). **The same signal is becoming
 the lean-image switch (2026-09-10):** a project's optional build flags default lean when

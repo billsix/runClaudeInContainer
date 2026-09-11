@@ -98,7 +98,17 @@ convention:
 1. **The sandbox exports the signal.** A `NESTED_PODMAN=1` launch adds
    `-e NESTED_PODMAN=1` to the session (in `NESTED_PODMAN_FLAGS`, this repo's
    `Makefile`); a plain `make shell` exports nothing. runCrushInContainer's
-   client already exported it; now both sandboxes do.
+   client already exported it; now both sandboxes do. Because it is an env var
+   and every Makefile reads it with `?=`, it propagates to every nested `make`
+   the agent runs (a project's `make image`/`make test`, or the runCrush
+   client's `make image`) with **nothing typed on the command line** — the agent
+   never passes `NESTED_PODMAN=1` downstream; the flag lives only on the
+   outermost host launch. It is deliberately **not** baked into the image via
+   `ENV NESTED_PODMAN=1`, because the signal must stay coupled to the actual
+   capability flags: a plain non-nested `make shell` would otherwise falsely
+   advertise nested support (`/dev/fuse`/caps/tmpfs absent), and downstream
+   Makefiles would add `--cgroups=disabled` / pick lean images while inner runs
+   still fail.
 2. **Project Makefiles carry a `PODMAN_RUN_FLAGS` variable that defaults itself
    from that signal** and is threaded into every `$(CONTAINER_CMD) run`
    invocation (NEVER `build` — `podman build` rejects `--cgroups` and does not
