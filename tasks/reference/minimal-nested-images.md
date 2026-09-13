@@ -8,14 +8,24 @@ sandbox's `/foo/opt` mount with a `CLAUDE.md`. Work: `tasks/minimal-image-for-ne
 ("The `PODMAN_RUN_FLAGS` convention"), which it does not repeat. Written 2026-09-10 (William Emerison
 Six <billsix@gmail.com> asked for the standard).
 
+> **Scope (2026-09-12): this applies to DOWNSTREAM container-per-project repos only — NEVER to
+> runClaudeInContainer or the runCrushInContainer client themselves.** Those two are built on the host
+> and merely *launched* nested (the maintainer types `NESTED_PODMAN=1` for run-time capability); keying
+> their image content off that flag silently downgrades them (the runCrush client did exactly that and
+> was **reverted 2026-09-12** — runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`).
+> A "downstream project" here is one the *agent builds nested inside a sandbox*; a sandbox's own image
+> is chosen explicitly on the host.
+
 ## 1. Why
 
-The nested podman store is RAM (`NESTED_PODMAN_TMPFS_SIZE`, 8–16 GB). A batteries-included project
-image (runCrushInContainer's client: 22 GB; this sandbox's own image; anything with a TeX distribution
-plus Emacs plus Jupyter) cannot be built there, so image-level verification of build-file changes needed
-a real-machine visit every time. runCrushInContainer solved it twice over: first a `FULL_TOOLCHAIN` flag
-(2026-08-29), then — the decisive step (2026-09-10) — defaulting that flag from the `NESTED_PODMAN=1`
-signal every sandbox already exports, so the lean image is what a nested `make image` *just builds*.
+The nested podman store is RAM (`NESTED_PODMAN_TMPFS_SIZE`, 8–16 GB). A batteries-included **downstream
+project** image (anything with a TeX distribution plus Emacs plus Jupyter) cannot be built there, so
+image-level verification of that project's build-file changes needed a real-machine visit every time.
+The runCrushInContainer client first proved the idiom (a `FULL_TOOLCHAIN` flag, 2026-08-29, then
+defaulting it from `NESTED_PODMAN=1`, 2026-09-10) — but that was **reverted 2026-09-12**, because the
+client is a *sandbox* (built on the host, launched nested), not a downstream project built nested (see
+the Scope note above). The standard below is for the downstream projects the agent genuinely builds
+nested, where a nested `make image` should *just build* the lean image.
 
 ## 2. The standard
 
@@ -66,7 +76,7 @@ plan: that project's `tasks/minimal-nested-image.md`.
 
 | Project | Today's flags (host default) | Unconditional heavyweights | Lean variant | Notes |
 |---|---|---|---|---|
-| runCrushInContainer | `FULL_TOOLCHAIN` (1) | — | **done**: 1.65 GB vendored / 3.16 GB online vs 22 GB | the reference implementation |
+| runCrushInContainer (client — a sandbox) | — | — | **N/A — excluded** (built on host, launched nested) | tried `FULL_TOOLCHAIN`, **reverted 2026-09-12**: `nested-podman-vs-image-content.md` |
 | apue | none | emacs; musl from source (product) | new `USE_EMACS` | man pages stay |
 | epix-mirror | none | six texlive collections, ghostscript, ImageMagick, jupyterlab (pip) | new `BUILD_DOCS` + `USE_JUPYTER` | biggest saving in the fleet; lib/py-ext/ASan need none of it |
 | geometricalgebra | `USE_SPYDER` 0, `USE_EMACS` 0 (**dead ARG**), `BUILD_DOCS` 1 | emacs in `01-install-base.sh`; `03-install-notebook-tex.sh` unconditional | `BUILD_DOCS` flips; make `USE_EMACS` live; gate notebook-tex | `make test` is the gate |
@@ -79,7 +89,7 @@ plan: that project's `tasks/minimal-nested-image.md`.
 | texExpToPng | `USE_EMACS` 1 (plain `=`) | TeX (product) | `USE_EMACS` flips | template for billsEmacsConfigs |
 | billsEmacsConfigs ×20 | `USE_EMACS` 1 (plain `=`) | TeX + each toolchain | `USE_EMACS` flips (judgement call: Emacs is their point) | one codemod |
 | modelviewprojection | `BUILD_DOCS`, `USE_EMACS`, `USE_JUPYTER`, `USE_X_WINDOWS` 1; `USE_SPYDER` 0 | — | `USE_EMACS`, `USE_JUPYTER` flip; **`BUILD_DOCS` (book gate) and `USE_X_WINDOWS` (headless Mesa) stay** | `morePorts` checkout has no `PODMAN_RUN_FLAGS` — verify master |
-| runClaudeInContainer (sandbox image) | `USE_EMACS_CONFIG` 1 | `01-install-base.sh` ~430 pkgs | new `FULL_TOOLCHAIN` + `00-install-minimal.sh`, runCrush-style | installer needs network regardless |
+| runClaudeInContainer (sandbox image) | `USE_EMACS_CONFIG` 1 | `01-install-base.sh` ~430 pkgs | **N/A — excluded** (built on host, launched nested) | proposal dropped 2026-09-12 (`tasks/minimal-sandbox-image.md`) |
 | imps/n64 ×4 | — | Ubuntu 22.04/24.04 mirrors of upstream CI | **N/A** — fidelity to CI is the design | |
 | impo/openstax ×16 | hardcoded `PODMAN_RUN_FLAGS = --cgroups=disabled` | TeX schemes/collections (product) | **N/A** — nothing to cut | still want the `?=` PODMAN_RUN_FLAGS form |
 | Craft, imps, impo | — | no container | **N/A** | |

@@ -156,12 +156,15 @@ belongs only on the outermost host launch. The signal is deliberately **not** ba
 image (`ENV NESTED_PODMAN=1`): it must stay coupled to the launch flags, or a plain non-nested
 `make shell` would falsely advertise nested capability that isn't there. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
 2026-08-29 (work record:
-`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`). **The same signal is becoming
-the lean-image switch (2026-09-10):** a project's optional build flags default lean when
-`NESTED_PODMAN=1` (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`), so a nested `make image`
-fits the RAM store — proven in runCrushInContainer, surveyed fleet-wide in
-`tasks/reference/minimal-nested-images.md`, rollout tracked by
-`tasks/minimal-image-for-nested-podman-standard.md` (proposed; children in each project).
+`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`). **A related idea — using the same signal to pick a lean IMAGE
+variant when nested (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`) — applies to DOWNSTREAM
+projects only, never the two sandboxes themselves.** A downstream project is *built* nested by the
+agent, so defaulting it lean to fit the RAM store is right; runClaudeInContainer and the
+runCrushInContainer client are *built on the host and merely launched nested* (typing
+`NESTED_PODMAN=1` must not change their image). runCrush's client tried that coupling and reverted it
+2026-09-12 — see runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`. Fleet
+survey/rollout (downstream scope only): `tasks/reference/minimal-nested-images.md`,
+`tasks/minimal-image-for-nested-podman-standard.md`.
 
 Non-obvious flags and why they exist:
 - **`--cap-add=...,net_admin`** — the inner podman runs *rootful* (container-root), so it

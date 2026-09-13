@@ -1,7 +1,19 @@
 # Lean image for nested-podman builds — what "minimal" means for runClaudeInContainer
 
-**Status:** proposed — research done 2026-09-10 (survey of the Dockerfile + Makefile from the
-runClaudeInContainer sandbox); **implementation needs go-ahead**. One of the per-project children of
+**Status:** dropped (2026-09-12)
+
+> **Why dropped (William Emerison Six <billsix@gmail.com>, 2026-09-12):** the maintainer builds this
+> sandbox on the host, and coupling a lean self-build to `NESTED_PODMAN` is precisely the bug just
+> removed from the runCrushInContainer client — typing `make shell NESTED_PODMAN=1` (a run-time
+> capability the maintainer *does* want) would silently downgrade the image. A lean self-build also
+> verifies a *different* package set than the shipped full image, so it is false-confidence, not a
+> real gate. Decision record: runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`.
+> If in-sandbox verification of this sandbox's own Dockerfile is ever wanted, it must use an
+> explicit, non-`NESTED_PODMAN` flag AND a distinct image tag (never the `claudecontainer` tag). The
+> original proposal is preserved below for the record.
+
+_Original proposal (superseded):_ research done 2026-09-10 (survey of the Dockerfile + Makefile from the
+runClaudeInContainer sandbox). One of the per-project children of
 runClaudeInContainer `tasks/minimal-image-for-nested-podman-standard.md` (the convention: every optional-feature build flag defaults to its lean value when
 `NESTED_PODMAN=1`); the fleet-wide findings table is runClaudeInContainer `tasks/reference/minimal-nested-images.md`. Created 2026-09-10 at the maintainer's
 request (William Emerison Six <billsix@gmail.com>: "go through all of my projects with CLAUDE.md …

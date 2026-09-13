@@ -148,12 +148,16 @@ convention:
    convention, with the single deliberate exception of osbooks-anatomy-physiology
    (above).
 
-   **The same signal can pick a build variant, not just a run flag (runCrushInContainer,
-   2026-09-10):** its `client/Makefile` defaults `FULL_TOOLCHAIN ?= $(if $(filter
-   1,$(NESTED_PODMAN)),0,1)`, so a nested `make image` builds the 1.65 GB minimal image and a
-   host `make image` the full 22 GB one, with no flag to remember either way — the 22 GB image
-   never fit the RAM store (see "Operating it" below). Any project whose image has a lean variant
-   can copy the idiom; `--build-arg` is fine on `podman build` (only `--cgroups` is not).
+   **The same signal can pick a build variant, not just a run flag — but ONLY for downstream
+   projects the agent builds nested, NEVER for the sandboxes themselves.** A downstream project's
+   `Makefile` may default an optional build flag lean when `NESTED_PODMAN=1` (`FLAG ?= $(if $(filter
+   1,$(NESTED_PODMAN)),0,1)`) so a nested `make image` fits the RAM store; `--build-arg` is fine on
+   `podman build` (only `--cgroups` is not). This must NOT be applied to runClaudeInContainer or the
+   runCrushInContainer client, which are built on the host and merely *launched* nested — there the
+   launch flag would silently downgrade the image. The runCrush client tried exactly this
+   (`FULL_TOOLCHAIN ?= $(if …NESTED_PODMAN…)`) and it produced a language-server-less client on
+   `make shell NESTED_PODMAN=1`; it was reverted 2026-09-12 (runCrushInContainer
+   `tasks/reference/nested-podman-vs-image-content.md`).
 
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 
