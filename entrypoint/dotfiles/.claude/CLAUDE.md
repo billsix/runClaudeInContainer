@@ -1,5 +1,10 @@
 # Cross-project conventions
 
+This file holds the **rules**, terse. The long rationale, worked examples, dated incidents, and
+rejected-alternatives for each section are **relocated into topic reference docs** under
+`~/.claude/reference/` (indexed at the end), read on demand — so a session pays their cost only
+when the topic comes up. Each section keeps its rule inline and points at its doc for the "why".
+
 ## This file is the SHARED layer — personal specifics go in the overlay, not here
 
 This file holds **portable, cross-project** conventions meant for anyone who adopts this
@@ -68,148 +73,66 @@ Discretion is **not** "do whatever." It's this, in order:
 **This is language-agnostic.** I work in C, C++, assembly, shell, Make, Emacs Lisp, TeX
 and Python; the shape above applies to any of them and to any enforcement tool —
 `clang-tidy`/`clang-format`, a compiler warning sweep, `shellcheck`, `rustfmt`, a linter,
-a codemod. The worked example below is Python because that's where it came up; read the
-*structure*, not the tooling. The per-language particulars that change are only: what the
-comment marker is, which tool reflows what, and how you spell an opt-out
-(`# noqa: RULE`, `// NOLINT(rule)`, `/* clang-format off */`, `// eslint-disable-line`,
-`#pragma GCC diagnostic ignored`, a `.editorconfig` exception).
+a codemod. The per-language particulars that change are only: what the comment marker is,
+which tool reflows what, and how you spell an opt-out (`# noqa: RULE`, `// NOLINT(rule)`,
+`/* clang-format off */`, `// eslint-disable-line`, `#pragma GCC diagnostic ignored`, a
+`.editorconfig` exception).
 
-**Worked example — enforcing an 80-column limit (mvp, Python/ruff, 2026-07-18).** 78
-over-long lines, one instruction ("80 is good, I make a PDF of it; fix as much as
-possible with your discretion"):
-
-- **70 were prose** — comments and docstrings. Rewrapped automatically, no questions.
-  Handled RST bullet continuation indent and Sphinx `#:` markers so the rewrap didn't
-  corrupt structure.
-- **2 were `import a.b.c as name`** at 88 chars. Rewrote as `from a.b import name` —
-  identical binding, 71 chars. A different mechanism than wrapping, because wrapping an
-  import is ugly and this is just better.
-- **1 was an f-string.** Split with implicit concatenation, which cannot change the
-  runtime value.
-- **1 was a `//` comment inside a GLSL shader string.** Wrapping it would have pushed
-  half a comment onto a new line as *invalid GLSL* — the linter can't see that it's
-  shader source. Shortened the comment text instead.
-- **4 were a hand-aligned 4×4 matrix literal** in a book *about matrices*, already
-  carrying `# fmt: off` — the alignment IS the documentation. Left long with
-  `# noqa: E501` and a comment saying why. Reflowing would have been technically
-  compliant and actively worse.
+The worked example (an 80-column enforcement in mvp/Python/ruff — 78 lines fixed five
+different ways, one deliberately left long) lives in
+`~/.claude/reference/code-style-conventions.md` — read the *structure*, not the tooling.
 
 ## Never orphan a word on its own comment line
 
-**Reflow the whole paragraph, not the offending line.** When a comment or docstring line
-is over the limit, re-wrap the entire contiguous paragraph as a unit. Fixing the single
-long line in isolation produces this, which I don't want:
-
-```python
-# stored ``steps`` field stay typed tuple[Step, ...] for readers while
-# the
-# constructor accepts the broader input.
-```
-
-A comment line holding one word or a short sentence fragment is always wrong. **This
-applies to every comment syntax I use** — `#`, `//`, `/* … */`, `;;`, `--`, `%`, `!` —
-and to doc comments (docstrings, doxygen `/** … */`, javadoc, `///` Rust doc comments)
-just the same.
+**Reflow the whole contiguous paragraph, not the offending line** — never leave a comment or
+docstring line holding one word or a short sentence fragment. Applies to every comment syntax
+(`#`, `//`, `/* … */`, `;;`, `--`, `%`, `!`) and to doc comments (docstrings, doxygen, javadoc,
+`///`).
 
 ### Changing a line-length limit without causing that
 
-Language-agnostic; the tool names are examples.
-
-1. **Set the limit in config, in one place**, so the formatter and the linter agree.
-   `[tool.ruff] line-length` (governs both `ruff format` and E501), `ColumnLimit` in
-   `.clang-format`, `max_width` in `rustfmt.toml`, `printWidth` for prettier,
-   `max_line_length` in `.editorconfig`. Then **remove any per-invocation
-   `--line-length`-style flags** from format scripts so there's a single source of truth
-   — a formatter at 80 with a linter at 88 quietly lets new long lines land.
-2. **Run the formatter first.** It reflows *code* for free. Whatever survives is prose
-   and unbreakable tokens — that's the real work-list, and it's much smaller. Note which
-   side of the line your formatter sits on: `ruff format`/`black`/`gofmt` won't touch
-   comment prose at all, while `clang-format` *will* if `ReflowComments` is on — and if
-   it is, let it do the bulk and only hand-check what it leaves.
-3. **Fix the residue paragraph-wise, and do NOT try to automate it.** I tried; it doesn't
-   generalize. A "reflow every ragged paragraph" pass matched 87 paragraphs — mostly the
-   author's own deliberate line breaks in files the change never touched. Tightening the
-   heuristic still matched content that must never be joined into a paragraph. Use an
-   **explicit allowlist of paragraphs you have read**, and print before/after for each.
-4. **Things that look like prose but must not be reflowed** — check for every one before
-   touching a comment block. Language-independent: bulleted/numbered lists, key/controls
-   lists, section banner comments, **commented-out code**, license headers, ASCII diagrams
-   and tables, aligned literals (matrices, register/bitfield tables, enum value columns),
-   and math notation whose spacing carries meaning. Toolchain-specific: doc-extraction
-   markers that drive a build (`doc-region-begin/end`, doxygen `\brief`/`\param`, javadoc
-   tags, `//!` sections), literate/cell markers (jupytext `# %%`, org-mode `#+begin_src`),
-   and anything a preprocessor reads.
-5. **Watch for line structure that is syntactically load-bearing, not stylistic** — where
-   re-wrapping changes meaning rather than looks. C/C++ multi-line macros continued with
-   trailing `\` (moving the backslash breaks the macro); shell and Make line
-   continuations; Make recipe lines (leading TAB is significant); assembly, one
-   instruction per line; a `//` comment inside a string literal that is *source for
-   another language* (embedded GLSL/SQL/regex) — wrapping emits invalid code in that
-   inner language, and the linter can't see it. In these, shorten the text or restructure;
-   never just insert a newline.
-6. **Re-verify after**: linter clean, formatter idempotent (`--check` reports no changes),
-   and the code still builds — compile, don't just re-lint.
-
-The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
-surface only the judgment calls.
+Language-agnostic (tool names are examples): **(1)** set the limit in config in ONE place so
+formatter and linter agree, and drop per-invocation `--line-length` flags; **(2)** run the
+formatter first (it reflows code for free — the residue is prose + unbreakable tokens);
+**(3)** fix the residue paragraph-wise with an **explicit allowlist you have read**, printing
+before/after — do NOT try to automate it (it doesn't generalize); **(4)** never reflow
+lists/tables, aligned literals, commented-out code, license headers, ASCII diagrams,
+build-driving markers (doc-region, doxygen/javadoc tags, jupytext/org markers), or math whose
+spacing carries meaning; **(5)** watch for line structure that is syntactically load-bearing
+(macro trailing `\`, shell/Make continuations, Make recipe TABs, one-instruction-per-line asm,
+a `//` comment inside embedded GLSL/SQL/regex) — shorten/restructure, never just insert a
+newline; **(6)** re-verify: linter clean, formatter idempotent (`--check` no changes), code
+still **builds**. Full detail + examples: `~/.claude/reference/code-style-conventions.md`.
 
 ## How much to tell me: if it went well, four sentences
 
-**When the work went as planned, four sentences or fewer is perfect.** Say what the
-outcome was and where the detail is written down. That's the whole report.
-
-**The detail isn't omitted — it's RELOCATED**, into the task doc as you go (and into a
-`tasks/reference/` doc if it outlives the task). Never write something into a doc and then
-repeat it to me in chat; point at it instead, in one clause ("details in the task"), so I
-can audit you cheaply when a commit smells wrong later.
-
-**This is not a new rule.** It's "report the exceptions afterward" (see "Use your
-discretion") applied to reporting in general: the exceptions earn chat, the rule-abiding
-bulk doesn't — however much of it there was, and however well it went.
-
-**The test is whether it changes what I do next, not whether it surprised you.**
-
-- **Chat.** Something that changes what I believe about my own repo and that *predates
-  your work* — a file that's been broken for a month, a doc claim that turns out to be
-  false, work already finished but tracked as pending. A blocker. An action only I can
-  take (`make html`, a hardware run, a decision). A question you need answered (those also
-  keep their own numbered list — see "Questions for me go inline AND in a closing list").
-- **The task doc.** Gates passing. Counts, timings, proofs, "the second run reported zero
-  changes". Mistakes you made and then fixed inside the same piece of work — including a
-  number you got wrong in your own task doc and corrected. Record them with the lesson;
-  they change nothing for me.
-
-**When things are NOT going to plan, invert this and give me the detail, at whatever
-length it takes.** Four sentences is the reward for a clean run, not a cap on bad news.
-
-**This calibration is a first draft, and we're still finding it (William Emerison Six
-<billsix@gmail.com>, 2026-09-09).** Four sentences is a target, not a hard cap, and the
-chat/doc split above is a starting partition rather than a settled one. When you genuinely
-can't tell which side something falls on, **default to the task doc and say in one line
-that you weren't sure** — that's cheap, because I can always ask for more, whereas I can't
-un-read three paragraphs. And when a case comes up where this section reads wrong, say so
-and we'll discuss it: this is meant to be revised as we learn what I actually need, not
-applied rigidly.
+**Work went as planned → four sentences or fewer**: the outcome and where the detail is
+written down ("details in the task"). The detail isn't omitted, it's **relocated** into the
+task doc as you go — never write it into a doc and then repeat it to me in chat. **The test
+is whether it changes what I do next, not whether it surprised you.** Chat: something that
+predates your work and changes what I believe about my repo (a long-broken file, a false doc
+claim, work done-but-tracked-pending), a blocker, an action only I can take, a question you
+need answered. Task doc: gates passing, counts, timings, proofs, mistakes you made and fixed
+within the same unit. **Not going to plan → invert this and give me the detail**, at whatever
+length it takes — four sentences is the reward for a clean run, not a cap on bad news. This is
+a first-draft calibration (William Emerison Six <billsix@gmail.com>, 2026-09-09); when you
+can't tell which side something falls on, default to the task doc and say so in one line. Full
+rationale + incidents: `~/.claude/reference/communication-conventions.md`.
 
 ## Caveats belong with the step they affect
 
-When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
+Attach a caveat/warning/gotcha **inline, at the step where I'd act on it** — not in a trailing
+"notes"/"caveats" block. If step 3 is risky, the warning goes **in step 3**. Same for
+summaries and recommendations: fold "but watch out for X" into the relevant line, don't append
+a trailing list I have to retroactively apply. (See `~/.claude/reference/communication-conventions.md`.)
 
 ## Words and phrases you overuse — notice them, and vary
 
-**This is about readability, not disguise.** I'm not hiding that I use an LLM; the
-problem is that your output leans on the same words and phrases so often it becomes
-annoying, samey, and dull to read. Every one of these is a legitimate word — the tell
-is *frequency*, so the goal is rationing and variety, not a ban.
-
-**The full catalog behind this section is `@`-imported into every session** (see
-*Auto-imported references* at the end of this file), so its content is always in context —
-you are not relied on to *choose* to read it (a reliance that failed on 2026-07-31, when the
-catalog went unread and "load-bearing" was overused). It gives each offender's meaning, ~15
-alternatives, and which are worth keeping. The version-controlled copy lives in
-[runClaudeInContainer](https://github.com/billsix/runClaudeInContainer) at `tasks/reference/`,
-mounted by the Makefile to `~/.claude/reference/`. What follows here is the distilled version
-to keep in mind while writing.
+**This is about readability, not disguise.** Every one of these is a legitimate word — the
+tell is *frequency*, so the goal is rationing and variety, not a ban. **The distilled offender
+list below stays inline here — always in front of you.** The **full catalog** (each offender's
+meaning, ~15 alternatives, which are worth keeping) is **`~/.claude/reference/llm-overused-phrases.md`**
+— **read it on demand when you want the alternatives or rationale for a specific offender.**
 
 **The fixes, in order of preference — synonym rotation is NOT one of them** (swapping
 delve→"dive into" or robust→"battle-tested" just mints the next cliché):
@@ -267,911 +190,320 @@ mirrors (including the Crush client's baked copy) are named in that doc's header
 
 ## An externally-defined name always wins over a naming convention
 
-**If a name is dictated by something outside the code — a framework superclass method
-you're overriding, an interface/protocol member you're implementing, a callback
-signature, a magic name a library looks up — then the naming rules do not apply to it.**
-Renaming it doesn't make it tidier; it *unbinds* it and silently breaks the code. This
-is not a judgment call and it needs no case-by-case discussion: match the external name
-exactly, however ugly it is by house style.
-
-Language-agnostic. Examples: wxPython's `OnPaint` / `InitGL` / `OnInit`, Qt's
-`paintEvent`, `unittest`'s `setUp` / `tearDown`, Python dunders and protocol names
-(`__enter__`, `_repr_latex_`, `__post_init__`), a C callback whose signature is fixed by
-the API taking it, JNI's `Java_pkg_Class_method`, a serialization field that must match
-a wire format, an env var or CLI flag someone else specifies.
-
-Consequences:
-
-- **A linter flagging one of these is the linter being wrong, not the code.** Suppress
-  it — scoped as narrowly as the tool allows (a `per-file-ignores` entry for a
-  framework-boundary file, an inline `noqa`/`NOLINT`) — and **write the reason at the
-  suppression site**: which framework, and that the name is externally fixed.
-- **Say so in the project's own conventions doc**, so the exemption is discoverable and
-  the next person doesn't "fix" it.
-- The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
-  helpers inside such a method still follow house style.
+**A name dictated by something outside the code — a framework superclass method you override, a
+protocol/interface member, a callback signature, a magic name a library looks up, a wire-format
+field, an env var or CLI flag someone else specifies — is exempt from the naming rules.**
+Renaming it doesn't tidy it, it *unbinds* it and silently breaks the code; match it exactly,
+however ugly. A linter flagging it is wrong — suppress narrowly (`per-file-ignores`, inline
+`noqa`/`NOLINT`) **with the reason at the site**, note the exemption in the project's conventions
+doc, and keep house style for the parameters/locals/helpers *inside* such a method. Examples +
+full detail: `~/.claude/reference/code-style-conventions.md`.
 
 ## What earns pulling code into its own function
 
-**Duplication, or naming a distinct phase. Not reshaping control flow.** Language-
-agnostic; the examples are Python because that is where it came up.
-
-- **Lift to shared/module scope when more than one caller needs it.** Two real cases
-  (gacalc, 2026-07-18): one helper replaced the same expression written out 9 times
-  across 5 functions; one shared function replaced three ~58-line, 91-93%-identical
-  plot helpers, net **-75 lines**. Giving each caller its own private copy of the helper
-  would have been *more* duplication, not less — so "extract a local helper" was the
-  wrong instinct even though something clearly needed extracting.
-- **Nest it when it closes over the enclosing function's parameters** and names a real
-  phase of the algorithm. A BFS routine split into `breadth_first_parents` /
-  `walk_back`, both capturing the endpoints, reads as the algorithm; its tail collapsed
-  to one line.
-- **Do neither when the helper would be used exactly once** and exists only to reshape
-  control flow or avoid mutating a local. That is the "inline a value used exactly once"
-  rule applied to functions. I proposed exactly this once and the user declined it — the two
-  helpers were single-use and existed only to fill a constructor call.
-
-**A corollary worth its own line: raise an error from the code that discovers it.** The
-BFS above got clean not by relocating guards but by moving its "no path" failure *into
-the search*, which is the only place that knows the target is unreachable.
-
-**Don't chase a shape for its own sake, and don't churn existing early-return code.** A
-cheap top-of-function guard is fine and usually right. When I swept a codebase looking
-for functions that "should" be restructured this way, the honest answer for nearly all of
-them was: leave them alone.
+**Duplication, or naming a distinct phase — NOT reshaping control flow** (language-agnostic).
+Lift to shared/module scope when more than one caller needs it; nest it when it closes over the
+enclosing function's parameters and names a real phase; do **neither** when the helper would be
+used exactly once and only reshapes control flow or avoids mutating a local. Corollary: **raise
+the error from the code that discovers it.** Don't chase a shape for its own sake or churn
+existing early-return code — a cheap top-of-function guard is usually right. Cases + net-line
+counts: `~/.claude/reference/code-style-conventions.md`.
 
 ## Prefer total dispatch over an open-ended conditional chain
 
-**A chain of `if` / `else if` with no final `else` can fall through silently, and the
-hole is invisible** — nothing in the code marks the case nobody handled. A construct with
-a mandatory-feeling default (`match`/`case _`, `switch`/`default`, a sealed-type match)
-makes that branch something you have to look at and decide about.
-
-This is not a style preference; it is a bug class I have actually hit. In mvp,
-`pyMatrixStack.get_current_matrix` was five `if`s with no `else`:
-
-```python
-def get_current_matrix(matrix_stack) -> np.ndarray:   # annotated -> ndarray
-    if matrix_stack == MatrixStack.model:
-        return __model_stack__[-1]
-    ...                                    # four more `if`s, no else
-    # falls off the end -> returns None, and every caller indexes the result
-```
-
-Every real case was handled, so it looked fine; the hole only opens when someone adds an
-enum member. Rewritten as a `match` with `case _: raise ValueError(...)`, the omission
-becomes impossible to add by accident.
-
-**The discipline is the pairing, not the keyword: always write the default branch.** A
-`match` without a `case _` has exactly the same hole. The default may raise, return a
-documented fallback, or be an explicit no-op with a comment saying why — but it must be
-written.
-
-Language notes: Python `match` + `case _`; C/C++ `switch` + `default` (and turn on
-`-Wswitch`, which catches an unhandled enum for you); Rust/ML-family matches are
-exhaustive by compiler and need no discipline. Where the language gives you a compiler
-check, prefer letting it check rather than adding a catch-all that defeats it.
-
-**Caveat, so this doesn't get over-applied:** `match` earns its keep on *structural*
-patterns (destructuring, type dispatch). A `match` whose every case is a boolean guard —
-`case (a, b) if a == b:` — is an `if`/`elif` chain in different syntax, justified only by
-the exhaustiveness argument above. Don't convert every two-branch conditional.
+**An `if`/`else if` chain with no final `else` can fall through silently, and the hole is
+invisible.** Prefer a construct with a mandatory-feeling default (`match`/`case _`,
+`switch`/`default`, a sealed-type match) — **the discipline is the pairing: always write the
+default branch** (raise, a documented fallback, or an explicit commented no-op). Where the
+language checks it for you (`-Wswitch`, exhaustive ML matches), let it. Caveat: `match` earns
+its keep on *structural* patterns; a `match` whose every case is a boolean guard is an
+`if`/`elif` chain in disguise — don't convert every two-branch conditional. Bug-class example:
+`~/.claude/reference/code-style-conventions.md`.
 
 ## Keep the original goal in sight; a prerequisite is not a new project
 
-**Before designing around a blocker, verify the blocker is real** — and if the work you
-are proposing has drifted far from what I actually asked for, stop and say so instead of
-building it.
-
-This has a signature, and I have hit it (mvp, 2026-07-19). I asked for one thing —
-*"doctests should run as part of the test suite"* — which was **already achieved**. From
-there: a config allow-list looked like it blocked writing more doctests → that needed
-runnable scripts to stop executing on import → that needed 25 files reshaped and 129
-documentation references edited. Four levels down, I was drafting a repo-wide
-restructure, and **nobody had checked whether the allow-list blocked anything.** It did
-not: it already covered every library module in the repo. My words for it: *"we were deep
-in inception, forgetting about our original goal, and then doing a huge rewrite without
-keeping the goal in sight."*
-
-The discipline:
-
-- **Test the blocker before designing around it.** "X is blocked by Y" is a *claim*, and
-  usually a cheap one to check — try the thing and watch it fail. One command would have
-  ended the example above at step one. Never inherit a blocking claim from a document
-  (including one you wrote) without re-verifying it; the codebase moves, and the claim may
-  have been wrong when written.
-- **Say the goal out loud at each level of nesting.** When a task spawns a prerequisite,
-  state the chain in one line — "to do A I need B, which needs C" — because seeing the
-  chain written down is what makes an absurd one visible. If the chain reaches three
-  levels, that is a stop-and-report point, not a licence to keep going.
-- **Scale is a signal, not a detail.** If the fix has grown to touch dozens of files while
-  the request was small, that disproportion is itself evidence the framing is wrong.
-  Surface it — *"this started as X and has become a restructure of Y; is that what you
-  want?"* — before doing the work, not after.
-- **When the goal turns out to be already met, say that first and stop.** Do not roll
-  straight into the adjacent improvement you found along the way. Report it as a separate
-  option I can decline.
-- **A good idea found mid-drift is still drift.** The restructure above was genuinely
-  reasonable *on its own merits* — that is exactly what made it seductive. Merit does not
-  make it in-scope. Park it in its own task doc, say plainly that it is unrelated to the
-  original ask, and get a fresh decision.
+**Before designing around a blocker, verify the blocker is real** (try it, watch it fail — don't
+inherit a blocking claim from a doc, including one you wrote). **Say the goal chain out loud at
+each level of nesting** ("to do A I need B, which needs C"); three levels deep is a
+stop-and-report point. If a small request has grown to touch dozens of files, surface that
+disproportion **before** doing the work. If the goal turns out already met, say so and stop —
+don't roll into an adjacent improvement (a good idea found mid-drift is still drift; park it in
+its own task doc for a fresh decision). Signature incident + discipline:
+`~/.claude/reference/diversion-stack-and-scope.md`.
 
 ## Questions for me go inline AND in a closing list
 
-**This is the one deliberate exception to the rule above, and it applies only to
-questions you need *me* to answer** — not to caveats, warnings, or recommendations,
-which stay inline only.
-
-Raise a question at the point in the response where it arises — that's where the context
-is. **Then repeat every one of them at the end, as a NUMBERED list**, one or two
-sentences each. Without that list I have to re-read a long response hunting for what you
-actually need from me, and questions buried mid-prose get missed (2026-07-18: I ended a
-long status update with two questions in different paragraphs and the user's reply was "what
-are you asking me?").
-
-- **Number them (1., 2., 3.)**, not bullets, so I can answer by number.
-- One item per question, phrased so it can be answered on its own. **Exactly one ask per
-  numbered item — never staple a second, independent question onto the same one** (the tells
-  are "…and separately, do you want X?", "also, should Y?", "…, and do you want it merged?").
-  Two asks in one item means a one-word reply ("sure", "yes", "go ahead") answers only one and
-  leaves you to silently drop or guess the other — split them into two numbered items instead.
-  (2026-09-05: I bundled "archive the 8 now?" with "merge the branch or not?" into a single
-  item; a bare "sure" could not decode to both, which is the whole failure this rule prevents.)
-- **It is fine — preferred, even — to say "see above for detail"** and keep the item
-  short. The list is a checklist of what's blocking, not a re-explanation.
-- If you have a recommendation, put it in the item, so I can just say "yes."
-- If there is genuinely nothing you need from me, say nothing — don't manufacture an
-  empty "Questions" section.
+**The one deliberate exception to "caveats stay inline only", and only for questions you need
+*me* to answer.** Raise a question where it arises, **then repeat every one at the end as a
+NUMBERED list** (1., 2., 3.), one per line, so I can answer by number. **Exactly one ask per
+item** — never staple a second independent question on (a one-word "sure" then answers only one).
+It's fine to say "see above for detail" and keep the item short; put your recommendation in the
+item; don't manufacture an empty "Questions" section. Rationale + incidents:
+`~/.claude/reference/communication-conventions.md`.
 
 ### Never cite an artifact you have not verified exists
 
-**A reference to a file, function, ticket, task doc, or command is a claim that it is
-there.** Writing `see foo.md` for a document you intend to create — or have merely
-discussed — leaves a breadcrumb pointing at nothing, and it is worse than vagueness
-because the reader goes looking. I did exactly this (mvp, 2026-07-19): archived a task
-doc containing *"folded into `move-demos-out-of-package.md`"* for a file that did not
-exist.
-
-Language- and tool-agnostic. The same applies to a `See also:` in a comment, a link in a
-commit message or PR body, a manpage `SEE ALSO`, a header include, a Makefile target you
-tell me to run, a config key you say to set.
-
-- **Create it first, then cite it** — or cite it as explicitly hypothetical ("no task doc
-  exists for this yet").
-- **`ls` / grep the path before writing it down.** This costs one command.
-- **When a document moves or is archived, check what pointed at it** and fix those links
-  in the same change; an archived doc leaves dangling references behind it.
+**A reference to a file, function, ticket, task doc, or command is a claim it is there** —
+`ls`/grep the path before writing it down, create-then-cite (or mark it explicitly
+hypothetical), and when a doc moves/archives, fix what pointed at it in the same change.
+Applies to `See also:`, commit/PR links, manpage `SEE ALSO`, header includes, a Makefile target
+you tell me to run. (Detail: `~/.claude/reference/communication-conventions.md`.)
 
 ### A bare label is not a reference — name it, and say where it lives
 
-**This generalizes the rule above from decisions to *everything I might not have in my
-head*.** "Option 2", "Tier 1", "the second candidate", "the approach we discussed",
-"finding #3" — these are pointers, and I am usually not holding the thing they point at.
-Sessions get compacted, days pass, and a task doc I skimmed once is not memory. When a
-label is all you give me, my only move is to go re-read a file to decode your sentence,
-which is exactly the work the summary was supposed to save.
-
-**Every reference to a named/numbered item must carry, on first use in a response, a
-short gloss of what it IS** — and, if it lives in a file, **the file path**:
-
-- BAD:  "Option 2 is strictly dominated."
-- GOOD: "**Option 2 (move the demos out of the package into a top-level `demos/`)** —
-  from `tasks/demo-main-guards-and-dedent.md` — is strictly dominated."
-
-- BAD:  "Let's do Tier 1 first."
-- GOOD: "First the **9 GUI scripts in `mvpvisualization/`** (I'll call this group
-  Tier 1): main-guard them, zero book edits."
-
-Rules that follow:
-
-1. **Gloss on first use, every response.** Not once per session — per *response*. A label
-   defined three messages ago is already stale to me.
-2. **Cite the file path** whenever the item is written down somewhere, so I can go look
-   without asking "what file?". A bare "the task doc" is not a path.
-3. **Never invent a new label mid-answer and then use it as if I know it.** If you are
-   introducing a grouping that is not in any document (a "Tier 1", a "Phase 2"), say so
-   explicitly — "grouping these myself, not in the doc" — and define it at the point you
-   coin it. Inventing a name and immediately referring back to it is the worst case,
-   because I will go hunting in the file for a term that was never there.
-4. **When picking work back up after a gap, re-list the options before recommending.** A
-   one-line-each list of what the alternatives ARE costs you four lines and saves me a
-   file read. Assume I remember nothing about a task we have not touched recently.
-5. **If a numbering has changed** — an option was dropped, merged, or renumbered — say
-   so, since my memory of "option 3" may be your option 2.
+"Option 2", "Tier 1", "the approach we discussed" are pointers I am usually not holding.
+**Every reference to a named/numbered item must carry, on first use *each response*, a short
+gloss of what it IS and — if it lives in a file — the file path.** Never invent a new label
+mid-answer and use it as if I know it (say "grouping these myself, not in the doc"); re-list the
+options before recommending after a gap; say so if a numbering changed. BAD/GOOD examples:
+`~/.claude/reference/communication-conventions.md`.
 
 ### Name the positions in the question; never say "change your mind"
 
-**A question about a decision must state what the options ARE**, not refer to them.
-"Does that change your mind?" is unanswerable — it assumes I remember what my position
-was, what yours is, and what the alternatives were. Bad and good:
-
-- BAD:  "Does the cost change your mind?"
-- GOOD: "Do you want to switch from **keeping the global** to **passing `axes`
-  explicitly to all ~150 call sites**?"
-
-**Never ask an either/or question that "yes" or "no" cannot answer.** "Should we park
-this and do X, or do the move first?" has no valid one-word reply — but I will often send
-one, and then you get to pick which half I meant. That is how work starts on the branch I
-did not choose (mvp, 2026-07-19). Either ask a single yes/no question, or **label the
-alternatives** so a one-word answer decodes:
-
-- BAD:  "Park it and write the tests, or do the move first?"  ("no" is undecodable)
-- GOOD: "Which next — **(a) write the tests now**, or **(b) do the move first**?"
-
-**And when a short reply is ambiguous, do not resolve it silently by picking the likelier
-branch — ask.** A one-word answer to a two-branch question is not consent to either
-branch.
-
-- BAD:  "Still happy with the earlier decision?"
-- GOOD: "Earlier you chose **0.0.10 over 0.1.0**. Now that there's a breaking parameter
-  rename, do you want to switch to **0.1.0**?"
-
-Concretely, every decision question should carry:
-
-1. **The position currently on the table**, named — mine, yours, or the status quo, and
-   say which it is.
-2. **The specific alternative**, named — not "the other option".
-3. **What actually differs** if it changes — a number, a file count, a behaviour.
-
-The same applies to re-asking a question I did not answer: restate both options rather
-than saying "the question above" or "my earlier question", since by then it may be
-several messages back.
+**A decision question must state what the options ARE** — never "does that change your mind?".
+Carry: the position on the table (named, and whose it is), the specific alternative (named), and
+what actually differs (a number/file-count/behaviour). **Never ask an either/or that yes/no
+can't answer** — either ask a single yes/no or label the alternatives ("(a) … or (b) …") so a
+one-word reply decodes; when a short reply is ambiguous, ask rather than picking the likelier
+branch. Same when re-asking an unanswered question. BAD/GOOD:
+`~/.claude/reference/communication-conventions.md`.
 
 ### Every question must be addressed before you implement anything
 
-**An open question blocks implementation.** Once you have asked, do not write code,
-edit files, or run mutating commands that depend on the answer until I have addressed
-**each** numbered question. Investigation, measurement, and answering follow-ups are
-always fine — it is *acting on the unanswered part* that is not.
-
-**"Addressed" is a low bar, deliberately.** Any of these unblocks a question:
-
-- a real answer;
-- "don't care" / "your call" / "whatever you think" — that is me handing you the
-  decision, so **use your discretion** (see that section) and proceed;
-- "skip that for now" / "not yet" — then leave it alone and don't re-ask.
-
-What does *not* count is silence. If my reply addresses some questions and not others,
-**do not quietly proceed on the ones I answered while guessing at the rest, and do not
-drop the unanswered ones.** Say plainly which numbers went unaddressed, re-ask them, and
-wait. Repeat as needed — it is not nagging, it is the protocol I asked for.
-
-A carried-over question keeps its own identity: re-ask it as its own numbered item with
-enough context to answer cold, since by then it may be several messages back.
+**An open question blocks implementation** — don't write code / edit / run mutating commands
+that depend on the answer until each numbered question is addressed. "Addressed" is a low bar:
+a real answer; "your call"/"don't care" (→ use your discretion, proceed); "skip that for now"
+(→ leave it). **Silence does not count** — say which numbers went unaddressed, re-ask them
+(as their own numbered items, answerable cold), and wait. Investigation and measurement are
+always fine. (Detail: `~/.claude/reference/communication-conventions.md`.)
 
 ## Version numbers don't sort like strings
 
-**Anything that lists or compares versions must sort them as versions, not as text.**
-`0.0.10` is *greater* than `0.0.7` but sorts *before* it lexically (`1` < `7`), so the
-newest release silently vanishes from the end of an alphabetical list. This produced a
-false "the `v0.0.10` tag is missing" report (2026-07-18) — the tag listing was simply
-hiding it:
-
-```sh
-git tag | tail -3                      # WRONG: v0.0.7  v0.0.8  v0.0.9
-git tag --sort=v:refname | tail -3      # RIGHT: v0.0.8  v0.0.9  v0.0.10
-```
-
-Applies well beyond git tags — `sort` vs `sort -V` on release names, picking the "latest"
-directory or artifact by name, `ls *.tar | tail -1` for a timestamped/versioned archive,
-comparing a pinned dependency against what's published. **Before reporting that a version
-is missing, absent, or older than expected, re-check with a version-aware sort** (`git
-tag --sort=v:refname`, `sort -V`, `packaging.version.Version` in Python) — and prefer
-asking the authoritative source directly (the PyPI JSON API, `git show <tag>`, the
-package metadata) over eyeballing a sorted list.
-
-The double-digit boundary is where this bites: it is invisible through `0.0.9` and starts
-lying at `0.0.10`.
+**Sort/compare versions AS versions, not text** — `0.0.10` > `0.0.7` but sorts before it
+lexically, so the newest release vanishes from the end of an alphabetical list. Use `sort -V` /
+`git tag --sort=v:refname` / `packaging.version.Version`; **before reporting a version missing
+or older than expected, re-check with a version-aware sort** and prefer asking the authoritative
+source (PyPI JSON API, `git show <tag>`, package metadata). The double-digit boundary is where
+it bites: invisible through `0.0.9`, lying at `0.0.10`. Full example:
+`~/.claude/reference/versioning-and-changelogs.md`.
 
 ## Changelogs, versioning, and communicating breaking changes
 
-**The problem this solves:** when someone who depends on my project bumps their pinned
-version, they need to know — *without reading the git log* — what changed and, above all,
-what will **break**. Any project with external consumers that ships versioned releases (a
-library on a registry — PyPI / npm / crates.io / …, or a tool other people pin) needs this;
-a private app nobody else pins does not. The failure mode it prevents is **silent breakage**:
-a consumer bumps the pin, their build or tests break, and they only find out by running them.
-(This bit me in gacalc — an `is_close`→`isclose` rename with no changelog silently broke a
-downstream consumer's 36 call sites, found only when its tests failed.) Two artifacts do the
-job: a **version number** (so they can pin and compare) and a **changelog** (so they can read
-what a bump will cost them).
+For any project **others pin/consume** (a library on a registry, a tool people pin), two
+artifacts prevent silent breakage: a **version number** and a **`CHANGELOG.md`**. A private app
+nobody pins needs neither. Full rules — breaking-change list, when to write entries, retro-fill —
+in `~/.claude/reference/versioning-and-changelogs.md`.
 
 ### Versioning (SemVer), and the pre-1.0 reality
 
-`MAJOR.MINOR.PATCH`. Post-1.0: a **breaking** change bumps MAJOR, a backward-compatible
-feature bumps MINOR, a bug fix bumps PATCH. **Pre-1.0 (`0.y.z`)** SemVer permits breaking
-anything at any time — but *permission to break is not permission to break silently*. Still
-bump for it (treat a breaking change as a MINOR bump — `0.Y.0`; a compatible one as a PATCH),
-and **always changelog it**. At `0.0.z` (very early) treat the whole surface as unstable but
-keep the same discipline: changelog every break, bump the version every release.
-
-**Bump the version BEFORE publishing** — package registries permanently reject a re-used
-version number, so a botched release can't be overwritten, only superseded. The release
-splits along the usual line (see "Git: I commit, you don't"): *you* (agent) stage the version
-bump and the changelog entry; *I* (the user) tag and publish. List/compare existing versions
-with a version-aware sort (see "Version numbers don't sort like strings").
+`MAJOR.MINOR.PATCH`: breaking→MAJOR, feature→MINOR, fix→PATCH. **Pre-1.0 (`0.y.z`)** may break
+anything, but *permission to break is not permission to break silently* — still bump (breaking →
+`0.Y.0`, compatible → PATCH) and **always changelog it**. **Bump the version BEFORE publishing**
+(registries permanently reject a re-used number). Split: you (agent) stage the bump + changelog
+entry; I (user) tag and publish. (Detail: `~/.claude/reference/versioning-and-changelogs.md`.)
 
 ### What counts as "breaking" (the things a consumer must be told)
 
-- a public name **renamed or removed** — function, method, class, module, constant, CLI flag,
-  config key, env var;
-- a **default value or default behavior changed** (e.g. a tolerance that defaulted to `1e-5`
-  now defaults to `0.0`);
-- a **return type or accepted-input type changed**, or **validation tightened** so
-  previously-accepted input now errors;
-- a **new required parameter**, or a value type made **immutable / unhashable**;
-- **dropped support** for a platform, language version, or dependency;
-- a **license change** — not code-breaking, but consumers must know.
-
-The test when unsure: *would a consumer who bumps the pin have to change their code, or be
-surprised?* If yes, it is breaking — flag it as such.
+A public name renamed/removed; a default value or behavior changed; a return/accepted-input type
+changed or validation tightened; a new required parameter, or a type made immutable/unhashable;
+dropped platform/version/dependency support; a license change. **The test:** would a consumer who
+bumps the pin have to change their code, or be surprised? If yes, it's breaking — flag it. (Full
+list: `~/.claude/reference/versioning-and-changelogs.md`.)
 
 ### The changelog: what goes in, and WHEN
 
-- **A `CHANGELOG.md` at the repo root**, newest-first: an **`[Unreleased]`** section at the
-  top, then `## [version] — date` per release. Group entries with the *Keep a Changelog*
-  categories (Added / Changed / Deprecated / Removed / Fixed / Security), and **call out
-  breaking items explicitly** — a `### Breaking` subsection or a **BREAKING** marker, because
-  that is the part consumers scan for. Lean is right; the bar is "would this break or surprise
-  someone who imports or pins this?" — *not* internal refactors, generated-file churn, or
-  task-tracking. Prefer a one-line entry that **links** the reference doc / task explaining the
-  *why* over re-explaining it inline.
-- **Write the entry WHEN you make the change**, into `[Unreleased]` — not reconstructed at
-  release time, which is exactly how changes get forgotten. It is one of a finished unit's doc
-  deltas (see "Git: I commit, you don't"), so it ships with the unit's staging.
-- **Reconcile at the three moments that already look back — the pre-squash harvest, the session-end
-  sweep, and any release (2026-09-06).** For a repo with a changelog, diff the public surface since the
-  last tag (`git diff $(git describe --tags --abbrev=0)..HEAD -- src/` or the equivalent) against
-  `[Unreleased]` and write whatever is missing. This is the net under the mid-task reflex, run a few
-  times a session rather than per commit; per-commit changelogging was considered and declined — I
-  don't commit, and re-deriving entries from diffs logs churn without the why. Promoting `[Unreleased]`
-  to `## [version] — date` is **part of the version bump**, whoever performs it. A project with a
-  changelog carries a cheap version↔changelog consistency check in its gate (gacalc:
-  `tools/check_changelog.py` — fails when `pyproject.toml`'s version has no changelog heading); it
-  catches an unlogged *release*, not an unlogged change — the reconciliation does that. **On release**, rename
-  `[Unreleased]` to `## [version] — date` and open a fresh empty `[Unreleased]`. The version
-  bump, the changelog promotion, and the tag belong to the **same** release commit.
-- **Retro-filling a project that never had one:** create the file, document *at least* the
-  recent releases a consumer would actually hit (verify which version each change shipped in
-  against the tags — don't guess), and say plainly that history before some cutoff predates the
-  changelog rather than inventing entries.
+A root `CHANGELOG.md`, newest-first, `[Unreleased]` at top then `## [version] — date`; group by
+Keep-a-Changelog categories and **call out breaking items explicitly**. Lean — only what would
+break/surprise a consumer, prefer a one-line entry linking the *why*. **Write the entry WHEN you
+make the change** (it's a finished unit's doc delta) and **reconcile at the three look-back
+moments** (pre-squash harvest, session-end sweep, release): diff the public surface since the last
+tag against `[Unreleased]`. Promoting `[Unreleased]` → `## [version] — date` is part of the version
+bump (same commit as the tag). Full detail incl. `tools/check_changelog.py` and retro-fill:
+`~/.claude/reference/versioning-and-changelogs.md`.
 
 ## Git: I commit, you don't — but you DO stage
 
-Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete. **Staging is your half of that handoff, and it is the default, not an option.**
-
-- **Stage finished work automatically — don't wait to be asked.** When a coherent piece of work is done, `git add` the files it touched and say so in your summary. A finished change left unstaged is a change I might not notice and might overwrite. By the end of any work chunk, `git status` should read as a handoff: staged = "this is the work," unstaged = "this is still in flight or isn't mine to give you."
-- **A finished unit's DOC DELTAS ship in that same staging (Bill, 2026-08-31).** "Finished" includes the always-read docs the unit conceptually touches: update the project's `CLAUDE.md` (module layout, counts, API/operator lists), its `README`, the pertinent `tasks/reference/` doc, **and — in a repo that has a `CHANGELOG.md` — its `[Unreleased]` entry for anything a pin-bumping consumer would notice** (2026-09-06: gacalc 0.0.19 shipped with an empty `[Unreleased]` because the entry had been left to mid-task memory) *alongside the code*, and stage them together — so staged = complete handoff, docs included. Scope it to the docs the unit implies, **not** a full always-read re-read (that stays the session-end sweep's job — see "Ending a session", now a verification pass expected to find nothing from properly finished units). A unit redesigned later in the session gets its docs rewritten — the same cost the code pays; the trigger is deliberately "verified + staged", not "every edit". (Origin: a 2026-08-31 gacalc session whose end-of-session sweep applied CLAUDE.md/README/reference updates knowable the moment the feature passed its gate — see runClaudeInContainer `tasks/archive/2026/08/31/doc-deltas-ship-with-staged-work.md`.)
-- **Why staging specifically: `git add` writes the content into `.git/objects`, so it survives.** An unstaged edit is only bytes on disk — a later overwrite, a bad `checkout`, or a botched `sed` loses it with no recovery. Staged content can always be recovered (`git fsck --lost-found`) even if the working tree is clobbered. It is the cheapest possible backup and it costs nothing, so err toward staging early and often rather than once at the end.
-- **Stage the files your work touched, by path** (`git add <paths>`), **never `git add -A`.** A blanket add sweeps in build artifacts, scratch files, and anything I was editing myself — that makes the handoff *less* useful, not more. If something is generated or gitignored, leave it out and mention it.
-- **Stage, then stop.** Never `git commit`, and never `git push`, unless I ask in that moment. Turning staged work into commits is mine.
-- **Don't keep asking "want me to commit?"** after finishing work. Stage it, tell me what changed, and move on — assume I'll commit it myself.
-- **If you're curious about what was done** — earlier in this session, in a prior session, or by me between sessions — **read the git history** (`git log`, `git show`, `git diff`) rather than asking or assuming. The working tree lives on a host bind mount, so my out-of-container commits show up there; the history is the source of truth for "what happened."
+Committing (and pushing) is **mine**, done outside the container on my own schedule — don't read
+an absence of commits as work lost. **Staging is your half of the handoff and is the default, not
+an option:** when a coherent unit is done, `git add` the files it touched **by path** (never
+`git add -A`) and say so; by end of a work chunk `git status` should read as a handoff (staged =
+the work, unstaged = in-flight or not yours to give). **A finished unit's doc deltas ship in that
+same staging** — the `CLAUDE.md`/`README`/`tasks/reference/` entries the unit conceptually touches,
+and a `CHANGELOG.md` `[Unreleased]` entry where the repo has one (unit-scoped, not a full
+always-read re-read — that's the session-end sweep). Staging writes content into `.git/objects` so
+it survives a clobber; err toward staging early and often. **Stage, then stop** — never `git commit`
+/ `git push` unless I ask in that moment, and don't keep asking "want me to commit?". To learn what
+happened, **read the git history**. Full bullets + rationale:
+`~/.claude/reference/git-workflow-conventions.md`.
 
 ## Quick-save commits, then squash to a per-task history (only when I authorize committing)
 
-**The default from "Git: I commit, you don't" still holds — don't commit unless I explicitly tell you to.** This workflow applies **only** when I've said, in this session, that you may commit. That say-so is the trigger — not the mere presence of a repo-local `CLAUDE.md`, and it doesn't carry over to the next session. I'll typically authorize it for **long-running tasks where I'm away from the computer** and you have to make decisions yourself: in that mode, commit as you go (below), keep working, and **log the decisions/open questions** (in the task doc) for me to review when I'm back. When I've given that go-ahead, use this two-phase rhythm:
-
-- **During the work — quick-saves.** Commit freely as you go, like video-game quick-saves: one commit per meaningful step (a slice compiles, a milestone passes, a binding builds, a bug is fixed, a task doc updated). Small, frequent, honestly-labelled checkpoints. They're restore points — if a later change breaks something, diff/reset to the last good one — and they let me follow the play-by-play. Don't optimize these for a clean final history; optimize for "never lose a working state." Granular commits interleaved with `tasks:`-tracking commits are fine and expected here.
-- **At the end — squash to a per-task history.** Once the work (or a phase) is done and verified, collapse the quick-saves into a clean **one-commit-per-task** history, each with a good written message, folding the noisy `tasks: log/mark/scope …` tracking commits into the work commit they belong to. Leave genuinely single-purpose commits alone; only squash the multi-part runs.
-
-Mechanics — the container has **no interactive editor, so a literal `git rebase -i` won't run**; do the equivalent non-interactively:
-
-- **Back up first:** make a `backup` branch at the current tip before rewriting and never touch it — it's the undo (`git reset --hard backup` restores everything).
-- **Reconstruct deterministically** on a temp branch off the base: `git cherry-pick -n <parent>..<end>` collapses a run of commits into one staged change → `git commit -F msg`; a plain `git cherry-pick <sha>` keeps a single commit as-is. Replaying in the original order mirrors the old history, so there are no conflicts. **Caveat: `git cherry-pick` has no `-q` flag** — passing it dumps usage and, under `set -e`, aborts the script mid-run; use `--no-edit`/`-n`, not `-q`. (Driving `git rebase -i` via `GIT_SEQUENCE_EDITOR`/`GIT_EDITOR` scripts also works, but the cherry-pick rebuild is easier to verify.)
-- **Verify before moving the real branch:** the rewrite must change *history only, never content* — confirm `git diff <rebuilt> <backup>` is **empty** (byte-identical tree) before you `reset --hard` the real branch onto the rebuilt one. If it differs, stop; something got dropped.
-
-I'll normally ask for the cleanup explicitly ("squash the history"). Don't rewrite history that's already pushed/shared without me saying so.
-
-**Before a squash, harvest the commit history into the task doc.** When I say I'm going to squash, first walk **every commit in the unpushed range** (`<upstream>..HEAD` — find `<upstream>` from the remote-tracked branch, `git rev-parse --abbrev-ref @{u}`), reading the **task-doc AND code diffs** at each. Then update the task doc so it records, **in chronological order, every decision we made and why** — what changed and why, what we rejected and why, what each step discovered. Only then squash. The reason: the squash collapses the per-commit trail, so after it the **archived task doc is the only record of the reasoning** — it has to carry the full play-by-play *before* the granular history is flattened. Do this as part of the squash, unprompted (like staging). For a repo with a `CHANGELOG.md`, the harvest also reconciles `[Unreleased]` against everything since the last tag (see "The changelog"). (Harvesting durable knowledge into a *reference* doc still happens separately, at archive time.) **Normalize tense and voice into ONE coherent story — this applies to task docs AND reference docs.** A doc accreted across many commits carries mixed tenses written at different stages — future ("will extract X"), present ("extracting X"), past ("extracted X") — and left as-is it reads as an archaeological pile of appended notes, not a document. Whenever you harvest before a squash, and whenever you finalize or substantially update a task or reference doc, **rewrite it so it reads in one consistent tense** — past/perfective for completed work ("extracted X", "rejected Y because…"; present only for what is still true of the code now) — a single coherent retrospective in one voice, not the accumulation of its own edit history. The reader wants the story, not the sediment.
+**Only when I've said, this session, that you may commit** (typically a long unattended task) —
+the say-so is the trigger and doesn't carry to the next session. Then: **quick-saves** as you go
+(one commit per meaningful step, restore points, honestly labelled) → at the end **squash to
+one-commit-per-task**, folding `tasks:` tracking commits into the work commit. Mechanics
+(no interactive editor): back up to a `backup` branch, reconstruct on a temp branch with
+`git cherry-pick -n <parent>..<end>` + `git commit -F msg` (note: `cherry-pick` has no `-q`),
+and verify `git diff <rebuilt> <backup>` is **empty** before `reset --hard`. **Before a squash,
+harvest the commit history into the task doc** (walk `<upstream>..HEAD`, record every
+decision/rejection chronologically, reconcile `[Unreleased]`) and **normalize the doc into ONE
+consistent tense/voice**. Full detail: `~/.claude/reference/git-workflow-conventions.md`.
 
 ## Task documents
 
-For non-trivial work — multi-step features, refactors, investigations, anything worth resuming in a later session — keep a spec/notes doc at `tasks/<short-kebab-slug>.md` in the **repo root** of whichever project is currently mounted. One file per task. Update it as work progresses (status, decisions, open questions).
-
-**Write every task doc to be executed COLD.** Assume whoever picks it up — a fresh LLM session, you months later, a colleague — has **none** of the conversation that produced it. Everything a fresh reader needs is in the doc, or in files it points to: what to read first, the current state of the relevant code, links to related/prior tasks and reference docs, and any decisions already made **with their rationale** (not just the conclusion). Never lean on session memory or "as we discussed." This is the **standing default, so a task never *announces* that it's self-contained — it just is.** It's the task-level form of the same "assume the reader lacks context" discipline the response rules already demand (gloss every label; cite the file path). Concretely, a non-trivial task **leads with two short standard sections** (scaled to the task — a tiny task may need neither):
-
-- **`## BLUF`** (Bottom Line Up Front) — 1–4 sentences: what this task *is* and what "done" means, right under the header. From US-Army writing (AR 25-50): the main point / conclusion / required action goes **first**, so a reader grasps the essence immediately without wading through detail. Full write-up: `~/.claude/reference/bluf-bottom-line-up-front.md`.
-- **`## Context`** — the cold-start orientation: what to **read first** (files, related/prior tasks, reference docs), the **current state** of the relevant code, and **decisions already made with their rationale** — enough that a fresh reader can act without the originating conversation.
+For non-trivial / multi-step / resumable work, keep `tasks/<slug>.md` in the repo root, one per
+task, updated as it progresses. **Write it to be executed COLD** — everything a fresh reader needs
+is in the doc or files it points to (what to read first, current code state, links to related
+tasks/reference docs, decisions **with rationale**); never lean on session memory. A non-trivial
+task **leads with `## BLUF`** (1–4 sentences: what it is + what "done" means; full write-up
+`~/.claude/reference/bluf-bottom-line-up-front.md`) **and `## Context`** (cold-start orientation).
+Don't make a task for one-off questions. If a task's Open questions are non-empty, surface them as
+a numbered list when you report making it (and they still block implementation). Full conventions +
+lifecycle: `~/.claude/reference/task-doc-conventions.md`. Helpers: `/new-task`, `/archive-task`,
+`/recheck-blocked`.
 
 ### Priority & difficulty (rough triage for "what to work on next")
 
-Every task doc carries two 1–10 ratings in its header, directly under `**Status:**`:
-
-- **`**Priority:** N`** — `1` = highest (do first), `10` = least. Judge by value × urgency × whether finishing it unblocks other work. Parked / not-approved / someday tasks get a *high* number (low priority) — as do **blocked** tasks (see "Blocked tasks" below), which aren't actionable until an external condition clears.
-- **`**Difficulty:** N`** — `1` = easiest, `10` = hardest. Effort + design risk + blast radius.
-
-**The scale is geometric — each step is ~1.5× the previous** (so a 10 is ~1.5⁹ ≈ 38× a 1). The high end deliberately compresses many hard/low-priority items; this is for *rough ranking to decide what's next*, not for estimation. Rough anchors:
-
-- **Difficulty:** 1 trivial (minutes, mechanical) · 3 small (≤ an hour, localized) · 5 medium (a session, some design) · 7 large (multi-session, cross-cutting) · 9 very large (major subsystem / real risk) · 10 project-scale.
-- **Priority:** 1–2 do-next / blocking / high value · 3–4 important soon · 5–6 normal backlog · 7–8 nice-to-have · 9–10 someday / parked.
-
-**Use them to choose next work:** scan a project's `tasks/` for the **lowest priority-number combined with the lowest difficulty-number** — high-value easy wins first. Assign both at creation (via `/new-task`) and revise as scope becomes clear.
+Two 1–10 ratings under `**Status:**`: **`**Priority:**`** (1 = do-first, 10 = least; parked and
+blocked tasks get a high number) and **`**Difficulty:**`** (1 = easiest, 10 = hardest). The scale
+is **geometric** (~1.5× per step). **Pick next work by lowest priority-number, then lowest
+difficulty-number** — high-value easy wins first. Anchors + rationale:
+`~/.claude/reference/task-doc-conventions.md`.
 
 ### Blocked tasks — deferred until an external condition changes
 
-Some tasks can't start until something **outside our control** changes — an upstream tool ships a feature, a dependency cuts a release, an external standard stabilizes, or *I* run a hands-on verification only I can do (hardware, a display). Mark these `**Status:** blocked` and give them two fields directly under the header, alongside Priority/Difficulty:
-
-- **`**Blocked on:**`** — the external condition, in one line ("Zed dev-container support loses its 'still in development' caveat").
-- **`**Recheck:**`** — a **cheap, runnable** check that answers *"has it cleared yet?"* without re-deriving anything: a URL to `WebFetch` **plus the exact signal to look for**, a version/release to compare (with a version-aware sort — see "Version numbers don't sort like strings"), or a command to run. For a human-gated block, name the one manual step I have to run. State what a *cleared* result looks like. (This is the task-doc twin of the reference-doc "re-sync check" — a pinned condition plus a one-line way to detect drift.)
-
-**Blocked ≠ parked:** *parked* is a subjective "not approved / not now" (just a high Priority number); *blocked* is a concrete, **testable** gate. Both get a **high priority-number** (neither is next-work) and both are **excluded from the easy-wins ranking** — but a blocked task carries a check anyone can run.
-
-- **`/recheck-blocked`** runs the `Recheck:` of every blocked task and reports which gates cleared, offering to flip `blocked` → actionable and re-rate Priority. Re-checking is **on demand — never automatic**: don't fire network checks on your own at session start/end (that manufactures work and is slow); just surface that blocked tasks exist and that the command can test them.
-- When a gate clears, drop the `Blocked on:`/`Recheck:` fields, set a real Status/Priority, and proceed.
+For work gated on something **outside our control** (upstream ships X, a release, a hands-on
+verification only I can do), set `**Status:** blocked` plus **`**Blocked on:**`** (the condition,
+one line) and **`**Recheck:**`** (a cheap runnable check + the signal that means "cleared"). Both
+blocked and parked tasks get a high priority-number and are excluded from the easy-wins ranking;
+**blocked ≠ parked** (blocked is a concrete testable gate). `/recheck-blocked` tests them **on
+demand — never automatic**. Detail: `~/.claude/reference/task-doc-conventions.md`.
 
 ### Step tasks — an umbrella task with sequenced children
 
-For a **multi-step initiative** too big for one task doc — a refactor that runs in phases, a migration with natural commit boundaries, anything where step N can't sensibly start until step N-1 lands — split it into an **umbrella task** plus one **step-task per step**. This keeps each step executable and cold-readable on its own while the umbrella holds the shared *why*.
+For a **multi-step initiative too big for one doc** (3+ sizeable sequential chunks, or steps with
+their own commit boundaries): an **umbrella** (`tasks/<initiative>.md` — vision, rationale, the
+ordered step list = the index, cross-step decisions) plus one **step-task** each
+(`tasks/<initiative>-step-N-<slug>.md`, header links `Part of:` / `Depends on:` / `Next:`).
+**Express ordering with Priority + a "Depends on" note, NOT `blocked`** (a step waiting on an
+earlier step is within our control). Track status in both the step-task and an umbrella checklist;
+each step archives on its own completion, the umbrella when the last step lands. **Don't
+over-scaffold** — a two-step job is one task with a phase list. Detail:
+`~/.claude/reference/task-doc-conventions.md`.
 
-- **The umbrella** (`tasks/<initiative>.md`) holds the **vision, rationale, the ordered list of steps (it IS the index), cross-cutting risks, and the decisions that span steps** — but *not* each step's detail. It links down to the step-tasks; it does not duplicate them. Give it the initiative's overall Priority/Difficulty.
-- **Each step-task** (`tasks/<initiative>-step-N-<slug>.md`, so they sort together) is a normal task doc — BLUF, Context, verification, its own Priority/Difficulty — carrying three header links right under the ratings: **`**Part of:**`** (the umbrella), **`**Depends on:**`** (the previous step, if any), and **`**Next:**`** (the following step). A fresh reader of any one step can find the whole chain.
-- **Express step ordering with Priority + a "Depends on" note, NOT with `blocked`.** `blocked` is reserved for gates *outside our control* (see "Blocked tasks"); a step waiting only on an earlier step is entirely within our control — you just do them in order. So the currently-actionable step gets a **low** priority-number (it's next-work), and later steps get **higher** priority-numbers (not next-work yet) with a plain "do not start until step N-1 has landed" line. This keeps the easy-wins scan honest: only the ready step surfaces as next.
-- **Track step status in two places, deliberately:** each step-task's own `Status`, and a one-line-per-step checklist in the umbrella (the umbrella is where I look to see how far the initiative has gotten). For a per-item step (e.g. "do this to all 11 games"), a small status **table** inside the step-task is the right grain.
-- **Lifecycle:** each step-task **archives on its own completion** (the normal unprompted-archive rule — harvest durable knowledge to a reference doc, fix inbound pointers, `git mv`, stage). The **umbrella archives when the last step is done**, and is the natural place to harvest the initiative's overall rationale into a `tasks/reference/` doc. The per-step commit/handoff boundaries are real — I'll often commit after each step.
-- **Don't over-scaffold.** This is for genuinely multi-phase work. A two-step job is usually just one task with two phases in its body; reach for the umbrella+children shape when there are three-plus sizeable, sequential chunks, or when a step has its own commit boundary I'll want to stop at. When in doubt, one task with a phase list is the lighter default.
-
-When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
-
-**Archiving is yours to do, proactively, at the moment of completion — no go/no-go question (Bill,
-2026-08-31; timing corrected 2026-09-07).** The instant a task's done-state is met and its gates are
-green, the archive is *owed*: harvest to reference docs, fix inbound pointers, `git mv` the task into
-`tasks/archive/…`, and `git rm` any one-shot adhoc scripts. **Never ask whether to archive, and never
-present a done task as an archive *candidate*** — that surprise-me-by-asking behavior is the failure
-this rule exists to stop (origin: two verifiably-done gacalc tasks presented with a go/no-go question
-— "I'm just surprised you didn't archive what you thought was done"). Ask only when the done-state
-itself is genuinely ambiguous.
-
-**BUT the archive is its own commit, AFTER the work commit — never bundled into the work's staged
-handoff (Bill, 2026-09-07).** The maintainer's lifecycle is **three commits**: (1) task-add, ideally
-standalone; (2) work + adhoc scripts, together; (3) archive-move + the one-shot adhoc `git rm`,
-together, in a *separate* commit after the work commit — so `git log` shows "work + its scripts" and
-"archive + script deletion" as two related, self-contained points. So **do NOT `git mv` the task or
-`git rm` its scripts into the same staged set as the work.** Instead: stage the work and stop; once
-its commit exists (by default *I* make it — see "Git: I commit, you don't"), **proactively** stage the
-archive set (the `git mv`, the reference harvest, the one-shot `git rm`) as commit 3. At completion the
-archive is therefore an **owed, tracked** action — record it in the task's `Status` or the stack —
-executed the moment the work commit lands (same session if I commit then, next session otherwise); say
-so plainly (*"done and staged; I'll archive it in its own commit once you've committed the work"*),
-never as a question. **When I've authorized you to commit this session** (per-project, per-session —
-the quick-save mode), you make the commits yourself: commit the work (+ adhoc scripts), then commit the
-archive-move + one-shot `git rm` as a **separate** commit — the same two boundaries, never one combined
-"work + archive" commit. "Pending review" applies to the *work*, not the lifecycle move.
-
-Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
-
-At the start of a session in a project, check `tasks/` (top-level, **not** `tasks/archive/`) for in-flight work and surface what's there so we can pick up where we left off — **list each with its Priority/Difficulty, sorted easy-wins first** (lowest priority-number, then lowest difficulty-number) so it's immediately clear what's worth doing next. **List any `blocked` tasks separately** — call them out as not-actionable (with their one-line `Blocked on:`) and keep them out of the easy-wins ranking, since their gate hasn't cleared; note that `/recheck-blocked` can test whether it has. Don't trawl `tasks/archive/` unless I ask about prior work.
-
-Don't create a task file for one-off questions, trivial edits, or anything resolvable in a single response. Task files are for work that spans turns or sessions.
-
-If `tasks/` doesn't exist in a repo yet, create it the first time it's needed. By default these docs are committable — only add `tasks/` to `.gitignore` if I explicitly ask. Give every convention directory an empty `.keep` when you create it (see "Ad-hoc scripts" for why).
-
-**When a task you create (or substantially flesh out) has open questions, surface them to me at report time — don't bury them in the doc.** If the task's **Open questions** section is non-empty, repeat those questions as a **numbered list at the very end of the message** that tells me you made the task (this is the "Questions for me go inline AND in a closing list" rule, applied to task creation — I should see what you need from me in the message, not have to open the file to find it). Number them, name the positions, and include your recommendation per question. And per "Every question must be addressed before you implement anything": a question that blocks the work still blocks it even though the task is "made" — don't start implementing until I've addressed the numbered questions, and don't read a bare "go ahead" as answering them unless it actually resolves each one.
-
-Helper commands: `/new-task <slug>` to scaffold, `/archive-task <slug>` to archive, `/recheck-blocked` to test whether any blocked task's external gate has cleared.
+Archiving: when complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md`.
+**Archiving is yours to do proactively at the moment of completion — no go/no-go question**
+(harvest to reference docs, fix inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never
+present a done task as an archive *candidate*. **BUT the archive is its OWN commit AFTER the work
+commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts, (3) archive-move +
+one-shot `git rm`; don't `git mv`/`git rm` into the work's staged set. When I commit by default,
+record the archive as an owed, tracked action; when you're authorized to commit this session, you
+make both commits (never one combined "work + archive"). At session start, scan `tasks/` (not
+`tasks/archive/`) for in-flight work, list easy-wins-first, and list `blocked` tasks separately.
+Full lifecycle + incidents: `~/.claude/reference/task-doc-conventions.md`.
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
 
-While doing a task I often write throwaway scripts — codemods, bulk edits, one-off verification harnesses, or a **one-time generative setup** (running a scaffolding tool, then transforming its output — e.g. `sphinx-quickstart` then editing the generated `conf.py`). **When such a script is substantive, save it under `tasks/adhoc/<task-slug>/<name>` in the repo and run it from there**, instead of executing it only from the ephemeral session scratchpad. The point is that you get a *committed record of the mechanical "how"* behind a large diff — and of *whether* a change was verified — not just the resulting diff.
-
-**What to save (the threshold — do NOT clutter this with one-liners):**
-
-- **Save:** scripts that **mutate repo files** (rename passes, codemods, generated transformations); non-trivial multi-step programs; task-specific **verification / proof harnesses** (cross-reference checkers, before/after AST diffs, differential state traces); and **one-time generative setup** (a scaffolding tool plus the edits that shape its output into what the project keeps).
-- **Skip:** trivial shell pipelines, `grep`/`sed`/`awk` one-liners, `python -c` snippets, and interactive exploration (they belong in the terminal/scratchpad — saving them buries the meaningful scripts); **a script that merely reproduces a permanent file edit** (a `Dockerfile`/`Makefile`/config change — scripting it only duplicates what is already committed in the file, so edit the file directly); and **environment setup outside the project** (`dnf install`ing into the sandbox/container is not project work — its durable form is the project's own `Dockerfile`, or it's just sandbox state — so it is never an ad-hoc script).
-- **The test when unsure:** *would the diff alone leave you wondering how I did this, or whether it was safe?* If yes → save it.
-
-**Write them relative — to themselves or to the repo root — and NEVER to a container-absolute path.** A saved script is committed and re-run later, on another machine or a differently-launched sandbox, so it must not encode where this session happened to see the repo. A mount path like `/foo/opt/<project>` exists **only** because *this* `make shell` was launched with that `EXTRA_DIRS`; a different launch, a different user, or a plain host checkout puts the same repo somewhere else and the script is dead on arrival. Same for the ephemeral session scratchpad. Derive the repo from the script's own location — a script at `tasks/adhoc/<slug>/<name>` sits three directories below the root:
-
-```python
-REPO = pathlib.Path(__file__).resolve().parents[3]   # tasks/adhoc/<slug>/ -> repo root
-```
-
-```sh
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"   # or: git rev-parse --show-toplevel
-```
-
-— then address everything from there (`REPO / "src" / …`). **This covers the paths the script READS and WRITES, not just where it starts:** an output file, a baseline copy, a log, a temp directory. Each belongs under the repo, or under a path passed in as an argument — never a hardcoded mount path. A script that only runs under one sandbox launch is not a re-runnable record, it is a dead artifact with comments.
-
-**Comment them for a reader with basic command-line knowledge** — explain the tool's flags and any non-obvious step, but don't explain piping, environment variables, or redirection (assume those are known). A saved scaffold is meant to *teach* the how, so a newcomer can follow it and learn from it, not just re-run it.
-
-**Namespacing:** `tasks/adhoc/<task-slug>/` — one subdir per task, matching the task doc's slug, so archiving can remove it in one step. For scripted work with no tracked task, use a short descriptive subdir name.
-
-**Git lifecycle — committed during the task; at archive, PROMOTE or remove.** Stage ad-hoc scripts with the task's work (this is the one place a committed-then-deleted artifact is intended — it's the audit trail). **When an adhoc script needs to change mid-task, REVERT its inputs to the pre-script state, update the script, and re-run the FINAL script once — do NOT patch the script and re-apply it on top of already-transformed files. The saved script must reproduce its own diff *run once on the original input*; a script that only works applied on top of an earlier version is a broken audit trail. Reverting is cheap (`git checkout <paths>` / `git stash`, or ask me to undo an out-of-container commit), and you should verify the final script reproduces the committed result. **Scope the revert to the PROCESSED FILES, by path — `git checkout <pre-script-SHA> -- <the files the script transforms>`, NEVER a whole-tree `git checkout <SHA>` (that would revert away the script itself and any other in-flight work). Then run the final script once and confirm `git diff` on those files is empty: an empty diff IS the proof it reproduces the committed result. No restore is needed when the diff is empty (the tree already matches); otherwise investigate before squashing.** This extra revert step is worth it — I'd rather that than a squashed history whose codemod can't reproduce the change. (The squash then safely discards the intermediate iterations; keep any lesson from them in the task doc.)**
-
-**Make a file-mutating codemod idempotent, and PROVE it by running it twice — the second run must report zero changes.** A transform that re-matches its own output silently corrupts on any re-run, and that is exactly the failure the revert-and-rerun rule above depends on *not* happening. Worked example (mvp gacalc-0.0.16 adoption, 2026-08-13): a codemod split `from …mathutils import Vector3, helper` into a `from gacalc.g3 import Vector` line plus the leftover helper import — but it fired whenever the mathutils line matched, not only when `Vector3` was still on it, so a second run re-fired and inserted a **duplicate** `from gacalc.g3 import Vector` every time (58 files, then 13 more on the next run). Guarding it to act only when the suffixed name is actually present made re-runs a clean no-op. The double-run check is the cheapest proof the saved script reproduces its own diff, and it's the "formatter idempotent (`--check` reports no changes)" discipline applied to your own codemods — cheap to run, and it catches the whole class of self-re-matching bugs before they reach my tree. At archive time, `/archive-task` triages each script:
-
-- **One-shot** — a codemod / bulk edit whose job is done and that you would not run again: **remove from version control** (`git rm -r`). The history survives in the work commits, so nothing is lost — `git log` / `git show` still recover it. (A task archived before its scripts were ever committed just deletes them — an accepted edge case, not a bug.) **Timing: the one-shot's `git rm` belongs IN the archive commit (commit 3), paired with the task's `git mv` — after the work commit that carried the script.** When you stage but I commit later, a one-shot must first land in the work commit (that IS the audit trail); staging an *add* and a *remove* of the same file before any commit nets to nothing and the script never reaches history. So the removal is an **owed action performed with the archive**, after the work commit — never bundled into the work's staged set (see the three-commit lifecycle under "When a task is complete" above). Record the owed deletion (in the archived task doc or the stack). (mvp, 2026-09-06: two one-shot codemods were archived with their tasks but `git rm`'d only after the work commit that carried them landed — correct, but I had not *tracked* the owed deletion, so it waited until the maintainer asked. Track it.)
-- **Reusable** — a checker / linter / report / proof-harness you *would* run again against future changes (the test is exactly that: *would I re-run this?*): **promote it** instead of deleting.
-
-**Promotion — a reusable script becomes a first-class tool.** When a script has ongoing value:
-
-- **Move it to the repo's tools location** — `tools/` where that exists (create one if not, or **fold it into an existing tool** rather than inventing a new directory) — with a **light cleanup**: make it repo-relative and self-contained, and give it a docstring saying *when to run it*. It is now maintained code, not a scratch artifact.
-- **Update the relevant reference doc** to note it (what it checks, when to run it). This is the runnable sibling of the "harvest durable knowledge into reference docs" step — the reference doc often gets both the rationale and a pointer to the tool.
-- **Investigate whether it should run as a make target.** Read the repo's `Makefile`, `Dockerfile`, and entrypoint scripts to see whether it belongs in an existing gate (`format` / `check-*` / `test`), wants its own `## `-documented target, must run **in-container after setup** (some checks can only run once generated/populated files exist — so they live in `entrypoint.sh`, not a host-side target), and/or needs a Dockerfile dependency. Then **propose** the specific wiring — shaped to the gate conventions (a multi-step check script must propagate every step's failure; the real gate runs in the container). **Do not auto-wire it**; changing the build/gate is the user's to approve. "Manual tool, documented, not gated" is a valid outcome — not everything reusable should be a pass/fail gate (an informational audit like a dead-marker report shouldn't fail the build).
-- **Default to delete; promote only when the ongoing-use case is clear, and ASK when borderline.** A wrongly-promoted script rots in `tools/`; a wrongly-deleted one is still in git history.
-
-The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask. **A directory the conventions promise must survive being empty: git tracks files, not
-directories, so put an empty `.keep` file in `tasks/adhoc/` (and in `tasks/reference/`,
-`tasks/archive/`, `tools/` — any directory these conventions tell a reader to look in) the moment
-you create it, and never `git rm` the `.keep`.** Otherwise the first cleanup that removes the last
-file removes the directory from the repo, and the next reader finds the conventions pointing at a
-path that isn't there (2026-09-06, mvp: archiving the last one-shot codemods `git rm`'d
-`tasks/adhoc/` itself; the maintainer restored it with a `.keep`).
+Save **substantive** throwaway scripts (codemods, bulk edits, verification/proof harnesses,
+one-time generative setup) under `tasks/adhoc/<task-slug>/<name>` and run them from there — a
+committed record of the mechanical "how". **Skip one-liners**, scripts that merely reproduce a
+permanent file edit, and env setup outside the project. **Paths must be relative — to the script
+itself or the repo root — NEVER container-absolute** (`pathlib.Path(__file__).resolve().parents[3]`
+or `git rev-parse --show-toplevel`), covering what the script reads AND writes. **Make a
+file-mutating codemod idempotent and prove it** (run twice, second run = zero changes). If it
+changes mid-task, revert the **processed files** by path (`git checkout <pre-script-SHA> --
+<files>`, never whole-tree) and re-run the FINAL script once, confirming `git diff` is empty. At
+archive: **one-shot → `git rm`** (in the archive commit, after the work commit — track the owed
+deletion); **reusable → promote to `tools/`** (light cleanup + docstring, note it in a reference
+doc, propose but don't auto-wire a gate). Put a `.keep` in every convention dir. Full detail +
+incidents: `~/.claude/reference/task-doc-conventions.md`.
 
 ## Reference documents — durable knowledge that isn't tracked work
 
-Not everything worth writing down is a *task*. A task doc tracks *work* — a goal, steps,
-status — and has a lifecycle: in-flight in `tasks/`, then **archived** to `tasks/archive/...`
-when done and out of the way. That lifecycle is exactly wrong for a **reference document**:
-something whose value *outlives* the work that produced it and that I'll re-open repeatedly.
-Filing one as a "completed" task archives it into a date-bucket I explicitly don't trawl,
-burying the knowledge I wanted to keep. (This came up 2026-07-20: an overnight galgebra-vs-
-gacalc gap analysis was written as a task, and it obviously wanted to be a standing reference,
-not an archived job.)
-
-**Reference docs live in `tasks/reference/<short-kebab-slug>.md`** (a sibling of
-`tasks/archive/`), one file per topic, and are **never archived** — they are living
-knowledge, updated in place as they drift or as items in them get promoted into real `tasks/`.
-
-**Think of `tasks/reference/` as an expanded, project-specific `CLAUDE.md` — and it is for
-*you, the agent* to read (Bill, 2026-07-21).** `CLAUDE.md` stays lean and loads every session;
-the reference directory is the larger, consultable body of *why this project is the way it is*
-— design decisions, rationale, how subsystems work, gap analyses, domain notes — distilled so
-I can get oriented **without** wading through every task doc or reading all the code. It is the
-first place to read when picking up an unfamiliar area, and the entry to read before touching a
-subsystem it covers.
-
-**What qualifies as a reference doc** — create one when the deliverable is any of these:
-- a **comparison / competitive analysis** of another tool, library, or approach against mine
-  (e.g. "galgebra vs gacalc");
-- a **survey / landscape** of a problem space or the state of the art;
-- an **investigation's findings / conclusions** that stay true after the investigation ends
-  (a "why does X behave this way" write-up, a root-cause study);
-- a **design rationale / decision record** — why an approach was chosen, trade-offs weighed,
-  options rejected and why;
-- a **capability map / feature inventory or gap analysis** of my own code;
-- **domain notes** — distilled background I'll want on hand again (math, protocols, formats).
-
-**The test, when unsure:** *"will this still be worth reading after the current work is
-finished?"* If yes, and it states *what is true* rather than *what to do* → reference
-(`tasks/reference/`). A goal with steps and a done-state → task (`tasks/`, archived when done).
-
-**When archiving a task, harvest its durable knowledge into a reference doc first.** A
-completed task's *work log* — what was done, when, which gates passed — belongs in the archive.
-But the **decisions, rationale, rejected alternatives, and how-it-actually-works** it
-accumulated are exactly the reference material listed above, and archiving (or a history
-squash) would otherwise bury them where I never look. So at archive time: **extract that
-content into a `tasks/reference/` doc**, slim the task to a lean work record that *points to*
-the reference, then archive the task and cross-link both. Do this as a normal part of
-archiving a non-trivial task — not only when I ask. (Worked example, 2026-07-21: the
-"type-precise products" task's decision rationale — why overloads over free functions, why
-`-> MultiVectorBase` not `G2` — was extracted to `tasks/reference/generated-product-typing.md`
-before the thin work record was archived.)
-
-**A research task and its output are two things** — the same split, seen from the other end.
-The *investigation* may be a task ("research X vs Y"); its *deliverable* is a reference doc.
-Reference docs routinely **spawn** tasks (promote a row of a gap analysis into a `tasks/` item)
-and get **updated** as those tasks land — that cross-linking is expected, not a smell.
-
-**When you archive a survey / investigation / research task, create the follow-on task your
-recommendation implies — do NOT leave the recommendation stranded in the archived doc.** A survey that
-concludes "embed Lua," an investigation that concludes "use a texture array," a gap analysis that says
-"port feature X" — each has a *next action*. The moment you write the lean archived record + the
-reference doc, also scaffold a `tasks/<slug>.md` for that action: `proposed — needs go-ahead` if it's
-just awaiting my nod, or `blocked` on the single decision it hinges on (with `Blocked on:`/`Recheck:`),
-cross-linked both ways to the reference doc. The reference doc holds the *why*; the new task carries the
-*do*. This is not optional — an archived recommendation with no task is exactly how a good conclusion
-gets lost. (Corollary: a "don't do X" recommendation needs no task; and findings that belong in an
-existing task should be folded there rather than spawning a duplicate.)
-
-- Create `tasks/reference/` the first time it's needed (with an empty `.keep` — see "Ad-hoc scripts"). Committable by default, like tasks.
-- **Session start & orientation:** the in-flight `tasks/` scan stays **top-level only** —
-  `tasks/reference/` and `tasks/archive/` are never pending work. But treat `tasks/reference/`
-  like a table of contents I *know exists*: note what entries are there (listing their titles
-  is cheap), and **read the relevant one when getting oriented on a project or before touching a
-  subsystem it covers** — exactly as I'd read the pertinent part of `CLAUDE.md`. Don't bulk-read
-  every reference doc each session (they can be large); pull the one that matches the work at
-  hand.
-- **This structure is standard across every one of my projects** — use it (and create
-  `tasks/reference/` as needed) in any repo, even ones that don't obviously need it yet.
+Durable knowledge that **outlives** the work that produced it (comparisons, survey/landscape,
+investigation conclusions, design rationale/decision records, capability maps/gap analyses, domain
+notes) lives in `tasks/reference/<slug>.md`, one per topic, **never archived**, updated in place.
+The test: "still worth reading after the work is done, and states what is TRUE not what to DO."
+Think of it as an expanded, agent-facing `CLAUDE.md`. **When archiving a task, first harvest its
+decisions/rationale into a reference doc**, then slim the task to a lean work record that points to
+it. **When you archive a survey/investigation whose deliverable recommends an action, also scaffold
+the follow-on task** (`proposed — needs go-ahead`, or `blocked` on the one decision), cross-linked
+— don't strand the recommendation. Read the relevant reference doc before touching a subsystem it
+covers. Full conventions: `~/.claude/reference/reference-doc-conventions.md`. Helpers:
+`/new-reference`, `/new-reference-set`.
 
 ### Layered reference documents — levels of detail (LoD)
 
-A reference doc need not be one flat file. For a big topic — or a *set* of
-related topics — write it at **layered levels of detail**, so a reader enters at
-the altitude they need:
-
-- **L0 — capsule** (≤1 paragraph): the whole topic in a breath. Every L0 of a
-  set aggregates into one top **map doc** (`tasks/reference/<set>/README.md`),
-  which doubles as the set's table of contents and status board.
-- **L1 — orientation** (~1 page, NO code): the mental model. Written only when
-  it earns its place (below).
-- **L2 — mechanism** (the anchored core): the full algorithm / data flow.
-- **L3 — the source itself**; cite it by **stable named anchor** (a symbol name,
-  or a `doc-region`/`literalinclude` marker), **not a line number** — line
-  numbers rot (a run once found a function that had moved 1065 -> 2251).
-
-Naming: L2 = `<topic>.md`, L1 = `<topic>-overview.md`, L0 = a row in the set's
-`README.md` map. Each doc links UP to its capsule and DOWN to its detail.
-
-Rules (learned building a 23-topic set — imps mario64, 2026-09):
-
-1. **Generate deepest-first, then compress upward**, each level ~half the lines
-   of the one below — a size budget, not delete-half; write each level fresh at
-   its altitude (an L0 is a re-conception, not a shrunken L2).
-2. **Write L1 only when the mental model is non-obvious AND self-contained AND
-   not another topic's job.** Levels are horizontal as well as vertical: if the
-   idea belongs to another topic, cross-link to that owner, don't duplicate it.
-3. **Compare to a baseline the reader knows** (a course, a prior system) — that
-   framing forces the right altitude and turns a code tour into teaching text.
-4. **The set is grown top-down too:** writing an L0 map (or a book on top of the
-   set) surfaces gaps that spawn new topics and deeper levels.
-5. **A "what's absent" capsule** (with the check that proves it) is durable
-   negative knowledge — give it a map row so nobody re-searches for it.
-
-Not every topic needs every level; small ones fuse L0+L2. Scaffold a layered set
-with `/new-reference-set`.
-
-Helper commands: `/new-reference <slug>` (single doc) and
-`/new-reference-set <set> [topic]` (a layered set) to scaffold.
+A big topic (or a *set*) can be written at layers: **L0** a one-paragraph capsule (all L0s
+aggregate into a set's `tasks/reference/<set>/README.md` map = TOC + status board), **L1** a
+code-free one-page mental model (only when non-obvious, self-contained, and not another topic's
+job), **L2** the anchored mechanism, **L3** the source (cite by **stable named anchor**, never a
+line number — they rot). Generate **deepest-first, then compress upward** (~half the lines per
+level), and **compare each doc to a baseline the reader knows**. Rules + naming:
+`~/.claude/reference/reference-doc-conventions.md`.
 
 ### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
 
-When the task is "read this whole codebase and make reference docs" — an unfamiliar project,
-no prior context — this is the method that worked (the Ghostship SM64 PC port,
-`github.com/HarbourMasters/Ghostship`, 2026-07-31: seven docs from a cold start):
-
-- **Fan out one reader per subsystem, in parallel.** Split the codebase along its real seams
-  (build, assets, each engine layer) and give each a subagent a focused brief: *return a
-  structured, `file:line`-anchored report, not prose*. Synthesize the reports into docs
-  yourself. One cold read of a 2000-file tree becomes N concurrent scoped reads, and the
-  synthesis + verification is where you actually learn it.
-- **Verify any claim a reader will later trust without re-checking, before it enters a durable doc.** A reference doc is *trusted
-  later without re-checking*, so a wrong claim compounds. Independently confirm anything an
-  agent asserts as fact — especially "X is dead/unused/vestigial" (grep for refs; check the
-  build really excludes it; check the dir it needs even exists) and "the seam is *here*". One
-  agent pass is a lead, not proof. (Ghostship: an agent called `extract_assets.py` dead
-  legacy; a `git grep` plus "the `tools/` dir it needs is absent" confirmed it before I wrote
-  it down.)
-- **Distinguish live code from dead/vestigial code explicitly** — the single highest-value
-  thing a reference doc records, because it's the trap that wastes hours on re-discovery (half
-  the frame-interpolation ops had zero live callers; the N64 thread scheduler is inert). Say
-  "looks like it does real work, is inert, here's why."
-- **Git history answers *why / when / who*, not *what-is-true-now*.** The techniques that paid
-  off for reference-doc work: `git diff $(git merge-base upstream mine)..mine` to isolate a
-  fork's real delta; `git log --diff-filter=A --reverse -- <path>` + `git show --stat` to find
-  when/where a subsystem was born; `git shortlog -sne` for provenance; and reading the
-  commit-message trail for the bootstrap order (Ghostship's was legibly *build → intro →
-  audio → gameplay*). Current architecture comes from reading current code — don't reconstruct
-  it from history.
-- **Shape: an `architecture-overview.md` anchor + one doc per subsystem, cross-linked,** every
-  claim `file:line`-anchored so the doc lets you *jump*, not re-search. Then add a pointer
-  block to the project's `CLAUDE.md` indexing the set — even when a hand-written `CLAUDE.md`
-  already exists (add the index, keep the lean doc lean, push detail down into the reference
-  docs).
-- **`tasks/reference/` even when the repo has its own `docs/`.** Don't scatter reference docs
-  into a repo-local `docs/` folder just because one exists — the convention is
-  `tasks/reference/` in *every* repo, so the orientation habit and the session-end sweep find
-  them in one known place. (I filed them under `docs/reference/` first here and the user moved me
-  back; a repo having a `docs/` dir is not a reason to diverge.)
+Fan out **one reader per subsystem in parallel** (each returns a structured, `file:line`-anchored
+report), synthesize yourself, and **verify any claim a durable doc will be trusted on** —
+especially "X is dead/vestigial" and "the seam is here" (one agent pass is a lead, not proof; "grep
+found nothing" is not proof of absence). **Distinguish live from dead code explicitly.** Use git
+history for *why/when/who*, current code for *what-is-true-now*. Full method:
+`~/.claude/reference/reference-doc-conventions.md`.
 
 ### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
 
-When a reference set describes a **dependency the project pins by submodule/SHA** (a vendored engine,
-a git submodule), the docs rot the moment the pin moves. Hard-won documenting libultraship, which
-three sibling ports pin at three different commits (Ghostship `1.3.1-399`, Shipwright `1.3.1-463`,
-upstream main `1.3.1-472`):
-
-- **Pin the docs to the exact commit the consumer builds — not latest upstream — and banner it in
-  every doc** (record the SHA + `git describe`), so a future session can detect drift. If you cloned
-  the dependency separately, reset that clone to the submodule's SHA before studying it (fetch the
-  object first — a `reset --hard` to an un-fetched SHA silently lands somewhere else).
-- **Give a one-line re-sync check** ("compare `git -C <consumer>/<dep> rev-parse HEAD` to the banner
-  SHA; if they differ, reset the doc checkout and re-verify"). Without it, nobody knows the docs rotted.
-- **A version bump can be a *structural refactor*, not line drift — re-verify, don't assume.** Between
-  LUS `399` and `472`, `Context` went singleton (`GetInstance()` + `Init*` methods) → Component tree
-  (`CreateDefaultInstance`, `GetChildren().GetFirst<T>()`), files moved (`ship/Context.cpp` →
-  `ship/core/Context.cpp`), and whole subsystems appeared (events bus, scripting, keystore, tests). A
-  "re-anchor the line numbers" pass would have been wrong on nearly every page.
-- **Re-study method that worked: hand each reader the OLD-version doc as a baseline and demand
-  deltas** — each subagent returns STILL-TRUE (corrected anchors) / CHANGED (old claim → new fact) /
-  NEW-ABSENT. Faster and more accurate than re-mapping from scratch, and it pinpoints exactly what moved.
-- **Name the doc by what's actually present at the pinned version.** At `399` there was no event bus
-  or scripting, so `config-events-scripting.md` became `config-cvars-logging.md`. Don't carry a
-  name/scope across a version that no longer has those parts.
-- **When a *consumer's* doc cites the dependency's internals, point to the dependency's own pinned
-  docs — never embed drifting line numbers.** Ghostship's interpolation doc had cited LUS
-  `interpreter.cpp` line numbers from the wrong (newer) checkout — silently wrong for the version
-  Ghostship builds. Keep only the consumer's own `file:line` inline; banner which dependency commit
-  any borrowed anchor came from.
-
-**Sharpening the verify rule: parallel readers confidently contradict each other — resolve it
-yourself.** One LUS reader reported `OtrSignatureCheck` exists nowhere (grep-negative); another placed
-it exactly (`ResourceManager.cpp`). I grepped — it exists. Treat two readers disagreeing as a flag to
-check yourself, and remember **a subagent's "grep found nothing" is not proof of absence** (wrong
-scope, wrong path, a typo'd pattern). This is why the pass pays for itself: it caught a fictional
-`AudioDmaRegistry`, non-existent bridge statics, and a "`ThreadPool` component" that was really a
-plain member — before any reached a doc.
+When a reference set describes a **dependency pinned by submodule/SHA**, the docs rot when the pin
+moves: **pin the docs to the exact commit the consumer builds** (banner the SHA + `git describe`),
+give a **one-line re-sync check**, and re-verify on a bump (a version bump can be a structural
+refactor, not line drift). Name the doc by what's present at the pinned version; a consumer's doc
+cites the dependency's own pinned docs, never drifting line numbers. Full method:
+`~/.claude/reference/reference-doc-conventions.md`.
 
 ### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
 
-**When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
-it for now", etc.), before we stop do a **documentation-reconciliation pass** so the always-read
-docs don't drift from what the session actually changed.
-
-**This sweep is a VERIFICATION NET, not the primary mechanism (Bill, 2026-08-31):** per "Git: I
-commit, you don't — but you DO stage", each finished unit already ships its own doc deltas at
-staging time, so the sweep should expect to find **nothing** from properly finished units. What
-it still exists to catch: decisions made only in conversation that never became a staged unit,
-cross-repo drift, misplaced detail, and units redefined mid-session. Finding a finished unit's
-doc updates here means the staging-time rule was missed — do the update, and tighten up.
-
-1. **Read**, for each project we touched this session: its **`CLAUDE.md`**, **every
-   `tasks/reference/*` doc**, and its **`README.md`**. (Scope to projects we touched — don't sweep
-   unrelated mounts.)
-2. **Reconcile against what happened this session** — new or changed code, decisions made, things
-   learned, conventions established, subsystems added or reshaped. Look for what's now **stale** (a
-   claim no longer true), **missing** (a decision/subsystem/convention not written down), or
-   **misplaced** (detail bloating `CLAUDE.md` that belongs in a `tasks/reference/` doc; a finding
-   that should be promoted from a task).
-3. **Tell me the list** — what should change and why, grouped by file, concisely.
-4. **Then make the updates.** This is report-**and-do**, not report-and-wait — I've asked for the
-   pass, so apply the changes (keeping `CLAUDE.md` lean and pushing detail into `tasks/reference/`
-   per the convention above) and show me the diffs. Flag anything genuinely ambiguous for me to
-   decide rather than guessing.
-5. **Reconcile any touched repo's `CHANGELOG.md`** — `[Unreleased]` against everything since the last
-   tag (see "The changelog") — then **stage everything the session touched** (`git add` by path, per "Git: I commit, you don't —
-   but you DO stage"), including the doc updates from this sweep, so the session ends with the
-   work handed off rather than sitting loose in the working tree.
-6. **Blocked-task reminder.** If any touched project has `blocked` tasks (per "Blocked tasks"),
-   list them one line each with their `Blocked on:`, and remind me `/recheck-blocked` can test
-   whether their gate cleared. **Don't run the network re-checks yourself** — just surface that
-   they're there.
-
-Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
-updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
-`/audit-repo` does, but scoped to the always-read docs and triggered automatically at session end.)
+When I signal end-of-session, reconcile each touched project's always-read docs (`CLAUDE.md`, every
+`tasks/reference/*`, `README.md`) against what changed — flag stale/missing/misplaced, then **apply
+the updates** (keep `CLAUDE.md` lean, push detail to reference docs), reconcile any `CHANGELOG.md`
+`[Unreleased]`, and **stage everything**. **This sweep is a VERIFICATION NET** — each finished unit
+already shipped its doc deltas at staging time, so expect to find nothing from properly finished
+units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
+remind me of any `blocked` tasks (don't run their network re-checks yourself). Full checklist:
+`~/.claude/reference/reference-doc-conventions.md`.
 
 ## A project's README is commands-forward; prose belongs in reference docs
 
-**A README's job is to get me running, not to explain itself.** Keep it explicit and concise —
-**commands forward, rationale trimmed.** The happy path should read as a short, copy-pasteable
-sequence: ideally **few invocations** (prefer one wrapper / `make` target over five hand-run steps
-where combining them hides nothing I need to see), each labelled with the environment it runs in
-(`[HOST]` / `[CONTAINER]` / `[MAC]`, per "Host shell vs container shell") and a **one-line** "what it
-does" — not a paragraph.
-
-The prose-heavy material — *why* it works this way, design rationale, declined alternatives, deep
-mechanics, the reasoning behind a flag — **is worth keeping, but does not belong in the README.** Move
-it to a **reference doc** (`tasks/reference/<slug>.md`, per "Reference documents") and **link to it**
-from the README with a one-liner ("Design details: `tasks/reference/architecture.md`"). The README
-*points*; the reference doc *explains*. That keeps the README scannable for whoever just wants to run
-the thing, while the *why* stays discoverable — and lives in the place I actually re-read.
-
-- **Commands forward:** lead each step with the command block; put the one-line gloss after, not a
-  preamble before.
-- **Trim, don't delete:** a caveat that actually matters (a flag you MUST pass, a footgun that
-  silently corrupts the output) stays inline — condensed to a `>`-quote or a single bold clause — but
-  the *explanation* of why moves to the reference doc.
-- **This is the same split as "harvest durable knowledge into reference docs," applied to the README:**
-  task docs track the work, reference docs hold the *why*, the README holds the lean *how-to-run* and
-  links to the other two.
-
-**Worked example (William Emerison Six <billsix@gmail.com>, 2026-08-22).** runCrushInContainer's
-"Airgapped rebuild" README section had grown to ~58 lines — three actual steps buried under paragraphs
-explaining *why* the base image isn't vendored, *why* `hf` is flag-gated, and so on. Rewritten to ~41
-lines: three numbered steps, command blocks first, each critical warning condensed to a one-line
-`>`-quote, and the design rationale pushed into `tasks/reference/architecture.md` and linked. The
-README now answers "what do I type?" at a glance; the "why" is one hop away for whoever needs it.
+A README gets me running: **commands forward, rationale trimmed, few invocations** (prefer one
+wrapper/`make` target over many hand-run steps), each step labelled with where it runs
+(`[HOST]`/`[CONTAINER]`/`[MAC]`) + a one-line gloss. Prose-heavy *why* (design rationale, declined
+alternatives, deep mechanics, the reasoning behind a flag) moves to a reference doc, **linked** from
+the README. Trim, don't delete: a caveat that actually matters stays inline as a one-line `>`-note,
+its explanation in the reference doc. Worked example: `~/.claude/reference/communication-conventions.md`.
 
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
-**What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
-don't get so lost in the weeds that we forget our purpose and make bad decisions.** It is
-**not** a to-do queue and **not** a priority list. It is a breadcrumb trail of diversions.
-
-**Read it from the BOTTOM up.** The bottom entry is the *root purpose* — the thing we
-actually set out to do. Each entry above it is a diversion from the one below. The chain
-from bottom to top is the story of how we got where we are:
-
-```
-  write doctests                     <- BOTTOM = why we're here at all
-   └ diverted to: dangling includes
-      └ diverted to: gacalc markers
-         └ diverted to: marker ID naming   <- TOP = the weeds we're currently in
-```
-
-**The failure it prevents:** on 2026-07-19 we went doctests → main guards → a layout move
-→ dangling includes → markers → SHA1 ID design, and were making cross-repo architecture
-decisions while the original ask (write doctests) sat untouched five levels down. Nobody
-could *see* that descent, so nobody questioned whether it was worth it.
-
-`tasks/*.md` records **the work**. This trail records **the descent** — how each thing we
-are on relates to the purpose beneath it. A trail entry *points* at a task doc, never
-duplicates one.
-
-- **`/stack-push <what we're diverting to>`** — before chasing the new thing, push the
-  current one. Records repo, task doc, **a concrete `resume with` action**, and **every
-  unanswered question, verbatim**.
-- **`/stack`** — read-only. Shows the stack top-first, verifies each entry still matches
-  reality, and says what the top item means we should be doing *now*.
-- **`/stack-pop`** — finished. Verifies it really is finished, archives the task doc, then
-  **properly resumes** the entry underneath — restating its next action and **re-asking its
-  open questions with both positions named**, since they may be many messages back.
-- **`/stack-drop [n]`** — decided *not* to do it. Deliberately separate from pop: it always
-  confirms, and it records *why*, because a dropped item with no reason gets re-proposed
-  and re-investigated from scratch.
-
-The stack lives at `~/.claude/stack.md` and is **global, not per-repo** — diversions cross
-repos routinely (a book change in one repo turning into a generator change in another). It is
-**`@`-imported into every session** (see *Auto-imported references*), so its current contents
-are always in your context — you are never relying on *remembering* to open it. That makes
-keeping it current non-optional: the stack is right in front of you, so a stale stack is a
-visible failure, not a hidden one.
-
-**I do NOT manage this stack — you do. That is the whole point (Bill, 2026-07-19: "I
-don't want to have to remember those as commands").** The slash commands exist as manual
-overrides for when I explicitly want to poke the stack, but the default is that **you keep
-it current on your own, without being told**, as a normal part of how you work. Treat the
-four operations below as things you *do*, not commands you wait for me to type:
-
-- **Push, when a diversion is actually happening.** The moment we leave the current thread
-  for something discovered mid-work — I ask about something you found while verifying, a
-  "quick check" turns into its own investigation, a new problem is chosen — **push the
-  current work first, then follow the new thread.** Do it silently as bookkeeping; a brief
-  "(pushed X onto the stack)" line is enough. Do not ask permission to push.
-- **Pop, when something is finished.** When work completes, archive its task doc and pop
-  it **on your own**, then resume and properly restate whatever is now on top. Don't leave
-  a done item sitting on the stack for me to notice.
-- **Drop, only with my say-so.** Discarding an entry we won't do is the one operation that
-  loses work, so this one you *do* confirm with me — but you still initiate it (notice the
-  entry is dead and propose dropping it), rather than waiting for a command.
-- **Surface it yourself, and reconcile at session start.** The auto-imported stack is in
-  your context from the first message, so **at session start, check it against reality and
-  reconcile it before doing other work** — if the "live thread" it names is not what we're
-  actually doing (a prior session's thread, say), fix it (push the real current thread, move
-  the stale one to a paused/deferred section) and say so briefly. Likewise, whenever the
-  conversation has **drifted off the top item**, **say so unprompted** — "note: the top of the
-  stack is X, but we've been on Y for a while." Catching that drift is your job, not mine; the
-  stack is useless if I have to remember to ask.
-
-**The point is depth-awareness, not "what to do now."** The trail's job is to keep the
-root purpose in view, so the guidance is:
-
-- **The most valuable line is the BOTTOM one.** When surfacing the trail, always restate
-  the root purpose and the depth ("we're 4 diversions deep; the reason we started was
-  X"). That single line is what stops us rabbit-holing.
-- **Check the current micro-decision against the root — especially before deciding.**
-  Before I ask the user to arbitrate some deep-in-the-weeds choice, look down the trail and
-  ask out loud: *does this still serve the thing at the bottom, or have we lost the
-  plot?* If a diversion has grown out of proportion to the purpose it was meant to serve,
-  **say so** — "this started as 'write doctests' and has become a cross-repo checksum
-  design; is that worth it?" That sentence is the entire reason this trail exists.
-- **When recommending a next action, prefer the entry closest to the ROOT that is
-  actionable** — climbing back *down* toward the purpose, not deeper into the newest
-  tangent. Phrase it as a recommendation, never a present-tense fact, and give **one**
-  recommendation, not a menu (that hands the user the sorting the trail is meant to do for
-  him). I got this exactly wrong on 2026-07-19: asserted "what we should be doing now:
-  <newest tangent>", then contradicted it, then handed the user a list to arbitrate.
-
-**Two things must survive a push:** the concrete next action, and the unanswered
-questions, verbatim. A vague "continue the doctest work" is a failed entry; so is one that
-drops a question I never answered.
-
-**When in doubt, err toward pushing.** An extra stack entry costs a few lines; a lost
-thread costs a whole investigation redone. If you are unsure whether a tangent is big
-enough to push, push it.
+A **global (cross-repo)** breadcrumb trail of diversions at `~/.claude/stack.md` (`@`-imported every
+session), read **bottom-up**: the bottom entry is the root purpose, each entry above is a diversion
+from the one below. It is a depth gauge, **not** a to-do list. **You keep it current yourself,
+unprompted:** push the current work before chasing something discovered mid-task (do it silently;
+two things must survive a push — the concrete next action and every unanswered question verbatim),
+pop when done, drop only with my say-so (recording why), reconcile at session start, and **surface
+drift unprompted** ("we're 4 diversions deep; the root purpose was X"). When a deep choice comes up,
+check it against the root and say so if the tangent has grown out of proportion. Slash commands
+(`/stack-push`, `/stack`, `/stack-pop`, `/stack-drop`) are manual overrides. Full rationale +
+mechanics: `~/.claude/reference/diversion-stack-and-scope.md`.
 
 ## Repo audits
-
-For getting (re)acquainted with a project, or checking whether its docs still match its code:
 
 - `/audit-repo` — full read of the current repo, cross-referencing the docs (CLAUDE.md, README, task docs) against the actual source to surface stale claims, undocumented features, and internal inconsistencies. **Read-only** — it reports findings and stops.
 - `/findings-to-tasks` — turn those findings (or any list of discussion items) into in-depth task docs under `tasks/`, one per item, each `proposed — needs go-ahead`.
 
 ## Open-issues sections in project docs
 
-When a project's `CLAUDE.md` or `README` keeps an "open issues" / "known issues" list, it should contain only **genuinely open** items. When an issue is resolved, **remove it** — don't leave it struck-through or annotated "resolved/fixed". A new developer reading an open-issues list shouldn't have to wade through things that are no longer issues; the resolution history already lives in git and in archived task docs, not in the live list. (This applies specifically to *open-issues* lists; a curated changelog or "resolved" section that exists on purpose is fine.)
+An "open/known issues" list in a `CLAUDE.md` or `README` holds only **genuinely open** items —
+when one is resolved, **remove it** (don't leave it struck-through/annotated "resolved"); the
+history lives in git and archived tasks. A curated changelog or deliberate "resolved" section is
+fine. (See `~/.claude/reference/task-doc-conventions.md`.)
 
 ## Multi-repo sessions
 
@@ -1179,302 +511,163 @@ This container often has more than one repo bind-mounted at top-level paths like
 
 At session start, scan top-level directories at `/`. A directory is a project mount if it contains either `.git/` or `CLAUDE.md`. Skip these system paths: `/bin`, `/boot`, `/dev`, `/etc`, `/home`, `/lib`, `/lib64`, `/media`, `/mnt`, `/opt`, `/proc`, `/root`, `/run`, `/sbin`, `/srv`, `/sys`, `/tmp`, `/usr`, `/var`.
 
-For each mount found, read its `CLAUDE.md` if present and apply those rules when working in that repo. Also check each for in-flight items under `tasks/` (per the convention above). Don't announce the scan unless I ask — just internalize each repo's conventions so you behave correctly when I reference paths in any of them.
-
-If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
+For each mount found, read its `CLAUDE.md` if present and apply those rules when working in that repo. Also check each for in-flight items under `tasks/` (per the convention above). Don't announce the scan unless I ask — just internalize each repo's conventions so you behave correctly when I reference paths in any of them. If a `CLAUDE.md` in one repo contradicts the rules here or in another mounted repo, the repo-local file wins **for work inside that repo only**.
 
 ### Reference projects by their canonical URL in committed docs, not the container path
 
-My projects are **local git checkouts** bind-mounted at container paths
-(`/foo/opt/<name>`, `/mnt/sda1/<name>`, etc.); those paths exist **only inside this
-sandbox** and are meaningless to anyone reading the docs elsewhere. Referring to a
-project by its local path in conversation is fine.
-
-But **in anything committed or shared** — a `README.md`, `CLAUDE.md`, a task or
-`tasks/reference/` doc, a code comment, a commit/PR body — **use the project's canonical
-remote URL, not the container-absolute path**, so a reader knows where the source lives.
-**Read the URL from the appropriate git remote rather than guessing it from the directory
-name** (a mount's directory name can differ from the repo name), and **if you can't
-confirm it, ask rather than inventing one.** Which remote to read, and the specific
-project → URL mapping, are personal — see `ai-coding-conventions.personal.md`.
+My projects are local git checkouts bind-mounted at container paths (`/foo/opt/<name>`, etc.) that
+exist **only inside this sandbox**. In conversation the local path is fine; **in anything committed
+or shared** (README, CLAUDE.md, task/reference doc, code comment, commit/PR body) **use the
+project's canonical remote URL, read from the appropriate git remote — and if you can't confirm it,
+ask rather than invent one** (a mount's directory name can differ from the repo name). Which remote
+to read and the project → URL mapping are personal — see `ai-coding-conventions.personal.md`.
 
 ## My project layout (the container-per-project template)
 
-Most of my projects share one container-per-project template (a Fedora + Podman
-ephemeral-container dev environment: a `Dockerfile`, a `Makefile` of `podman run --rm`
-targets, and `entrypoint/` scripts). When a new project is mounted, use that template as
-a **conformance reference** — flag accidental drift (stale copy-paste, wrong paths,
-missing targets), while deliberate variation is fine. The detailed tier-by-tier spec and
-the per-project examples are personal — see `ai-coding-conventions.personal.md`; per-project specifics also
-belong in that project's own `CLAUDE.md`.
+Most of my projects share one container-per-project template (Fedora + Podman
+ephemeral-container: a `Dockerfile`, a `Makefile` of `podman run --rm` targets, `entrypoint/`
+scripts). When a new project is mounted, use it as a **conformance reference** — flag accidental
+drift (stale copy-paste, wrong paths, missing targets); deliberate variation is fine. The
+tier-by-tier spec and per-project examples are personal (`ai-coding-conventions.personal.md`);
+per-project specifics belong in that project's own `CLAUDE.md`.
 
 ## Running projects in a nested container
 
-I run inside a Podman sandbox (the `runClaudeInContainer` / `claudecontainer` image). Most of my projects build and run *themselves* in a container — usually via a `Makefile` target (`make run`, `make shell`, `make test`, `make image`) wrapping a `podman run` / `docker run`. I can run those **nested** inside this sandbox, but there are two things to get right. Don't assume a project's container command works as-is; apply these.
-
-**1. Assume nested support is present — act on it, verify only if a run errors.** Nested podman needs `make shell NESTED_PODMAN=1` at launch, but **default to assuming it's on and just run the nested command** (the PODMAN_RUN_FLAGS convention, point 2, handles the cgroups flag) rather than pre-checking every time — the pre-check is noise, and the run itself is the real test. The `NESTED_PODMAN=1` set at that outermost launch is exported into the session and inherited by every nested `make` through its `NESTED_PODMAN ?= 0` (make's `?=` respects an env value), so you run **plain** `make image` / `make test` / `make shell` for a nested project — **never pass `NESTED_PODMAN=1` on a downstream command**; that flag belongs only on the outermost host launch, which is the user's to run. **Only if a nested run actually fails** do you diagnose:
-
-```sh
-test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no nested — relaunch with NESTED_PODMAN=1"
-```
-
-`/dev/fuse` is the tell: absent ⇒ plain `make shell`, nested won't work — then tell the user to relaunch the sandbox from the `runClaudeInContainer` repo with **`make shell NESTED_PODMAN=1`** (I can't add those flags from inside an already-running container).
-
-**2. `--cgroups=disabled` on inner runs — now handled by the `PODMAN_RUN_FLAGS` convention (2026-08-29).** Historically the sandbox's `/sys/fs/cgroup` was read-only and every inner `podman run` died without `--cgroups=disabled`; on the current host stack cgroup2 mounts rw and flagless inner runs work, but the flag stays as harmless belt-and-braces. The standing convention: a `NESTED_PODMAN=1` sandbox **exports `NESTED_PODMAN=1` into the session**, and each converted project Makefile carries `PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` threaded into every `$(CONTAINER_CMD) run` line (never `build` — podman build rejects the flag and doesn't need it) — so `make test`/`make run` Just Work nested, and on the host (env var absent) behave byte-identically. **Converting an unconverted project's Makefile to this pattern is pre-authorized** (it is the permanent-passthrough idiom the personal overlay already blesses); for one-off runs in unconverted projects, appending the flag to a hand-run `podman run` remains fine. Full design + rollout status: runClaudeInContainer `tasks/reference/nested-podman-design.md` ("The PODMAN_RUN_FLAGS convention").
-
-**3. Lean-image-when-nested applies to the DOWNSTREAM project you build, never the sandbox you're in.** Some downstream project Makefiles also default an optional *build* flag lean when `NESTED_PODMAN=1` (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`) so a nested `make image` fits the RAM store — correct, because the agent *builds those projects nested*. **Never apply it to runClaudeInContainer or the runCrushInContainer client themselves**: they are built on the host and merely *launched* nested, so keying their image content off the launch flag silently downgrades them (the runCrush client did exactly that and reverted 2026-09-12 — runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`).
-
-**Any standing authorizations for nested runs are personal — see `ai-coding-conventions.personal.md`** (e.g. a
-blanket pre-approval to add `--cgroups=disabled` transiently, or to make temporary
-build-file additions a task needs). Absent such a grant, the default holds: propose the
-edit and wait for the go-ahead, per point 2 above.
-
-**Other specifics:**
-- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (Bill, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
-  ```sh
-  Xvfb :99 -screen 0 1280x800x24 &
-  podman run --rm --cgroups=disabled -e DISPLAY=:99 \
-      -v /tmp/.X11-unix:/tmp/.X11-unix -v "$(pwd)":/proj:Z <image> …
-  ```
-  Software GL works through this (glfw reports `4.6 (Compatibility Profile) Mesa`), so real GL demos render. Then **verify pixels, not just exit codes**: a GUI app that doesn't crash may still be drawing nothing. `import -display :99 -window root shot.png`, then check unique-colour count / non-black fraction, and *look at the PNG*. A long-running demo has no exit code worth reading — wrap it in `timeout N` and treat rc=124 as "ran the full duration", with a screenshot as the actual evidence.
-- **If a project's editable install is broken, `-e PYTHONPATH=/proj/src` gets you running anyway** — don't let a packaging bug block behavioural verification. (mvp's `loadpackages.sh` currently fails on a missing `setuptools` build dep; the demos still run fine with PYTHONPATH set.)
-- **`:Z` on EXTRA_MOUNTS poisons repos for host-side `make shell`.** The sandbox runs `--security-opt label=disable`, so a `:Z` project mount at sandbox launch relabels the whole repo to `container_file_t:s0:c1022,c1023` — which a normal *confined* container (the project's own `make shell`) cannot read, and its `:Z` won't relabel away. Symptom: `cd /<project>: Permission denied` inside the project container while the sandbox is (or was) up. Host-side fix: `sudo restorecon -R <repo>`; prevention: use `:z` or no label flag on EXTRA_MOUNTS entries (the label-disabled sandbox doesn't need `:Z` at all). Diagnosed 2026-07-07 (spimulator).
-- **Networking just works** — default bridged/netavark networking is verified (an inner `apt update` / package pull reaches the network). No `--network` flag needed. If a run ever dies on `netavark: set sysctl ... Read-only file system`, `--network=host` is a working fallback.
-- **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.
-- **Inner image store is ephemeral** (tmpfs) — pulled/built images don't survive the session; expect re-pulls.
-- **Manage inner images by RAM pressure, not eagerly.** The store is a small **RAM-backed** tmpfs (`/var/lib/containers`, sized by `NESTED_PODMAN_TMPFS_SIZE`, **default 8g**), so every pulled/built image costs real memory. **Don't** `rmi` an image the moment you're done with it — keeping it avoids an expensive rebuild if you need it again this session. Instead, **before building or pulling a new image**, estimate its size (a Fedora/full-toolchain image is multiple GB; a slim base is hundreds of MB) and check headroom with `df -h /var/lib/containers`. Only if there isn't enough room, **evict** — `podman rmi` an existing image that seems unlikely to be needed again soon (and `podman image prune -f` for dangling layers) to make space. (`--rm` removes the *container*; the *image* persists until you `rmi` it.) The goal is fewest rebuilds within the RAM budget, not a clean store. Also: when validating in a throwaway image, install the baseline tools your check depends on first — a minimal base (e.g. `ubuntu:24.04`) ships no `python3`, which can make a check *silently pass*.
-- **Storage is fuse-overlayfs**; `podman info --format '{{.Store.GraphDriverName}}'` reports `overlay` driven by it.
-- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.
+Most of my projects build/run *themselves* in a container (a `Makefile` target wrapping `podman
+run`); you can run those **nested** inside this sandbox. **Assume nested support is present and just
+run the plain nested command** (`make image`/`make test`/`make shell`) — the sandbox exports
+`NESTED_PODMAN=1` into the session and each converted Makefile's `PODMAN_RUN_FLAGS` auto-applies
+`--cgroups=disabled`; **never pass `NESTED_PODMAN=1` on a downstream command** (it belongs only on
+the outermost host launch, which is the user's to run). Verify only **if a run errors**
+(`/dev/fuse` absent ⇒ tell me to relaunch with `make shell NESTED_PODMAN=1`). Converting an
+unconverted project's Makefile to `PODMAN_RUN_FLAGS` is pre-authorized; lean-image-when-nested
+applies to the **downstream** project, never to the sandboxes themselves. Standing nested-run
+authorizations are personal (`ai-coding-conventions.personal.md`). Full specifics — the headless
+Xvfb/screenshot recipe, PYTHONPATH escape hatch, `:Z`-poisons-repos, RAM store management,
+networking — in `~/.claude/reference/nested-run-and-gates.md`; flag design/lore in
+`~/.claude/reference/nested-podman-design.md`.
 
 ## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
 
-**In this sandbox my Bash tool executes each command through the user's interactive
-login shell, which is `zsh`, not `bash`** — a wrong assumption I keep making, then
-watching commands fail with `zsh`-flavoured errors (`parse error near 'head'`,
-`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (Bill flagged it
-2026-08-14: "why do you keep running zsh instead of bash?"):
-
-- **Unquoted globs error instead of passing through.** `ls *.md` with no match is a
-  hard `no matches found` error under zsh's default `nomatch`, where bash would pass
-  the literal `*.md` on. Same for `grep [^a-z]` / `foo|bar` in an unquoted arg — zsh
-  parses the `[...]`/`|` as glob/pipe syntax before the tool sees them.
-- **`(eval):N:` and `parse error near '<word>'` in the output** are the tell that
-  zsh, not bash, parsed the line — so a heredoc/process-substitution/`[[ ]]` construct
-  written for bash tripped a zsh parsing difference.
-
-**The fix — wrap any command that uses shell patterns, bashisms, or multi-line
-constructs in `bash -c '…'`:**
-
-```sh
-bash -c 'grep -rnE "foo|bar" src --include="*.md" | head'
-```
-
-The single-quoted `bash -c` body is handed to bash verbatim, so globs, `[...]`,
-`|`, `[[ ]]`, `for`/`done`, and heredocs all behave as written. **A bare, simple
-command (`git status`, `ls`, a single tool with quoted args) is fine as-is** — reach
-for `bash -c` specifically when the line contains a glob, a character class, a pipe
-inside an argument, or bash-only syntax. (This is about the *interactive login shell
-the tool wraps*, which is host-configurable; don't assume it's bash on any machine.)
+My Bash tool runs each command through the user's interactive login shell, **`zsh`, not `bash`**, so
+unquoted globs error (`no matches found`), and `[...]`/`|`/`[[ ]]`/heredocs can trip zsh parsing
+(`(eval):N:`, `parse error near '<word>'`). **Fix: wrap any command using shell patterns, bashisms,
+or multi-line constructs in `bash -c '…'`** (single-quoted body handed to bash verbatim). A bare
+simple command (`git status`, `ls`, a single tool with quoted args) is fine as-is. Symptoms +
+detail: `~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Verification gates in nested containers
 
-When nested podman is available, "done" for a code change means **the project's own containerized gate passed** — the `make image` / `make test` / `make dist` target that repo's CLAUDE.md names as its gate — not merely an in-sandbox build and unit-test run. Build the nested container and run the real gate before calling a change verified.
-
-- **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke the user's plain `make image` inside the tree-sitter keyword pipeline.)
-- **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what the user actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.
+When nested podman is available, "done" for a code change means **the project's own containerized
+gate passed** (`make image`/`test`/`dist` — whatever its CLAUDE.md names), not just an in-sandbox
+build. **Flag coverage is part of the gate:** trimming a feature flag to speed it up is legitimate
+only when the diff can't affect the trimmed paths — if the change touches an input a flag-gated
+feature consumes, that flag must be ON. **Before ending a session, run one gate with the repo's
+default flags** (or say which flag-gated paths went unexercised). Incident + detail:
+`~/.claude/reference/nested-run-and-gates.md`.
 
 ## A multi-step check script must propagate every step's failure
 
-**The design intent of `format.sh` (and any `make format` / `lint` / `check` target
-that chains tools) is "run EVERY step, so one pass reports ALL the red" — deliberately
-not fail-fast.** But a plain command sequence in a shell script exits with the **last
-command's status alone**, so `make` reports green whenever the final step passes,
-silently masking every earlier failure. This is not hypothetical; it has bitten twice:
-
-- **mvp, 2026-07-09:** 79 `ty` diagnostics in `src/` hid for weeks behind a green
-  format gate (the final `ty check` in the sequence happened to pass).
-- **gacalc, 2026-07-29:** 3 `ty` errors were printed mid-output, then the last step
-  (`ty check tools`) printed its own "All checks passed!" and `make format` exited 0 —
-  the error report and the green verdict in the same scroll, and the gate was trusted
-  over the scroll.
-
-**The required shape — both properties at once** (every step still runs; any failure
-fails the script):
-
-```bash
-status=0
-ruff check . --fix       || status=1
-ruff format              || status=1
-ty check src             || status=1
-ty check tests           || status=1
-exit $status
-```
-
-(mvp's variant wraps this in a `run() { "$@" || status=1; }` helper — same thing.)
-
-- **`set -e` is the WRONG fix** — it makes the script fail-*fast*, losing the
-  report-everything property the multi-step design exists for. Accumulate, don't abort.
-- **Loops need it per-iteration**: `for f in …; do clang-format -i "$f" || status=1;
-  done` — a bare loop's exit is its last iteration's (this was gltron's flaw).
-- **Safe by shape, no change needed:** a single-command script (its exit *is* the
-  gate), and `find … -print0 | xargs -0 tool` (xargs exits 123 if any invocation
-  failed — spimulator/texExpToPng's shape).
-- **When writing or reviewing ANY gate script, check the exit-code story first:**
-  "if step 1 fails and the last step passes, what does `make` see?" And don't trust a
-  green gate over an error-bearing scroll — the 2026-07-29 case printed both.
-- Audit of all mounted repos (2026-07-29): mvp was already correct; **gacalc, hanoi,
-  multivariate-math, gltron fixed**; spimulator/texExpToPng safe by shape; the rest
-  have no format script.
+A `format`/`lint`/`check` script that chains tools must run **every** step (report all the red) yet
+fail if **any** failed — a plain sequence exits with only the last command's status, silently
+masking earlier failures. Required shape: `status=0; cmd || status=1; … exit $status`
+(per-iteration in loops). **`set -e` is the WRONG fix** (fail-fast loses the report-everything
+property). Safe by shape: a single-command script, or `find … -print0 | xargs -0 tool`. Incidents +
+the code shape: `~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Rewriting a script's contents drops its executable bit — restore it
 
-`Write` (and any full-file rewrite) creates the file at mode 644, so **rewriting a committed
-script silently strips its `+x`** — even a content-only pass like adding a license/SPDX header
-or reflowing comments. A script **invoked directly** then fails at the point of use, not at edit
-time: a Dockerfile `RUN /usr/local/bin/foo.sh`, a `./script.sh`, a Makefile recipe naming the
-file by path — all die with `Permission denied`. Scripts invoked as `bash foo.sh` survive, which
-is exactly why this is easy to miss: some callers keep working while the build-critical one
-breaks, often several commits later.
-
-- **After editing any script — especially a bulk header/format pass over several — check the
-  modes and restore the bit in the same change.** `git diff --stat` shows a `mode change 100755
-  => 100644` line; `git ls-files -s -- '*.sh'` prints each tracked mode. Restore with `chmod +x
-  <paths> && git add --chmod=+x <paths>` (the `--chmod=+x` fixes git's mode even when the
-  working-tree bit is already correct).
-- **This bit me (runCrushInContainer, 2026-08-25):** an "add Apache SPDX headers" pass rewrote
-  six entrypoint scripts `100755 → 100644`; the Dockerfile invokes two directly
-  (`01-install-base.sh`, `02-install-vendor-tools.sh`), so the next `make image` failed with
-  `Permission denied` — the header edit and the build break were four commits apart.
+`Write` (any full-file rewrite) creates mode 644, so rewriting a committed script strips its `+x` —
+even a content-only pass. A script **invoked directly** (a Dockerfile `RUN /path/foo.sh`, a Makefile
+recipe by path) then dies with `Permission denied`, often commits later; ones invoked as `bash
+foo.sh` survive, which is why it's easy to miss. **After editing any script, check the modes and
+restore in the same change:** `git ls-files -s -- '*.sh'`, then `chmod +x <paths> && git add
+--chmod=+x <paths>`. Incident: `~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Write format/check scripts to run BOTH in the container AND on the host from the repo root
 
-**A `format.sh` (or `lint.sh` / any `make format` gate script) should be PORTABLE — runnable
-inside the container *and* on the host from the repo root — so I can format without spinning a
-container (Bill, 2026-08-14).** Exactly two things make a format script container-only; avoid
-both:
-
-1. **An unguarded `source /venv/bin/activate`.** On the host there is no `/venv`, so the bare
-   `source` errors. **Guard it:** `[ -f /venv/bin/activate ] && source /venv/bin/activate` —
-   activates the container venv when present, otherwise uses the caller's active env.
-2. **Absolute container tool paths** (`ty check /<proj>/src`, `/venv/bin/...`) — they only
-   resolve at the container mount path. **Use RELATIVE paths for every step** (`ruff check src`,
-   `ty check src`, `ty check tests`) and let the CALLER `cd` to the repo root. Then the script
-   runs identically from `cd /<proj> && format.sh` (in-container) and `cd <repo> && format.sh`
-   (host). **Trap the mvp exit hook hit:** a per-subdir `cd /<proj>/src && format.sh` makes the
-   script's own relative `ruff check src` resolve to `src/src` and fail — the shell-exit hook
-   must be a SINGLE `cd /<proj>/ && format.sh` from the root, not one call per subdir.
-3. **A hardcoded `cd /<proj>` INSIDE the script** — some scripts self-`cd` (needed in-container,
-   e.g. a C/C++ `find . … | xargs clang-format` that must run from the repo root). **Guard it** so
-   it no-ops on the host: `[ -d /<proj> ] && cd /<proj>` — replacing `cd /<proj> || exit 1` (which
-   hard-*exits* on the host, dir absent) or a bare `cd /<proj>` (which silently runs in the WRONG
-   directory on the host). In-container it `cd`s correctly; on the host it stays at the repo root
-   you invoked from. This is the alternative to rule 2's "no `cd`, caller `cd`s": a portable script
-   either has **no `cd`** (mvp/gacalc — the caller/exit-hook `cd`s) **or guards its `cd`** (the C/C++
-   repos, whose `find .` needs the root).
-
-The host run still needs the package importable in the caller's env for the type-checker step
-(editable install + deps); a portable script does not *set that up*, it just does not hardcode
-container paths that *fight* it. Worked example + the 2026-08-14 cross-repo sweep that applied all
-three rules: mvp `entrypoint/format.sh` (guarded venv + all-relative `ty check` paths, was absolute
-`/mvp/...`) and gltron were already portable; **gacalc** got rules 1+2 (guard venv, relative `ty
-check src/tests/tools`); **hanoi / multivariate-math / spimulator / texExpToPng** got rule 3 (`[ -d
-/<proj> ] && cd /<proj>`), and mvm also needed the venv guard. Pairs with the exit-status rule
-above: a good gate script both propagates every step's failure AND runs anywhere from the root.
+A `format.sh`/gate script should be **portable** — runnable in-container and on the host from the
+repo root. Avoid the two things that make it container-only: **(1)** an unguarded `source
+/venv/bin/activate` (guard it: `[ -f /venv/bin/activate ] && source …`); **(2)** absolute container
+tool paths (use RELATIVE paths and let the caller `cd` to the root) — or **(3)** guard a
+hardcoded self-`cd` so it no-ops on the host (`[ -d /<proj> ] && cd /<proj>`, not `cd /<proj> || exit
+1`). The host run still needs the package importable for the type-checker step. Rules + the
+cross-repo sweep: `~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Instrumentation-driven debugging (make the tools tell you what to do)
 
-This is the working method the user wants applied to any "I can't figure out why this won't work / where to even start" problem — build fights, upgrades, ports, migrations, flaky behavior, unfamiliar codebases. It's language- and tool-agnostic; the examples below are just whatever tool happens to be in front of you. The through-line: **make the machine tell you the truth, and make being wrong cheap.** Don't reason abstractly about what's probably wrong — instrument it so the tools *emit* the answer, then let their output *be* the plan.
-
-- **The tool is the oracle, not your intuition.** Whatever tool sits closest to the problem — compiler, linker, type checker, linter, test runner, the program's own logs/stderr/exit code, `strace`/`ltrace`, a profiler, `git bisect` — is a source of precise, free, location-attached to-do items. Your job is mostly to *run the right probe and listen in the right order*, not to theorize. Prefer an experiment that makes the tool speak over an argument about what it would probably say.
-- **Collect the whole truth, not the first casualty.** Most tools stop at the first failure and lie about scale. Force them to keep going and report everything — keep-going/max-errors modes, "run the whole suite not fail-fast," full-output not summary — then **categorize by failure-class × count × location.** That reframing is most of the value: it turns a vague dread ("this whole thing is broken / too old to fix") into *N failures, 2 classes that matter, most of them in one place* — a checklist with a denominator you can watch shrink.
-- **Change one variable at a time.** Toggle a single flag / version / config / input per probe. When each probe isolates one dimension, the result attributes its own cause. **Throwaway containers are what make this cheap:** each `podman run --rm` is a clean, disposable universe where you can be wrong with zero blast radius and perfect reproducibility — copy the inputs in, work out-of-tree, and capture logs to a **mounted** path (anything written only *inside* the container dies with it; mount `-v scratch:/out` and write there). Reach for a fresh container the moment "did my environment change?" becomes a question.
-- **To prove a refactor changed nothing, DERIVE the "before" mechanically — never hand-transcribe it.** When verifying that a migration is behaviour-preserving, the instinct is to write a reference implementation of the old code from reading it. That is a bug factory: I did it for a `np.matrix`→`np.ndarray` migration (mvp, 2026-07-18), fat-fingered a sign in one transcribed formula, and got a 14.5-unit "regression" that was entirely my own reference being wrong. Instead, **take the current source and mechanically revert only the one thing that changed** (`src.replace("np.array(", "np.matrix(")`), load it as a second module (`exec(compile(old_src, …), mod.__dict__)`), run the *same* driver against both, and diff the outputs. Same source, one variable, zero transcription — the honest answer came back `0.0` on every output. Generalizes to any language where you can build the old artifact from the new tree: check out the parent commit into a worktree, build both, diff the outputs.
-- **Separate "make it work" from "make it right," on purpose.** First reach a known-good baseline with the *least invasive* crutches (suppressions, pinned versions, disabled features), so you have something that runs and a fixed point to diff against. Then remove the crutches *as the actual work*, one class at a time. Conflating the two is how you get stuck — you can't improve what you can't first run, and you can't tell a real fix from a lucky one without a baseline to compare to.
-- **Move the wall, and log every wall.** Each fix uncovers the next failure; treat the problem as a sequence of walls and write each one down (the running findings log in the task doc) with the exact change that got past it. The path becomes reproducible and the "why" survives into the next session.
-- **Two gates per change, never one.** Every step gets a **regression** check (does the known-good baseline still pass?) *and* a **progress** metric (did the target failure count drop?). Green-but-no-progress and progress-but-broken are both failures; watching only one hides the other.
-- **Instrument the artifact, not just the build.** The same reflex applies once it compiles/starts: run it on a tiny known input (a one-line smoke test), diff actual output/exit code against expected, and bisect flags/inputs until a single variable explains the delta. When a symptom is opaque, find the *narrowest* invocation that reproduces it, then vary one thing at a time.
-
-The habit in one line: **turn an unknown into a measured list, isolate causes in disposable environments, fix by class while a metric and a regression gate both stay honest.**
-
-**The hand-instrumentation half — print/trace debugging.** The above is about tools as
-oracles; the complementary move is adding your own print/trace statements to watch control
-flow and values over time. The mechanics differ per language (emit to stderr, *flush* so a
-crash doesn't lose the last line, dump a compound value, tag with a grep-able `DBG` marker
-for clean removal). Correct per-language recipes — C, C++, Python, Java, Scheme, Haskell
-(`Debug.Trace` for pure code — the tricky one), Rust (`dbg!`), Go, shell (`set -x`) — plus
-the language-independent method are in **`~/.claude/reference/print-debugging.md`**, which
-is `@`-imported (see *Auto-imported references* below), so those recipes are already in
-context when you hand-instrument in an unfamiliar language.
+**Make the machine tell you the truth, and make being wrong cheap.** The tool closest to the problem
+(compiler, linter, type-checker, test runner, logs/stderr/exit code, `strace`, profiler,
+`git bisect`) is a precise, location-attached to-do list — run the right probe and listen, don't
+theorize. Collect the **whole** truth (keep-going mode, categorize by class × count × location),
+change **one variable at a time** in disposable containers, keep a **regression** check *and* a
+**progress** metric per step, and reach a known-good baseline before removing crutches by class. To
+prove a refactor changed nothing, **derive the "before" mechanically** (revert the one thing, diff
+outputs) — never hand-transcribe it. Full method + the hand-instrumentation (print/trace) per-language
+recipes: **`~/.claude/reference/print-debugging.md`** — read it **before** hand-instrumenting a bug
+in an unfamiliar language.
 
 ## Generating source code (any target language)
 
-When you write a **code generator** (a tool that *emits* source in some language), these are
-the durable, language-agnostic lessons — distilled from gacalc's `tools/gen_specialized.py`,
-(`github.com/billsix/geometricalgebra`), which moved from string concatenation to hand-built
-Python `ast` nodes → `ast.unparse` (2026-06-07; the A/B/C study is archived there at
-`tasks/archive/2026/06/07/codegen-via-python-ast.md`).
+When you write a **code generator**, prefer building **STRUCTURED output** (an AST + pretty-printer,
+a builder API — Python `ast` + `ast.unparse`) over concatenating strings: correct-by-construction,
+a whole bug class gone. The ergonomic sweet spot is **template-splice / quasiquote** (parse a snippet
+with holes, fill programmatically), between raw strings and hand-built nodes. Define "same output" as
+**equivalence** (structural `ast.dump` + behavioural test parity), not byte-identity; build a
+**parity harness first**, convert one emitter at a time; guard **run-to-run determinism** as a gate.
+Full lessons + the gacalc A/B/C study: `~/.claude/reference/codegen-conventions.md`.
 
-- **Prefer building STRUCTURED output over concatenating strings, when the target language
-  gives you the tools.** Python has `ast` + `ast.unparse`; many languages have an AST +
-  pretty-printer, a builder API, or at least a formatter. Structured emission is
-  **correct-by-construction**: the unparser cannot emit syntactically invalid code, and node
-  construction is validated (Python ≥3.13) — so a whole bug class disappears (mismatched
-  parens, bad indentation, trailing-comma slips). Concrete gacalc win: a fragile
-  regex-on-source rename *and* a real indentation/dedent bug both became **impossible** —
-  nodes carry structure, not whitespace, and the formatter owns layout.
-- **The spectrum, with the ergonomic sweet spot in the middle:** raw string concatenation →
-  **template-splice / quasiquote** (parse a code *snippet* with holes, fill them
-  programmatically — Python `ast.parse("self.X")` + a `NodeTransformer`; Lisp backquote; a
-  templating layer elsewhere) → **hand-built nodes** (no source text at all). Template-splice
-  reads like *writing code with holes* and is usually the best effort/clarity trade. Hand-built
-  nodes are maximal code-as-data purity but **verbose** (gacalc's Scalar class was ~260
-  node-lines vs ~140 as a template) with an AST-API learning curve — pick them only when
-  explicit code-as-data genuinely pays (a Lisp/metaprogramming mindset) or the structure earns
-  its keep. **Tell:** if your node-builder helper set starts to look like a quasiquote,
-  template-splice was the natural abstraction.
-- **Define "the output is the same" as EQUIVALENCE, not byte-identity.** An unparser/formatter
-  emits *canonical* form (its own parens, wrapping, no comments), so a rewrite is never
-  textually identical to hand-tuned output. Verify two ways instead: **(a) structural
-  equivalence** (e.g. `ast.dump` per file — same statements/expressions, formatting aside;
-  watch operand *order*, which IS part of the tree) and **(b) behavioural parity** (the full
-  test suite stays green). If someone insists on byte-identical, the only honest path is a
-  **one-time re-baseline** — regenerate, format, adopt *that* as canonical.
-- **Build a parity harness FIRST, then convert one emitter at a time.** Before touching the
-  generator, write the harness that runs old-vs-new into temp dirs, asserts equivalence, and
-  runs the suite — it is the safety net the whole rewrite leans on. Migrate incrementally (one
-  method/class emitter per step), re-running the harness each step, so a regression localizes
-  to the last change.
-- **Guard run-to-run determinism** (regenerate twice, assert byte-stable) as a permanent
-  make/CI gate — dict/set iteration order, timestamps, or `Math.random`-style nondeterminism
-  in a generator is a silent drift source.
-- **Comments and license headers can't live in an AST** — keep the file header (copyright +
-  imports + banner comments) as raw text prepended to the unparsed body; docstrings survive
-  (they're ordinary string statements).
-- **Not every layer benefits equally.** gacalc's *math* layer was already generated (sympy ran
-  the symbolic products); the AST rewrite barely helped it — only swapping a regex for a
-  NodeTransformer. The payoff was the *scaffolding* (classes, methods, dispatch). Spend the
-  effort where the string bookkeeping actually lives.
-- **Understandability ≠ line count.** The pure-node version was more verbose but *not* less
-  understandable for a metaprogramming mindset — explicit code-as-data, named/testable
-  builders, no two-language whitespace fragility. Judge a codegen style by whether a maintainer
-  can follow and safely edit it, not by how few lines it is.
+## Reference docs — read-on-demand at a trigger, plus the two that are auto-imported
 
-## Auto-imported references
+Claude Code inlines `@`-path references from this file at load, putting the target's *content* in
+context every session. That is the right default only for things that must be **present and current
+every session regardless of the task** — so only **two** are `@`-imported: the diversion stack and
+the personal overlay (below). The **topic** reference docs are **not** auto-imported — they would
+cost many thousands of tokens every session for material most sessions never touch. Each is instead
+**read-on-demand at a trigger**, so its cost is paid only when the topic actually comes up. To avoid
+the failure that first motivated auto-importing (2026-07-31: a passively-referenced catalog went
+unread), each trigger below is a **standing instruction — read the doc when the trigger fires**, not
+a passive "see also", and each doc's *everyday* essence is kept inline in its own section so the
+always-relevant part is never gated behind a lookup (William Emerison Six <billsix@gmail.com>,
+2026-09-14; this revised the 2026-08-13 "auto-import everything" approach once its cost was measured,
+then split the long single-CLAUDE.md rationale into the per-topic docs below):
 
-Claude Code inlines `@`-path references from this file into context at load (recursively, up
-to ~5 hops), so the referenced file's *content* is present every session rather than being
-something I have to remember to open. This is the deterministic fix for "CLAUDE.md tells me to
-read X but I skip it": the content is loaded by the harness, not by my choosing. All five
-reference docs are auto-imported. The overused-phrases catalog is always relevant; the three
-sandbox/config docs are small (~100 lines each) and broadly useful — nested-podman and the
-sandbox capability map come up whenever a project is built or run in a nested container,
-which happens across projects, not only when working on this repo. The print-debugging
-recipes (~160 lines) come up whenever a bug is hand-instrumented in an unfamiliar language —
-also across projects, and the moment they're needed is exactly when relying on *choosing* to
-open the file fails (William Emerison Six <billsix@gmail.com>, 2026-08-13). The earlier
-"bloat for no gain" concern didn't hold up in practice (Bill, 2026-08-02). All `@`-paths
-resolve in the container, where the Makefile mounts `tasks/reference/` to
-`~/.claude/reference/`.
+- **`~/.claude/reference/llm-overused-phrases.md`** — read for the ~15 alternatives / the rationale on
+  a specific offender. (The distilled list is inline in "Words and phrases you overuse".)
+- **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python, for
+  the ruff tiers and the naming/idiom judgment calls ruff can't check.
+- **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
+  line-length limit, handling an externally-defined name, extracting a function, or choosing total
+  dispatch (the "use your discretion" 80-column worked example lives here too).
+- **`~/.claude/reference/communication-conventions.md`** — read when writing a status update, asking a
+  decision question, creating a task with open questions, or shaping a README.
+- **`~/.claude/reference/git-workflow-conventions.md`** — read when staging finished work, or (if I've
+  authorized committing) for the quick-save/squash rhythm and the pre-squash harvest.
+- **`~/.claude/reference/task-doc-conventions.md`** — read when creating/archiving a task, scaffolding
+  step-tasks, or saving/promoting an ad-hoc script (also holds the open-issues rule).
+- **`~/.claude/reference/reference-doc-conventions.md`** — read when deciding task-vs-reference,
+  authoring a reference doc/set, documenting a pinned dependency, or running the session-end sweep.
+- **`~/.claude/reference/versioning-and-changelogs.md`** — read when comparing/listing versions,
+  bumping a version, or maintaining a `CHANGELOG.md`.
+- **`~/.claude/reference/codegen-conventions.md`** — read **before** writing a code generator.
+- **`~/.claude/reference/diversion-stack-and-scope.md`** — read when a task spawns a prerequisite, a
+  diversion is deepening, or you need the stack's full mechanics.
+- **`~/.claude/reference/nested-run-and-gates.md`** — read **before** building/running a project's
+  containers nested or calling a change verified; **`~/.claude/reference/nested-podman-design.md`** for
+  the flag design/lore and **`~/.claude/reference/minimal-nested-images.md`** for the RAM-store /
+  lean-image scope.
+- **`~/.claude/reference/sandbox-capability-map.md`** — read **before** concluding "the sandbox can't
+  do X," or when you need to know what tools/services/languages the image ships.
+- **`~/.claude/reference/shell-and-gate-scripts.md`** — read when writing/reviewing a gate or format
+  script, editing a committed script, or a Bash tool command fails with zsh-flavoured errors.
+- **`~/.claude/reference/print-debugging.md`** — read **before** hand-instrumenting a bug with
+  print/trace statements in an unfamiliar language (also holds the instrumentation-driven method).
+- **`~/.claude/reference/claude-config-layering.md`** — read when reasoning about or changing how
+  `~/.claude`, auth/login, sessions, or the mounts are assembled.
+- **`~/.claude/reference/bluf-bottom-line-up-front.md`** — read when writing a task's `## BLUF`.
+
+All these paths, and the two `@`-imports below, resolve in the container, where the Makefile mounts
+`tasks/reference/` to `~/.claude/reference/`.
 
 `@~/.claude/stack.md` imports the **global diversion stack** (see "The diversion trail" above),
 so its current contents are in context at the start of every session — you never have to
@@ -1492,10 +685,5 @@ default is blank; `make shell` mounts the host's `~/.ai-coding-conventions.perso
 conventions above stay portable while personal specifics layer in per-user. See
 `ai-coding-conventions.personal.example.md` and `FORKING.md`.
 
-@~/.claude/reference/llm-overused-phrases.md
-@~/.claude/reference/nested-podman-design.md
-@~/.claude/reference/sandbox-capability-map.md
-@~/.claude/reference/claude-config-layering.md
-@~/.claude/reference/print-debugging.md
 @~/.claude/stack.md
 @~/.claude/ai-coding-conventions.personal.md

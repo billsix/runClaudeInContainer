@@ -111,7 +111,7 @@ The run (`make shell`) mounts, on top of the image:
 - The repo-tracked `CLAUDE.md` and `commands/` from
   `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
   this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
-  `CLAUDE.md` `@`-imports into every session — the overused-words catalog plus the
+  `CLAUDE.md` cites **read-on-demand** at task triggers — the overused-words catalog plus the
   nested-podman, sandbox-capability-map, config-layering, and print-debugging docs). This keeps your
   conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the

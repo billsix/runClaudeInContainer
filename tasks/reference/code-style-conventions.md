@@ -1,0 +1,183 @@
+# Code-style conventions — rationale, examples, and worked cases
+
+**Reference document** — the full rationale and worked examples behind several
+language-agnostic code-style rules kept terse in the cross-project `CLAUDE.md`. Read on demand
+when the matching trigger fires. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.) For the
+Python-specific standard (ruff tiers + naming/idiom judgment calls) see
+`~/.claude/reference/python-coding-standard.md`.
+
+## Worked example — "use your discretion" enforcing an 80-column limit
+
+(The worked example from the `CLAUDE.md` "Use your discretion" section, relocated here
+2026-09-14 because it turns on line-length reflow; the rule itself stays inline in `CLAUDE.md`.)
+
+**Enforcing an 80-column limit (mvp, Python/ruff, 2026-07-18).** 78
+over-long lines, one instruction ("80 is good, I make a PDF of it; fix as much as
+possible with your discretion"):
+
+- **70 were prose** — comments and docstrings. Rewrapped automatically, no questions.
+  Handled RST bullet continuation indent and Sphinx `#:` markers so the rewrap didn't
+  corrupt structure.
+- **2 were `import a.b.c as name`** at 88 chars. Rewrote as `from a.b import name` —
+  identical binding, 71 chars. A different mechanism than wrapping, because wrapping an
+  import is ugly and this is just better.
+- **1 was an f-string.** Split with implicit concatenation, which cannot change the
+  runtime value.
+- **1 was a `//` comment inside a GLSL shader string.** Wrapping it would have pushed
+  half a comment onto a new line as *invalid GLSL* — the linter can't see that it's
+  shader source. Shortened the comment text instead.
+- **4 were a hand-aligned 4×4 matrix literal** in a book *about matrices*, already
+  carrying `# fmt: off` — the alignment IS the documentation. Left long with
+  `# noqa: E501` and a comment saying why. Reflowing would have been technically
+  compliant and actively worse.
+
+## Never orphan a word on its own comment line
+
+**Reflow the whole paragraph, not the offending line.** When a comment or docstring line
+is over the limit, re-wrap the entire contiguous paragraph as a unit. Fixing the single
+long line in isolation produces this, which I don't want:
+
+```python
+# stored ``steps`` field stay typed tuple[Step, ...] for readers while
+# the
+# constructor accepts the broader input.
+```
+
+A comment line holding one word or a short sentence fragment is always wrong. **This
+applies to every comment syntax I use** — `#`, `//`, `/* … */`, `;;`, `--`, `%`, `!` —
+and to doc comments (docstrings, doxygen `/** … */`, javadoc, `///` Rust doc comments)
+just the same.
+
+### Changing a line-length limit without causing that
+
+Language-agnostic; the tool names are examples.
+
+1. **Set the limit in config, in one place**, so the formatter and the linter agree.
+   `[tool.ruff] line-length` (governs both `ruff format` and E501), `ColumnLimit` in
+   `.clang-format`, `max_width` in `rustfmt.toml`, `printWidth` for prettier,
+   `max_line_length` in `.editorconfig`. Then **remove any per-invocation
+   `--line-length`-style flags** from format scripts so there's a single source of truth
+   — a formatter at 80 with a linter at 88 quietly lets new long lines land.
+2. **Run the formatter first.** It reflows *code* for free. Whatever survives is prose
+   and unbreakable tokens — that's the real work-list, and it's much smaller. Note which
+   side of the line your formatter sits on: `ruff format`/`black`/`gofmt` won't touch
+   comment prose at all, while `clang-format` *will* if `ReflowComments` is on — and if
+   it is, let it do the bulk and only hand-check what it leaves.
+3. **Fix the residue paragraph-wise, and do NOT try to automate it.** I tried; it doesn't
+   generalize. A "reflow every ragged paragraph" pass matched 87 paragraphs — mostly the
+   author's own deliberate line breaks in files the change never touched. Tightening the
+   heuristic still matched content that must never be joined into a paragraph. Use an
+   **explicit allowlist of paragraphs you have read**, and print before/after for each.
+4. **Things that look like prose but must not be reflowed** — check for every one before
+   touching a comment block. Language-independent: bulleted/numbered lists, key/controls
+   lists, section banner comments, **commented-out code**, license headers, ASCII diagrams
+   and tables, aligned literals (matrices, register/bitfield tables, enum value columns),
+   and math notation whose spacing carries meaning. Toolchain-specific: doc-extraction
+   markers that drive a build (`doc-region-begin/end`, doxygen `\brief`/`\param`, javadoc
+   tags, `//!` sections), literate/cell markers (jupytext `# %%`, org-mode `#+begin_src`),
+   and anything a preprocessor reads.
+5. **Watch for line structure that is syntactically load-bearing, not stylistic** — where
+   re-wrapping changes meaning rather than looks. C/C++ multi-line macros continued with
+   trailing `\` (moving the backslash breaks the macro); shell and Make line
+   continuations; Make recipe lines (leading TAB is significant); assembly, one
+   instruction per line; a `//` comment inside a string literal that is *source for
+   another language* (embedded GLSL/SQL/regex) — wrapping emits invalid code in that
+   inner language, and the linter can't see it. In these, shorten the text or restructure;
+   never just insert a newline.
+6. **Re-verify after**: linter clean, formatter idempotent (`--check` reports no changes),
+   and the code still builds — compile, don't just re-lint.
+
+The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
+surface only the judgment calls.
+
+## An externally-defined name always wins over a naming convention
+
+**If a name is dictated by something outside the code — a framework superclass method
+you're overriding, an interface/protocol member you're implementing, a callback
+signature, a magic name a library looks up — then the naming rules do not apply to it.**
+Renaming it doesn't make it tidier; it *unbinds* it and silently breaks the code. This
+is not a judgment call and it needs no case-by-case discussion: match the external name
+exactly, however ugly it is by house style.
+
+Language-agnostic. Examples: wxPython's `OnPaint` / `InitGL` / `OnInit`, Qt's
+`paintEvent`, `unittest`'s `setUp` / `tearDown`, Python dunders and protocol names
+(`__enter__`, `_repr_latex_`, `__post_init__`), a C callback whose signature is fixed by
+the API taking it, JNI's `Java_pkg_Class_method`, a serialization field that must match
+a wire format, an env var or CLI flag someone else specifies.
+
+Consequences:
+
+- **A linter flagging one of these is the linter being wrong, not the code.** Suppress
+  it — scoped as narrowly as the tool allows (a `per-file-ignores` entry for a
+  framework-boundary file, an inline `noqa`/`NOLINT`) — and **write the reason at the
+  suppression site**: which framework, and that the name is externally fixed.
+- **Say so in the project's own conventions doc**, so the exemption is discoverable and
+  the next person doesn't "fix" it.
+- The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
+  helpers inside such a method still follow house style.
+
+## What earns pulling code into its own function
+
+**Duplication, or naming a distinct phase. Not reshaping control flow.** Language-
+agnostic; the examples are Python because that is where it came up.
+
+- **Lift to shared/module scope when more than one caller needs it.** Two real cases
+  (gacalc, 2026-07-18): one helper replaced the same expression written out 9 times
+  across 5 functions; one shared function replaced three ~58-line, 91-93%-identical
+  plot helpers, net **-75 lines**. Giving each caller its own private copy of the helper
+  would have been *more* duplication, not less — so "extract a local helper" was the
+  wrong instinct even though something clearly needed extracting.
+- **Nest it when it closes over the enclosing function's parameters** and names a real
+  phase of the algorithm. A BFS routine split into `breadth_first_parents` /
+  `walk_back`, both capturing the endpoints, reads as the algorithm; its tail collapsed
+  to one line.
+- **Do neither when the helper would be used exactly once** and exists only to reshape
+  control flow or avoid mutating a local. That is the "inline a value used exactly once"
+  rule applied to functions. I proposed exactly this once and the user declined it — the two
+  helpers were single-use and existed only to fill a constructor call.
+
+**A corollary worth its own line: raise an error from the code that discovers it.** The
+BFS above got clean not by relocating guards but by moving its "no path" failure *into
+the search*, which is the only place that knows the target is unreachable.
+
+**Don't chase a shape for its own sake, and don't churn existing early-return code.** A
+cheap top-of-function guard is fine and usually right. When I swept a codebase looking
+for functions that "should" be restructured this way, the honest answer for nearly all of
+them was: leave them alone.
+
+## Prefer total dispatch over an open-ended conditional chain
+
+**A chain of `if` / `else if` with no final `else` can fall through silently, and the
+hole is invisible** — nothing in the code marks the case nobody handled. A construct with
+a mandatory-feeling default (`match`/`case _`, `switch`/`default`, a sealed-type match)
+makes that branch something you have to look at and decide about.
+
+This is not a style preference; it is a bug class I have actually hit. In mvp,
+`pyMatrixStack.get_current_matrix` was five `if`s with no `else`:
+
+```python
+def get_current_matrix(matrix_stack) -> np.ndarray:   # annotated -> ndarray
+    if matrix_stack == MatrixStack.model:
+        return __model_stack__[-1]
+    ...                                    # four more `if`s, no else
+    # falls off the end -> returns None, and every caller indexes the result
+```
+
+Every real case was handled, so it looked fine; the hole only opens when someone adds an
+enum member. Rewritten as a `match` with `case _: raise ValueError(...)`, the omission
+becomes impossible to add by accident.
+
+**The discipline is the pairing, not the keyword: always write the default branch.** A
+`match` without a `case _` has exactly the same hole. The default may raise, return a
+documented fallback, or be an explicit no-op with a comment saying why — but it must be
+written.
+
+Language notes: Python `match` + `case _`; C/C++ `switch` + `default` (and turn on
+`-Wswitch`, which catches an unhandled enum for you); Rust/ML-family matches are
+exhaustive by compiler and need no discipline. Where the language gives you a compiler
+check, prefer letting it check rather than adding a catch-all that defeats it.
+
+**Caveat, so this doesn't get over-applied:** `match` earns its keep on *structural*
+patterns (destructuring, type dispatch). A `match` whose every case is a boolean guard —
+`case (a, b) if a == b:` — is an `if`/`elif` chain in different syntax, justified only by
+the exhaustiveness argument above. Don't convert every two-branch conditional.

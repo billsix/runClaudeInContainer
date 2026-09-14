@@ -40,14 +40,14 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    repo's reference docs, mounted so that pointers in the tracked `CLAUDE.md`
    ("read `~/.claude/reference/llm-overused-phrases.md` at session start")
    resolve in **every** session. The docs stay in their conventional
-   `tasks/reference/` home; the mount is just an alias. (Harvested verbatim from
-   the root `CLAUDE.md` during the 2026-09-13 trim:) The `tasks/reference/` mount
-   exists because the mounted `CLAUDE.md` **`@`-imports all five reference docs**
-   (the overused-words catalog plus the nested-podman, sandbox-capability-map,
-   config-layering, and print-debugging docs), so their content is inlined into
-   every session — which means those paths must resolve in the container
-   (2026-08-02: the three sandbox/config docs were promoted from read-on-demand to
-   auto-import; 2026-08-13: print-debugging joined them).
+   `tasks/reference/` home; the mount is just an alias. The `tasks/reference/` mount
+   exists because the mounted `CLAUDE.md` **references those five reference docs by their
+   `~/.claude/reference/…` path and reads them on demand at a trigger** (e.g. "before
+   hand-instrumenting a bug, read `print-debugging.md`"), so those paths must resolve in the
+   container. (History: the five were `@`-imported — auto-loaded every session — from
+   2026-08-02/08-13 until **2026-09-14**, when the measured ~18K-tok/session cost led to
+   demoting them to triggered read-on-demand; only `stack.md` and the personal overlay stay
+   `@`-imported. See the conventions' "Reference docs — read-on-demand at a trigger" section.)
 5. **Host `~/.ai-coding-conventions.personal.md` → `/root/.claude/ai-coding-conventions.personal.md`**
    (`CLAUDE_PERSONAL_MOUNT`, added 2026-08-14) — the *personal overlay*. The tracked
    `CLAUDE.md` ends with `@~/.claude/ai-coding-conventions.personal.md`; the repo ships a **blank** default

@@ -1,0 +1,55 @@
+# Running projects in a nested container, and verification gates — full detail
+
+**Reference document** — the full detail behind the terse "Running projects in a nested
+container" and "Verification gates in nested containers" rules in the cross-project
+`CLAUDE.md`. Read on demand **before** building or running a project's containers nested,
+before calling a code change verified, or when a nested run errors. (Relocated verbatim from
+`CLAUDE.md`, 2026-09-14.) For the flag *design* and operating lore see
+`~/.claude/reference/nested-podman-design.md`; for the RAM-store / lean-image scope,
+`~/.claude/reference/minimal-nested-images.md`; for what the sandbox ships,
+`~/.claude/reference/sandbox-capability-map.md`.
+
+## Running projects in a nested container
+
+I run inside a Podman sandbox (the `runClaudeInContainer` / `claudecontainer` image). Most of my projects build and run *themselves* in a container — usually via a `Makefile` target (`make run`, `make shell`, `make test`, `make image`) wrapping a `podman run` / `docker run`. I can run those **nested** inside this sandbox, but there are two things to get right. Don't assume a project's container command works as-is; apply these.
+
+**1. Assume nested support is present — act on it, verify only if a run errors.** Nested podman needs `make shell NESTED_PODMAN=1` at launch, but **default to assuming it's on and just run the nested command** (the PODMAN_RUN_FLAGS convention, point 2, handles the cgroups flag) rather than pre-checking every time — the pre-check is noise, and the run itself is the real test. The `NESTED_PODMAN=1` set at that outermost launch is exported into the session and inherited by every nested `make` through its `NESTED_PODMAN ?= 0` (make's `?=` respects an env value), so you run **plain** `make image` / `make test` / `make shell` for a nested project — **never pass `NESTED_PODMAN=1` on a downstream command**; that flag belongs only on the outermost host launch, which is the user's to run. **Only if a nested run actually fails** do you diagnose:
+
+```sh
+test -e /dev/fuse && podman info >/dev/null 2>&1 && echo "nested OK" || echo "no nested — relaunch with NESTED_PODMAN=1"
+```
+
+`/dev/fuse` is the tell: absent ⇒ plain `make shell`, nested won't work — then tell the user to relaunch the sandbox from the `runClaudeInContainer` repo with **`make shell NESTED_PODMAN=1`** (I can't add those flags from inside an already-running container).
+
+**2. `--cgroups=disabled` on inner runs — now handled by the `PODMAN_RUN_FLAGS` convention (2026-08-29).** Historically the sandbox's `/sys/fs/cgroup` was read-only and every inner `podman run` died without `--cgroups=disabled`; on the current host stack cgroup2 mounts rw and flagless inner runs work, but the flag stays as harmless belt-and-braces. The standing convention: a `NESTED_PODMAN=1` sandbox **exports `NESTED_PODMAN=1` into the session**, and each converted project Makefile carries `PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` threaded into every `$(CONTAINER_CMD) run` line (never `build` — podman build rejects the flag and doesn't need it) — so `make test`/`make run` Just Work nested, and on the host (env var absent) behave byte-identically. **Converting an unconverted project's Makefile to this pattern is pre-authorized** (it is the permanent-passthrough idiom the personal overlay already blesses); for one-off runs in unconverted projects, appending the flag to a hand-run `podman run` remains fine. Full design + rollout status: runClaudeInContainer `tasks/reference/nested-podman-design.md` ("The PODMAN_RUN_FLAGS convention").
+
+**3. Lean-image-when-nested applies to the DOWNSTREAM project you build, never the sandbox you're in.** Some downstream project Makefiles also default an optional *build* flag lean when `NESTED_PODMAN=1` (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`) so a nested `make image` fits the RAM store — correct, because the agent *builds those projects nested*. **Never apply it to runClaudeInContainer or the runCrushInContainer client themselves**: they are built on the host and merely *launched* nested, so keying their image content off the launch flag silently downgrades them (the runCrush client did exactly that and reverted 2026-09-12 — runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`).
+
+**Any standing authorizations for nested runs are personal — see `ai-coding-conventions.personal.md`** (e.g. a
+blanket pre-approval to add `--cgroups=disabled` transiently, or to make temporary
+build-file additions a task needs). Absent such a grant, the default holds: propose the
+edit and wait for the go-ahead, per point 2 above.
+
+**Other specifics:**
+- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (Bill, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
+  ```sh
+  Xvfb :99 -screen 0 1280x800x24 &
+  podman run --rm --cgroups=disabled -e DISPLAY=:99 \
+      -v /tmp/.X11-unix:/tmp/.X11-unix -v "$(pwd)":/proj:Z <image> …
+  ```
+  Software GL works through this (glfw reports `4.6 (Compatibility Profile) Mesa`), so real GL demos render. Then **verify pixels, not just exit codes**: a GUI app that doesn't crash may still be drawing nothing. `import -display :99 -window root shot.png`, then check unique-colour count / non-black fraction, and *look at the PNG*. A long-running demo has no exit code worth reading — wrap it in `timeout N` and treat rc=124 as "ran the full duration", with a screenshot as the actual evidence.
+- **If a project's editable install is broken, `-e PYTHONPATH=/proj/src` gets you running anyway** — don't let a packaging bug block behavioural verification. (mvp's `loadpackages.sh` currently fails on a missing `setuptools` build dep; the demos still run fine with PYTHONPATH set.)
+- **`:Z` on EXTRA_MOUNTS poisons repos for host-side `make shell`.** The sandbox runs `--security-opt label=disable`, so a `:Z` project mount at sandbox launch relabels the whole repo to `container_file_t:s0:c1022,c1023` — which a normal *confined* container (the project's own `make shell`) cannot read, and its `:Z` won't relabel away. Symptom: `cd /<project>: Permission denied` inside the project container while the sandbox is (or was) up. Host-side fix: `sudo restorecon -R <repo>`; prevention: use `:z` or no label flag on EXTRA_MOUNTS entries (the label-disabled sandbox doesn't need `:Z` at all). Diagnosed 2026-07-07 (spimulator).
+- **Networking just works** — default bridged/netavark networking is verified (an inner `apt update` / package pull reaches the network). No `--network` flag needed. If a run ever dies on `netavark: set sysctl ... Read-only file system`, `--network=host` is a working fallback.
+- **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.
+- **Inner image store is ephemeral** (tmpfs) — pulled/built images don't survive the session; expect re-pulls.
+- **Manage inner images by RAM pressure, not eagerly.** The store is a small **RAM-backed** tmpfs (`/var/lib/containers`, sized by `NESTED_PODMAN_TMPFS_SIZE`, **default 8g**), so every pulled/built image costs real memory. **Don't** `rmi` an image the moment you're done with it — keeping it avoids an expensive rebuild if you need it again this session. Instead, **before building or pulling a new image**, estimate its size (a Fedora/full-toolchain image is multiple GB; a slim base is hundreds of MB) and check headroom with `df -h /var/lib/containers`. Only if there isn't enough room, **evict** — `podman rmi` an existing image that seems unlikely to be needed again soon (and `podman image prune -f` for dangling layers) to make space. (`--rm` removes the *container*; the *image* persists until you `rmi` it.) The goal is fewest rebuilds within the RAM budget, not a clean store. Also: when validating in a throwaway image, install the baseline tools your check depends on first — a minimal base (e.g. `ubuntu:24.04`) ships no `python3`, which can make a check *silently pass*.
+- **Storage is fuse-overlayfs**; `podman info --format '{{.Store.GraphDriverName}}'` reports `overlay` driven by it.
+- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.
+
+## Verification gates in nested containers
+
+When nested podman is available, "done" for a code change means **the project's own containerized gate passed** — the `make image` / `make test` / `make dist` target that repo's CLAUDE.md names as its gate — not merely an in-sandbox build and unit-test run. Build the nested container and run the real gate before calling a change verified.
+
+- **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke the user's plain `make image` inside the tree-sitter keyword pipeline.)
+- **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what the user actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.

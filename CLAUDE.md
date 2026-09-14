@@ -39,7 +39,8 @@ overlay). See `README.md` for the user-facing overview.
 host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `~/.claude/reference/` alongside them (see `CLAUDE_DOTFILES_MOUNT` in the
 `Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* (which
-`@`-import the reference docs and the personal overlay `~/.claude/ai-coding-conventions.personal.md`);
+reference the five topic docs **read-on-demand** at task triggers, and `@`-import only the
+diversion stack and the personal overlay `~/.claude/ai-coding-conventions.personal.md`);
 auth, sessions, and credentials come from the host `~/.claude` mount instead. Edit
 conventions/commands in `entrypoint/dotfiles/.claude/` and reference docs in
 `tasks/reference/` — both flow back to git.
