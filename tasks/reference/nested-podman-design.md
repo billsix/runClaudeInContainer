@@ -89,6 +89,22 @@ not override a ro mount:
   lacking `/dev/fuse`/`/dev/net/tun`, and reserve the tmpfs each session. The
   personal launcher (`exampleRunClaude.sh`) opts in instead.
 
+## Security trade-off (the costs of the flags on)
+
+(Harvested verbatim from the root `CLAUDE.md` "Nested Podman" section during the
+2026-09-13 CLAUDE.md trim.)
+
+Security trade-off: the host Podman is **rootless** (container-root maps to host UID
+1000, never host root), and this stays true with the flags on — even `--privileged`
+under a rootless host only grants privilege within the user namespace. The costs are
+SELinux disabled for that container (`label=disable` + `unmask=ALL`), broad
+`sys_admin`/`net_admin` capabilities (namespace-confined), and slower/ephemeral nested
+storage.
+
+One additional `/dev/net/tun` detail from the same source: rootless networking (pasta)
+opens `/dev/net/tun`; without it `podman run` fails at network setup (`--network=none`
+would still work).
+
 ## The `PODMAN_RUN_FLAGS` convention (2026-08-29) — no more hand-edited runs
 
 The old workflow (hand-append `--cgroups=disabled` via `make -n` + re-run, or

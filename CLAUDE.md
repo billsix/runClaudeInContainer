@@ -38,50 +38,28 @@ overlay). See `README.md` for the user-facing overview.
 `entrypoint/dotfiles/.claude/CLAUDE.md` and `commands/` are **mounted over** the
 host's `~/.claude` at run time, and this repo's `tasks/reference/` is mounted at
 `~/.claude/reference/` alongside them (see `CLAUDE_DOTFILES_MOUNT` in the
-`Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* and is
-version-controlled here; auth, sessions, and credentials come from the host
-`~/.claude` mount instead. **Auth persistence needs TWO host mounts, because Claude Code
-splits its auth state across two files:** `~/.claude/.credentials.json` (OAuth tokens —
-covered by the `~/.claude` mount, `CLAUDE_CONFIG_MOUNT`) **and `~/.claude.json`**
-(onboarding state: `hasCompletedOnboarding`, account info). The latter is a *sibling* of
-`~/.claude`, so the dir mount misses it; unmounted it dies with the `--rm` container, and
-Claude — seeing no onboarding record — shows the "Select login method" menu on **every**
-launch despite valid mounted credentials. `CLAUDE_JSON_MOUNT` (in the `Makefile`) fixes this
-by seeding host `~/.claude.json` to `{}` if absent and bind-mounting it; log in once and it
-sticks. **This ephemeral-`~/.claude.json` issue — not token expiry — was the real "log in
-every session" cause** (diagnosed 2026-08-16; see
-`tasks/archive/2026/08/16/long-lived-auth-token-env-var.md`). Separately, **`CLAUDE_AUTH_ENV`** passes a host
-`CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`) through with `-e` **only when set** — a
-long-lived `claude setup-token` token for **headless/CI/`-p`** use; it authenticates API
-calls but does **not** silence the interactive login menu (that's gated on onboarding state,
-above), so it is not the fix for interactive re-logins. `entrypoint/shell.sh` prints a setup
-hint until it's set. Never commit the token; it lives only in the host env. See README.md
-("Auth") and the archived `persist-claude-login-across-containers.md`.
-The `tasks/reference/` mount exists because the mounted
-`CLAUDE.md` **`@`-imports all five reference docs** (the overused-words catalog plus the
-nested-podman, sandbox-capability-map, config-layering, and print-debugging docs), so their
-content is inlined into every session — which means those paths must resolve in the container
-(2026-08-02: the three sandbox/config docs were promoted from read-on-demand to auto-import;
-2026-08-13: print-debugging joined them). Edits to the
-conventions or commands go in `entrypoint/dotfiles/.claude/`; the reference docs are
-edited in `tasks/reference/` as usual — both flow back to git.
+`Makefile`). The `CLAUDE.md` holds the user's *cross-project conventions* (which
+`@`-import the reference docs and the personal overlay `~/.claude/ai-coding-conventions.personal.md`);
+auth, sessions, and credentials come from the host `~/.claude` mount instead. Edit
+conventions/commands in `entrypoint/dotfiles/.claude/` and reference docs in
+`tasks/reference/` — both flow back to git.
 
-The mounted `CLAUDE.md` also `@`-imports **`~/.claude/ai-coding-conventions.personal.md`**, a personal
-overlay that keeps maintainer-specific content (identity, project→URL mapping, project
-template, standing authorizations) out of the portable conventions. The tracked default
-`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` is **blank**; `make shell` mounts the host's
-`~/.ai-coding-conventions.personal.md` over it (auto-`touch`ed if absent). This is what lets
-a fork adopt the portable conventions and swap in its own personal layer — see
-`FORKING.md`, `ai-coding-conventions.personal.example.md`, and `tasks/separate-general-and-personal-conventions.md`.
-The mounted `CLAUDE.md`'s opening section (**"This is the SHARED layer…"**) instructs the
-agent to route any maintainer-specific content to this overlay, never to the shared file,
-so the separation stays self-maintaining.
+**Auth persistence needs TWO host mounts**, because Claude Code splits its auth state:
+`~/.claude/.credentials.json` (OAuth tokens, covered by the `~/.claude` mount,
+`CLAUDE_CONFIG_MOUNT`) **and `~/.claude.json`** (onboarding state — a *sibling* of
+`~/.claude`, so `CLAUDE_JSON_MOUNT` mounts it separately; without it Claude shows the
+"Select login method" menu every launch despite valid credentials). Log in once and it
+sticks. Separately, **`CLAUDE_AUTH_ENV`** passes a host `CLAUDE_CODE_OAUTH_TOKEN` (or
+`ANTHROPIC_API_KEY`) through with `-e` **only when set** — a long-lived token for
+headless/CI/`-p` use that authenticates API calls but does **not** silence the interactive
+login menu (never commit it; it lives only in the host env).
 
-This root `CLAUDE.md` (the one you're reading) is project-specific guidance for
-working on the container builder; it is distinct from the mounted cross-project
-conventions. The full layering design — what persists where, the `mkdir -p`
-rationale, and the rejected alternatives — is in
-`tasks/reference/claude-config-layering.md`.
+This root `CLAUDE.md` is project-specific guidance for working on the container builder,
+distinct from the mounted cross-project conventions. The full layering design — the five
+mounts and stacking order, the ephemeral-`~/.claude.json` root-cause (diagnosed 2026-08-16,
+not token expiry), the onboarding-vs-token distinction, the personal-overlay routing, the
+`@`-import history, the `mkdir -p` rationale, and the rejected alternatives — is in
+`tasks/reference/claude-config-layering.md`. See also `README.md` ("Auth").
 
 ## Host shell vs container shell
 
@@ -92,19 +70,14 @@ sandbox it launches.
 
 - **The container's interactive shell is bash.** `entrypoint/entrypoint.sh` and
   `entrypoint/shell.sh` both `exec bash`, and root's login shell is `/bin/bash`. (Claude
-  Code's own Bash *tool* may run through whatever login shell the *outer* sandbox happens
-  to set — e.g. `$SHELL=/usr/bin/zsh` in some sandboxes — which is independent of this
-  image and is the cross-project note's concern, not this repo's.)
-- **An env var crosses HOST → CONTAINER only if it is _exported_ on the host.** The
-  `Makefile`'s `CLAUDE_AUTH_ENV` (and any `-e VAR` passthrough) is computed by
-  `$(shell …)` at parse time, and that subshell inherits only **exported** variables. A
-  var that is merely *set* — `echo ${#VAR}` prints a length, but `declare -p VAR` shows no
-  `-x` — is invisible to make, so the flag is never added and the container never sees it.
-  This is the usual reason a `CLAUDE_CODE_OAUTH_TOKEN` "that's set" still doesn't reach
-  Claude Code. Fix: put `export VAR=…` in the host shell's rc (`~/.bashrc` for bash),
-  start a fresh shell, and confirm with `make -n shell | grep -- '-e VAR'` **[HOST]**
-  before launching — a fresh `make shell` is required, since a running container predates
-  the export.
+  Code's own Bash *tool* may run through whatever login shell the *outer* sandbox sets —
+  e.g. zsh — which is independent of this image, not this repo's concern.)
+- **Guardrail: an env var crosses HOST → CONTAINER only if it is _exported_ on the host.**
+  `CLAUDE_AUTH_ENV` and any `-e VAR` passthrough are computed by `$(shell …)` at Makefile
+  parse time, which sees only exported vars, and a running container predates a new export.
+  The `declare -p` / parse-time mechanism (the usual reason a "set" `CLAUDE_CODE_OAUTH_TOKEN`
+  still doesn't reach Claude Code, with the exact confirm/fix steps) is in
+  `tasks/reference/claude-config-layering.md` ("Gotcha that bit the maintainer").
 
 ## Conventions for changing this repo
 
@@ -131,67 +104,25 @@ sandbox it launches.
 ## Nested Podman
 
 `make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
-sandbox. It appends `--device /dev/fuse`, `--device /dev/net/tun`, `--security-opt
-label=disable`, `--security-opt unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a
-tmpfs `/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod` to the `shell`
-target's `podman run`. The inner podman uses `fuse-overlayfs` (configured by
+sandbox: it appends the capability/device flags (`--device /dev/fuse`, `--security-opt
+label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a tmpfs
+`/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod`) to the `shell` target's
+`podman run`, and the inner podman uses `fuse-overlayfs` (configured by
 `entrypoint/dotfiles/.config/containers/storage.conf`).
 
-The `/var/lib/containers` tmpfs defaults to **8g** and is **RAM-backed** (it only
-uses memory as inner images are written, but a full store costs that much RAM+swap).
-Bump it for a large inner build via `NESTED_PODMAN_TMPFS_SIZE`, e.g.
-`make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`.
+The `/var/lib/containers` tmpfs is **RAM-backed**, defaults to **8g**, and is sized by
+`NESTED_PODMAN_TMPFS_SIZE` (e.g. `make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`
+for a large inner build). A `NESTED_PODMAN=1` launch also exports `NESTED_PODMAN=1` into the
+session, so converted project Makefiles auto-apply `--cgroups=disabled` via their
+`PODMAN_RUN_FLAGS` variable — the agent runs plain `make image`/`make test` nested and
+**never passes `NESTED_PODMAN=1` on a downstream command** (it belongs only on the outermost
+host launch).
 
-**Inner runs and `--cgroups=disabled` — the `PODMAN_RUN_FLAGS` convention (2026-08-29).**
-Historically the sandbox's `/sys/fs/cgroup` was mounted read-only (and `--cgroupns=private`
-did *not* make it writable), so every inner `podman run` failed without `--cgroups=disabled`;
-on the current host stack cgroup2 mounts rw and flagless inner runs work, but the flag is
-kept as harmless belt-and-braces. A `NESTED_PODMAN=1` launch now exports `NESTED_PODMAN=1`
-into the session, and converted project Makefiles auto-apply the flag via
-`PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` on their `run`
-lines — so containerized targets Just Work nested and are unchanged on a host. Because that
-exported signal is inherited by every nested `make` via `?=`, the agent runs plain
-`make image`/`make test` and **never passes `NESTED_PODMAN=1` on a downstream command** — it
-belongs only on the outermost host launch. The signal is deliberately **not** baked into the
-image (`ENV NESTED_PODMAN=1`): it must stay coupled to the launch flags, or a plain non-nested
-`make shell` would falsely advertise nested capability that isn't there. Design: `tasks/reference/nested-podman-design.md`; rollout completed fleet-wide
-2026-08-29 (work record:
-`tasks/archive/2026/08/29/nested-podman-run-flags-passthrough.md`). **A related idea — using the same signal to pick a lean IMAGE
-variant when nested (`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`) — applies to DOWNSTREAM
-projects only, never the two sandboxes themselves.** A downstream project is *built* nested by the
-agent, so defaulting it lean to fit the RAM store is right; runClaudeInContainer and the
-runCrushInContainer client are *built on the host and merely launched nested* (typing
-`NESTED_PODMAN=1` must not change their image). runCrush's client tried that coupling and reverted it
-2026-09-12 — see runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`. Fleet
-survey/rollout (downstream scope only): `tasks/reference/minimal-nested-images.md`,
-`tasks/minimal-image-for-nested-podman-standard.md`.
-
-Non-obvious flags and why they exist:
-- **`--cap-add=...,net_admin`** — the inner podman runs *rootful* (container-root), so it
-  uses the **netavark** backend, which builds a bridge + veth over netlink and needs
-  `CAP_NET_ADMIN`. Without it: `netavark: Netlink error: Operation not permitted`.
-  (netavark + aardvark-dns ship in `/usr/libexec/podman/`, not on `$PATH`.)
-- **`--security-opt unmask=ALL`** — netavark also writes per-interface sysctls
-  (e.g. `net/ipv4/conf/eth0/arp_notify`) bringing up the bridge, but the sandbox's
-  `/proc/sys` is read-only, so even with `CAP_NET_ADMIN` that write fails and bridged
-  networking breaks. Unmasking lets the inner netavark write them. *(Host-verified
-  2026-06-07: bridged networking works end-to-end — `apt update` in a nested `ubuntu`
-  reached the network with no `--network` flag. `--network=host` remains a fallback.)*
-- **`--device /dev/net/tun`** — rootless networking (pasta) opens `/dev/net/tun`;
-  without it `podman run` fails at network setup (`--network=none` would still work).
-  Retained for the rootless/pasta path; the rootful netavark path above does not use it.
-- **tmpfs over `$XDG_RUNTIME_DIR/libpod`** — the host's `$XDG_RUNTIME_DIR`
-  (`/run/user/<uid>`) is bind-mounted in for Wayland/Pulse, and it carries the *host*
-  podman's `libpod/tmp/pause.pid` pointing at a host PID. Without shadowing it, the
-  inner podman tries to join that nonexistent PID's userns and dies with `cannot
-  re-exec process to join the existing user namespace`. The tmpfs gives it a clean
-  state dir while leaving the Wayland/Pulse sockets in the rest of the dir intact.
-  (subuid/subgid are *not* needed — inner podman runs rootful-in-userns.)
-
-Security trade-off: the host Podman is **rootless** (container-root maps to host UID
-1000, never host root), and this stays true with the flags on — even `--privileged`
-under a rootless host only grants privilege within the user namespace. The costs are
-SELinux disabled for that container (`label=disable` + `unmask=ALL`), broad
-`sys_admin`/`net_admin` capabilities (namespace-confined), and slower/ephemeral nested
-storage. Full rationale, declined alternatives, and operating lore are in
-`tasks/reference/nested-podman-design.md`.
+Why each flag exists (the rootful/netavark `net_admin` and `unmask=ALL` needs, the
+`/dev/net/tun` and `libpod`-tmpfs reasons), the `PODMAN_RUN_FLAGS` convention and its
+fleet rollout, the lean-image-when-nested rule (downstream projects only, never the two
+sandboxes), the two read-only walls (`/proc/sys`, `/sys/fs/cgroup`), the security
+trade-off, declined alternatives, and operating lore are in
+`tasks/reference/nested-podman-design.md`. (Downstream lean-image scope also:
+`tasks/reference/minimal-nested-images.md`; the runCrush client's reverted image coupling:
+runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`.)

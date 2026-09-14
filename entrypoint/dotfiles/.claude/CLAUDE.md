@@ -255,6 +255,16 @@ The offenders, grouped:
   elegant variation (in technical prose, repeat the exact term — synonym-cycling
   creates ambiguity).
 
+## Python: the shared coding standard lives in a reference doc
+
+For **Python** specifically, the full coding standard — the ruff-enforced tiers plus the judgment
+calls ruff can't check (naming grammar, expression / mutate-vs-return, reduce-with-`sum`, annotate
+generously, the idiom checklist) — is a shared cross-project reference doc, **read on demand:
+`~/.claude/reference/python-coding-standard.md`** (not auto-imported, so it costs nothing until you
+open it). The language-agnostic conventions in this file apply to Python too; a project keeps only
+its own repo-specific Python invariants inline in its `CLAUDE.md`. The canonical source and its
+mirrors (including the Crush client's baked copy) are named in that doc's header.
+
 ## An externally-defined name always wins over a naming convention
 
 **If a name is dictated by something outside the code — a framework superclass method

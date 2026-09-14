@@ -40,7 +40,14 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    repo's reference docs, mounted so that pointers in the tracked `CLAUDE.md`
    ("read `~/.claude/reference/llm-overused-phrases.md` at session start")
    resolve in **every** session. The docs stay in their conventional
-   `tasks/reference/` home; the mount is just an alias.
+   `tasks/reference/` home; the mount is just an alias. (Harvested verbatim from
+   the root `CLAUDE.md` during the 2026-09-13 trim:) The `tasks/reference/` mount
+   exists because the mounted `CLAUDE.md` **`@`-imports all five reference docs**
+   (the overused-words catalog plus the nested-podman, sandbox-capability-map,
+   config-layering, and print-debugging docs), so their content is inlined into
+   every session — which means those paths must resolve in the container
+   (2026-08-02: the three sandbox/config docs were promoted from read-on-demand to
+   auto-import; 2026-08-13: print-debugging joined them).
 5. **Host `~/.ai-coding-conventions.personal.md` → `/root/.claude/ai-coding-conventions.personal.md`**
    (`CLAUDE_PERSONAL_MOUNT`, added 2026-08-14) — the *personal overlay*. The tracked
    `CLAUDE.md` ends with `@~/.claude/ai-coding-conventions.personal.md`; the repo ships a **blank** default
@@ -57,7 +64,11 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    two names. See
    the root `CLAUDE.md` "personal overlay" note, `FORKING.md`,
    `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`, and
-   `tasks/separate-general-and-personal-conventions.md`.
+   `tasks/separate-general-and-personal-conventions.md`. (Harvested verbatim from the
+   root `CLAUDE.md` during the 2026-09-13 trim:) The mounted `CLAUDE.md`'s opening
+   section (**"This is the SHARED layer…"**) instructs the agent to route any
+   maintainer-specific content to this overlay, never to the shared file, so the
+   separation stays self-maintaining.
 
 Auth and sessions never live in git; conventions never live only in a container; personal
 specifics never live in the tracked repo. That split is the whole design.
