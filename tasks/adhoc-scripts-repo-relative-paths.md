@@ -1,6 +1,8 @@
 # Ad-hoc scripts must use repo-relative paths, never container-absolute
 
-**Status:** ready — needs go-ahead to apply fixes (audit findings below are done)
+**Status:** mostly done — the `rollout.py` offender was fixed & archived 2026-09-18 (see
+`tasks/archive/2026/09/18/fix-rollout-py-fleet-root-arg.md`); only a low-priority re-grep of `tools/`
+and confirming finding 2 is benign remain
 **Priority:** 4
 **Difficulty:** 3
 Created 2026-09-18 (William Emerison Six <billsix@gmail.com>).
@@ -43,8 +45,10 @@ Committed ad-hoc scripts in this repo:
    does **not** apply: rooting it in *this* repo would break its purpose. The right fix is to
    take the **fleet root** as an argument/env with a sensible derivation, not a hard-coded
    `/foo/opt`. See open question 1 — this is a judgment call, not a mechanical rewrite.
-   - Note: this script is already committed as an archived task's audit trail. Confirm whether
-     touching it is worthwhile at all vs. leaving a one-line comment (open question 2).
+   - **RESOLVED 2026-09-18:** fixed via the dedicated task `fix-rollout-py-fleet-root-arg.md` (now at
+     `tasks/archive/2026/09/18/`). `rollout.py` derives the fleet root (`sys.argv[1]` → `$FLEET_ROOT`
+     → `parents[4]`) instead of hard-coding `/foo/opt`; verified the default resolves to `/foo/opt`
+     unchanged. Open questions 1–2 were answered there (arg with derived default; yes, worth fixing).
 
 2. `tasks/adhoc/separate-general-and-personal-conventions/gut_personal_from_claude_md.py:40` —
    the `/foo/opt/<name>` at that line is **inside a string literal being processed** (prose the
