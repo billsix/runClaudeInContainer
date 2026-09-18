@@ -14,13 +14,17 @@ upstream-only rule.
 Idempotent: skips a Makefile already using the `?=` auto-detect. Prints each action.
 Does NOT git-add or commit -- the caller stages/commits per repo.
 
-Run from anywhere:  python3 rollout.py
+Run from anywhere:  python3 rollout.py [FLEET_ROOT]
+The fleet root (the directory holding all the projects) defaults to this repo's
+parent; override with a positional arg or $FLEET_ROOT. It never hardcodes a mount
+path -- the mount location is ephemeral to whichever sandbox launch you ran.
 """
 from __future__ import annotations
 
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 TARGET = (
@@ -41,9 +45,27 @@ def git_root(path: str) -> str:
     return r.stdout.strip()
 
 
+def fleet_root() -> Path:
+    """The directory that holds all the projects -- NOT this repo's root.
+
+    This is a deliberately fleet-wide codemod, so it needs the parent dir that
+    contains every project. That path is ephemeral (this session mounted it at
+    /foo/opt; another launch, machine, or user mounts it elsewhere), so never
+    hardcode it. Resolution order: an explicit CLI arg, then $FLEET_ROOT, then the
+    default -- this repo sits directly under the fleet root, and the script lives
+    at <fleet>/<repo>/tasks/adhoc/<slug>/rollout.py, so parents[4] is the fleet.
+    """
+    if len(sys.argv) > 1:
+        return Path(sys.argv[1])
+    env = os.environ.get("FLEET_ROOT")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parents[4]
+
+
 def find_makefiles() -> list[str]:
     out = subprocess.run(
-        ["find", "-L", "/foo/opt", "-maxdepth", "4", "-name", "Makefile"],
+        ["find", "-L", str(fleet_root()), "-maxdepth", "4", "-name", "Makefile"],
         capture_output=True, text=True,
     ).stdout.split()
     return sorted(set(m for m in out if "/.git/" not in m))
