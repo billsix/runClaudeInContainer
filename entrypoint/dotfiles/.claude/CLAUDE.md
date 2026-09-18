@@ -415,8 +415,19 @@ changes mid-task, revert the **processed files** by path (`git checkout <pre-scr
 <files>`, never whole-tree) and re-run the FINAL script once, confirming `git diff` is empty. At
 archive: **one-shot → `git rm`** (in the archive commit, after the work commit — track the owed
 deletion); **reusable → promote to `tools/`** (light cleanup + docstring, note it in a reference
-doc, propose but don't auto-wire a gate). Put a `.keep` in every convention dir. Full detail +
-incidents: `~/.claude/reference/task-doc-conventions.md`.
+doc, propose but don't auto-wire a gate). Put a `.keep` in every convention dir.
+
+**Bulk op (find-many → fix-each)? Discover with a shell tool, don't tree-walk in Python** — one
+`rg -n` / `git grep -n` returns just the matches instead of the model reading every file
+front-to-back. Log them to `tasks/adhoc/<slug>/data/` (a committed *snapshot* worklog, `git rm`'d
+with the script) and save the discovery command as `discover.sh` — a bulk discovery command IS
+substantive (its output drove the diff), so it is exempt from "skip one-liners". The fix matches on
+**content or a marker, not the saved line numbers** (they rot as edits shift lines — cf.
+`print-debugging.md`'s `DBG` marker); process bottom-up if it changes line count; idempotency is a
+bonus, not required (the point is the worklog). Verify by re-grep = zero.
+
+Full detail + incidents: `~/.claude/reference/task-doc-conventions.md`; bulk-op command idioms:
+`~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Reference documents — durable knowledge that isn't tracked work
 
@@ -659,7 +670,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/sandbox-capability-map.md`** — read **before** concluding "the sandbox can't
   do X," or when you need to know what tools/services/languages the image ships.
 - **`~/.claude/reference/shell-and-gate-scripts.md`** — read when writing/reviewing a gate or format
-  script, editing a committed script, or a Bash tool command fails with zsh-flavoured errors.
+  script, editing a committed script, doing a bulk find-and-fix across many files, or a Bash tool
+  command fails with zsh-flavoured errors.
 - **`~/.claude/reference/print-debugging.md`** — read **before** hand-instrumenting a bug with
   print/trace statements in an unfamiliar language (also holds the instrumentation-driven method).
 - **`~/.claude/reference/claude-config-layering.md`** — read when reasoning about or changing how

@@ -135,3 +135,62 @@ three rules: mvp `entrypoint/format.sh` (guarded venv + all-relative `ty check` 
 check src/tests/tools`); **hanoi / multivariate-math / spimulator / texExpToPng** got rule 3 (`[ -d
 /<proj> ] && cd /<proj>`), and mvm also needed the venv guard. Pairs with the exit-status rule
 above: a good gate script both propagates every step's failure AND runs anywhere from the root.
+
+## Bulk find → log → iterate → fix (a discovery command, a worklog, then edits)
+
+When a task is *find every instance of X across the tree, then fix each*, lead with a **shell
+discovery command**, not a Python file-walk — one `rg` call returns just the matches, so a local
+model (small context window) is not reading every file front-to-back to decide what to fix next. The
+shape is four phases; the ad-hoc-script rules apply (`~/.claude/reference/task-doc-conventions.md`,
+"Bulk operations"): save the discovery command as `tasks/adhoc/<slug>/discover.sh` and its output as
+a committed *snapshot* worklog under `tasks/adhoc/<slug>/data/`.
+
+**1. Discover (machine-readable).** Prefer `rg` (fast; skips binaries and `.gitignore`; present in
+this image):
+- `rg -n --column 'PAT' src/` → `file:line:col:text`. Use `rg --vimgrep 'PAT' src/` when you need
+  exactly one row per match (multi-match lines otherwise collapse). `rg -l 'PAT'` = filenames only;
+  `rg --json 'PAT'` = structured (per-match `line_number`, byte `start`/`end`).
+- `git grep -n 'PAT' -- '*.py'` when the scope is *every tracked file* (respects the git index — no
+  `.gitignore` blind spot, which rg has for a tracked-but-ignored file).
+- Filenames with spaces/newlines: NUL-delimit — `rg -0 -l 'PAT'`, `grep -rlZ 'PAT' . | xargs -0 …`,
+  `find . -name '*.py' -print0 | xargs -0 …`.
+- A *reusable* script (rg not guaranteed on other machines) guards:
+  `command -v rg >/dev/null 2>&1 || { …grep -R fallback… }`.
+
+**2. Log** the matches to `tasks/adhoc/<slug>/data/matches.txt` — the audit record and the worklist,
+**not** a replay driver; treat its line numbers as a snapshot (see phase 3).
+
+**3. Iterate & fix — never trust the saved line numbers.** They rot the instant an edit shifts a
+line, so:
+- **Preferred — match by content, re-derived live**: `sed -i 's/exact_old/new/' f`, or context-scoped
+  `sed -i '/anchor/s/old/new/' f`. No saved offset to go stale, and re-running is naturally a no-op.
+- **When you must use offsets** (match text alone is ambiguous) or the edit changes a file's line
+  count, process each file **bottom-up** so earlier edits don't shift the not-yet-applied lines:
+  `grep -n 'PAT' f | sort -t: -k1,1 -rn | while IFS=: read -r n _; do sed -i "${n}s/old/new/" f; done`
+  (`tac` is the base primitive).
+- **In-place tools**: `sed -i` (GNU here — BSD needs `-i ''`; moot on these Linux boxes, noted for
+  copy-paste into mixed environments). Multi-line / lookaround → `perl -0777 -pi -e 's/old/new/gs' f`
+  (slurps the file so `.` spans newlines). Field/column edits → `gawk -i inplace '{…}' f`.
+- **Greedy trap**: `sed`/ERE have no `.*?`; use a negated class `[^>]*` (not `.*`) to stop at the
+  first delimiter, or you silently eat to the last one.
+- **Idempotent when it's cheap** (welcome, not required): anchor to a field that stops matching once
+  fixed (`sed -i 's/^\(version:\).*/\1 2/' f`); guard with `grep -q 'PAT' f && sed -i …` so a
+  no-longer-present pattern fails loud, not silently; beware `s/foo/foobar/g` re-matching on re-run.
+
+**4. Iterate the worklist safely, and verify.**
+- Read loop: `while IFS= read -r line; do …; done < matches.txt` — `IFS=` keeps leading whitespace,
+  `-r` keeps backslashes, and **redirect from the file** (not `cat … | while`), or a counter set
+  inside the loop vanishes in the pipeline subshell; use `< <(cmd)` to consume a command instead. Add
+  `|| [ -n "$line" ]` to also catch a final unterminated line. Resumable: move done rows into
+  `matches.done.txt`, compute remaining with `grep -vFf matches.done.txt matches.txt`.
+- **Verify by re-discovery**: the phase-1 command must now report zero matches — `rg -l 'PAT' src/`
+  empty = clean; or `rg -c 'PAT' src/` before/after + `diff` to catch a partial fix. `git diff -U0`
+  reviews many one-line changes tightly and makes a greedy over-match visually obvious.
+
+**Gotchas**: `grep -r` prints "Binary file … matches" — use `grep -I` to skip binaries (rg does by
+default); prefer plain `find` over `find -L` for a source sweep (`-L` follows symlinks and is slow /
+loops on symlink farms); `LC_ALL=C` makes grep/sed byte-wise (faster and safe on pure-ASCII source,
+but *wrong* for a Unicode-sensitive substitution — `.` then matches a byte, not a character); and
+never edit a file you are reading in the same pipeline (`grep … f | sed -i … f`) — the two-phase
+discover-to-file-then-edit shape above exists to avoid exactly that. (Idioms verified against the
+tool docs, 2026-09-18.)

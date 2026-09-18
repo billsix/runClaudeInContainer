@@ -1,9 +1,25 @@
 # Bulk operations: shell-first discovery → data-file worklog → iterate → verify
 
-**Status:** ready — decisions taken 2026-09-18; implementation awaits go-ahead
+**Status:** implemented 2026-09-18 — staged; archive owed after the work commit
 **Priority:** 3
 **Difficulty:** 4
 Created 2026-09-18 (William Emerison Six <billsix@gmail.com>).
+
+> **Implemented (2026-09-18).** Four edits landed (staged, not committed — the maintainer commits):
+> 1. `tasks/reference/task-doc-conventions.md` "Ad-hoc scripts" — added the "Bulk operations" paragraph
+>    (shell-first discovery, `discover.sh` + `data/` worklog, content-matching fix, idempotency
+>    optional, the skip-one-liner carve-out).
+> 2. Nested/runtime `entrypoint/dotfiles/.claude/CLAUDE.md` "Ad-hoc scripts" — added the terse bulk-op
+>    mirror + pointer to the shell doc.
+> 3. `tasks/reference/shell-and-gate-scripts.md` — new section "## Bulk find → log → iterate → fix"
+>    with the full command idioms (rg/git grep, reverse-order + content-matching, sed/perl, the read
+>    loop, verify, gotchas).
+> 4. Nested CLAUDE.md reference-docs index — extended the `shell-and-gate-scripts.md` read trigger to
+>    include "doing a bulk find-and-fix across many files".
+>
+> **Blast radius:** this is the shared cross-project layer (mounted at `~/.claude/`), so it reaches the
+> agent on **every** project at the next `make shell` — no image rebuild (these docs are mounted, not
+> baked). **Owed:** archive this task as its own commit after the work commit.
 
 > **Decisions (William Emerison Six <billsix@gmail.com>, 2026-09-18):**
 > 1. Data-file location: **per-slug `tasks/adhoc/<slug>/data/`** (removed with the script).
