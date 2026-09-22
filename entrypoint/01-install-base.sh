@@ -189,6 +189,7 @@ dnf install -y \
     librsvg2-devel \
     libseccomp-devel \
     libselinux-devel \
+    libshaderc-devel \
     libsodium-devel \
     libssh2-devel \
     libssh-devel \
