@@ -53,3 +53,20 @@ When nested podman is available, "done" for a code change means **the project's 
 
 - **Flag coverage is part of the gate.** Trimming feature flags (`BUILD_DOCS=0`, `BUILD_TREE_SITTER=0`, `USE_EMACS=0`, …) to speed a gate up is legitimate **only when the diff cannot affect the trimmed paths**. If a change touches any input that a flag-gated feature consumes — a shared header, a codegen/table source, docs sources — that flag must be ON in the gate; a green gate with the consuming feature compiled out verifies nothing about it. (Learned 2026-07-07 in spimulator: an `opcodes.h` tag rename sailed through three `BUILD_TREE_SITTER=0` image gates, then broke the user's plain `make image` inside the tree-sitter keyword pipeline.)
 - **Before ending a work session, run one gate with the repo's default flags** (a plain `make image`) — the defaults are what the user actually runs — or, if that's genuinely not possible, say explicitly in the summary which flag-gated paths went unexercised.
+
+## Headless GUI runs in the sandbox — process hygiene (William Emerison Six <billsix@gmail.com>, 2026-09-22)
+
+The sandbox shares the host kernel: every GUI process a headless test leaves behind is host RAM.
+On 2026-09-22 overnight PaperBoat runs (Xvfb + software GL) leaked instances that **ignore
+SIGTERM**; two forgotten copies — renamed to `Paperboat.pristine`, so `pkill -x Paperboat` never
+matched — grew to ~19 GB RSS each and swapped the host into a ten-minute stall. Rules, now also in
+the imps harness (`tasks/reference/imps/headless-gui-port-testing.md` there has the full method):
+
+- `timeout -s KILL <secs>` on **every** launch of a GUI binary; never plain `timeout`, never a bare `&`.
+- `trap 'pkill -9 -x <binary>' EXIT` in every harness and ad-hoc launch command.
+- Never run a renamed copy of a binary; use a second build directory instead.
+- Audit before moving on and before ending the session — `ps -eo pid,rss,etime,comm | grep -i
+  <binary>` — kill leftovers, and state the audit result in the report.
+- Gotchas that cost time: under Xvfb + llvmpipe a GL window's contents are not capturable
+  (screenshots are black, `xdotool` cannot aim), and libultraship ports swallow stdout —
+  instrument to stderr; drive ImGui popups with an env-gated auto-click hook on a throwaway branch.

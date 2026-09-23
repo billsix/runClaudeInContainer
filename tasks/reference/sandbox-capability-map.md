@@ -64,7 +64,12 @@ WebAssembly (wabt).
   on the host in interactive use.
 - Dev libraries for GL/Vulkan/SDL (glew, glfw, **freeglut/-devel** (added
   2026-08-02, for building nested GLUT C++ demos), SDL2_image, SDL3(+sound),
-  vulkan-tools), GTK3/GTK4, Qt5/Qt6, cairo/pango/freetype.
+  vulkan-tools, **libshaderc-devel** (added 2026-09-22: the HarbourMasters N64 ports'
+  libultraship Vulkan backend includes `shaderc/shaderc.hpp`; without it a PaperBoat/Ghostship
+  build fails at the final link on `shaderc_*` undefined references), **opus-devel +
+  opusfile-devel** (added 2026-09-22: Ship of Harkinian's cmake configure `find_package(Opus)`
+  / `OpusFile` are REQUIRED; libogg/libvorbis-devel were already present)), GTK3/GTK4, Qt5/Qt6,
+  cairo/pango/freetype.
 - **aspell + aspell-en** (added 2026-08-02) — spellcheck; e.g. enumerate the words
   the mvp book's `aspell` gate would flag via `aspell --personal=… list < file`.
 - **Sphinx book toolchain → HTML + PDF** (added 2026-08-02) — `python3-sphinx` +
