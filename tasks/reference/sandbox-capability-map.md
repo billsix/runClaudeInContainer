@@ -97,7 +97,9 @@ container-root to the logged-in host user); if SELinux denies, add
 Full client tooling (curl/wget/httpie/aria2, nmap, nmap-ncat (`nc`/`ncat`), tcpdump,
 iperf3, mtr, mosh, wireguard-tools, bind-utils) and local services for integration testing:
 postgresql, mariadb, redis, memcached, nginx, sqlite. `gh` for GitHub, git-lfs,
-mercurial. Networking in *nested* containers: see
+mercurial, and **VCS-history tools** (`git-svn`, `cvs`, `cvsps`, `git-filter-repo` — added
+2026-09-22 to reconstruct an old project's history from SourceForge/CVS/GitHub). Networking
+in *nested* containers: see
 `nested-podman-design.md` (bridged netavark works; `--network=host` fallback).
 
 ## Containers inside the sandbox
