@@ -181,3 +181,12 @@ check, prefer letting it check rather than adding a catch-all that defeats it.
 patterns (destructuring, type dispatch). A `match` whose every case is a boolean guard —
 `case (a, b) if a == b:` — is an `if`/`elif` chain in different syntax, justified only by
 the exhaustiveness argument above. Don't convert every two-branch conditional.
+
+## C++: migrating raw owning pointers to `unique_ptr`
+
+Turning a pre-C++11 codebase that owns through raw `T*` / `vector<T*>` + hand `delete` into one
+that owns through `std::unique_ptr` is a recurring, hazardous job with its own playbook — the
+recon → codemod → compiler-drive → runtime-verify method, the raw→`unique_ptr` idiom table, the
+double-free-that-compiles trap, and the clang-tidy checks that misfire on old code. It lives in its
+own doc: **`cpp-ownership-migration.md`** (read it before starting such a migration). The
+compiler/runtime "oracle" method it relies on is in `print-debugging.md`.
