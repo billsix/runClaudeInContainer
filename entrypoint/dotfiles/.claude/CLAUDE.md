@@ -648,8 +648,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python, for
   the ruff tiers and the naming/idiom judgment calls ruff can't check.
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
-  line-length limit, handling an externally-defined name, extracting a function, or choosing total
-  dispatch (the "use your discretion" 80-column worked example lives here too).
+  line-length limit, handling an externally-defined name, naming a loop/iteration variable,
+  extracting a function, or choosing total dispatch (the "use your discretion" 80-column worked
+  example lives here too).
 - **`~/.claude/reference/communication-conventions.md`** — read when writing a status update, asking a
   decision question, creating a task with open questions, or shaping a README.
 - **`~/.claude/reference/git-workflow-conventions.md`** — read when staging finished work, or (if I've

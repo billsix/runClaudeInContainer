@@ -116,6 +116,36 @@ Consequences:
 - The exemption covers *only* the externally-fixed name itself. Parameters, locals, and
   helpers inside such a method still follow house style.
 
+## Name an iteration variable for what it holds; keep a shared generic collection generic
+
+**A loop/iteration handle should say its element type, not `obj`/`item`/`x`/`p`.** A reader
+scanning `for (const auto& obj_ptr : objects)` learns nothing; `for (auto& sprite : ...)` says the
+loop body operates on sprites. Language-agnostic — Python `for waypoint in waypoints`, not
+`for w in ...`; the same for a `.get()`/unwrap alias inside the loop. This matters most after a
+mechanical pass that mints generic names (a `unique_ptr` ownership flip, clang-tidy
+`modernize-loop-convert`, a codemod), which is where the meaningless handles pile up.
+
+**But a *shared generic collection* keeps a generic name — put the type at the use site.** When a
+container is genuinely polymorphic in type — a base-class/template member reused across many
+concrete subclasses, a `List<T>` field, a heterogeneous queue — do **not** rename it to one
+concrete element type: that name is a lie everywhere else it is used. The canonical case (smc,
+2026-09-24): `cObject_Manager<T>::objects` is one public member of a base template inherited by
+~12 managers, holding sprites in one, overworlds/sounds/levels/surfaces in others. Renaming the
+member to `sprites` would misname it in eleven managers. The fix is to anchor the type at each
+**loop variable** (`for (auto& sprite : m_sprite_manager->objects)`) — the reader learns the
+element type from the handle, and the collection name stays honest about being generic. Renaming
+the collection per-context would need per-subclass typed accessors (`Get_Sprites()`) — a larger,
+separate refactor, not a rename pass.
+
+Mechanics when doing this in bulk: it is a **pure rename**, so a codemod can *generate* the diff,
+but the *choice* of name is per-site judgment — a human eyeballs each hunk. Scope each rename to
+the variable's block and collision-guard it (skip if the target name already names a param/local
+in that block, or you shadow it). **Key the rename on the container expression or the enclosing
+scope, not a per-file-uniform assumption** — a single file often has loops over different
+containers, and "all this file's loops are X" mislabels the odd one out (that mistake happened and
+had to be redone container-keyed). See the `modernize-loop-convert` note in
+`cpp-ownership-migration.md` for the clang-tidy-specific version.
+
 ## What earns pulling code into its own function
 
 **Duplication, or naming a distinct phase. Not reshaping control flow.** Language-
