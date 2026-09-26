@@ -646,7 +646,11 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/llm-overused-phrases.md`** — read for the ~15 alternatives / the rationale on
   a specific offender. (The distilled list is inline in "Words and phrases you overuse".)
 - **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python, for
-  the ruff tiers and the naming/idiom judgment calls ruff can't check.
+  the ruff tiers and the naming/idiom judgment calls ruff can't check (incl. the Google/napoleon
+  docstring standard).
+- **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
+  book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
+  fallbacks, reading real build warnings).
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, or choosing total dispatch (the "use your discretion" 80-column worked
