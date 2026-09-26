@@ -24,6 +24,16 @@ real ones are elsewhere. Fix exactly what the build reports, then rebuild to con
 - **`api.rst` must `.. automodule::` EVERY package module** that anything cross-references, not
   just the "main" ones. An explicit `:func:`other.module.thing`` in a docstring has no target
   unless `other.module` is documented somewhere in the doc set.
+- **Make a docstring name another API symbol a *clickable link* with a cross-reference role** —
+  `` :func:`~pkg.mod.name` `` for a function, `:class:`/`:meth:`/`:attr:` for the rest; the leading
+  `~` shows just the last component as the link text. Prefer this over restating a formula or a
+  type in prose when the point is to send the reader to the canonical definition (e.g. a docstring
+  that links a `reversion_sign(r)` helper instead of spelling out `(−1)^(r(r−1)/2)`). It renders as
+  a hyperlink in the HTML and resolves only if the target is autodoc'd (the `automodule` bullet).
+- **A *re-exported* name is ambiguous — qualify it.** If a class/function is defined in one module
+  and re-exported by another and BOTH are `automodule`d, a bare `` :class:`Name` `` warns "more
+  than one target found for cross-reference [ref.python]". Write the **canonical** module in the
+  role — `` :class:`~pkg.core.Name` ``, not the re-export.
 - **Enable `sphinx.ext.napoleon`** (Google-style docstrings) and, for Unicode math in docstrings,
   `latex_engine = "lualatex"` (pdflatex errors on literal Unicode; lualatex renders it).
 - **docutils syntax warnings** ("Inline substitution_reference / literal start-string without
