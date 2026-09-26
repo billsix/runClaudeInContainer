@@ -32,4 +32,10 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 
 RUN source ~/.bashrc && claude update
 
+# Lean 4 (theorem prover) via elan — host-runnable script, curl-installed like Claude
+# Code above; bakes the stable toolchain so an exported image has Lean offline.
+COPY entrypoint/install-lean.sh /usr/local/bin/
+RUN /usr/local/bin/install-lean.sh
+ENV PATH="/root/.elan/bin:${PATH}"
+
 ENTRYPOINT ["/entrypoint.sh"]
