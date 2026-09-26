@@ -7,6 +7,17 @@ Read before touching a book's `conf.py`/`api.rst` or chasing a docs-build warnin
 the geometricalgebra book work, 2026-09-26 (William Emerison Six <billsix@gmail.com>); the
 per-project build mechanics stay in that project's own `book-and-docs-pipeline.md`.
 
+> **Shared across both sandboxes — three byte-identical copies (this banner included); keep
+> them in sync.** Canonical: runClaudeInContainer `tasks/reference/sphinx-book-conventions.md`
+> (github.com/billsix/runClaudeInContainer), mounted in a Claude Code session at
+> `~/.claude/reference/sphinx-book-conventions.md`. Copies in runCrushInContainer
+> (github.com/billsix/runCrushInContainer): its `tasks/reference/sphinx-book-conventions.md`,
+> and the baked crush-client set
+> `client/entrypoint/dotfiles/.config/crush/reference/sphinx-book-conventions.md` — delivered
+> to a Crush session at `~/.config/crush/reference/sphinx-book-conventions.md`, which is how a
+> project developed *with Crush* gets these conventions. Edit the canonical, then re-copy it
+> over the other two.
+
 ## Build first, then read the REAL warnings — don't guess
 
 The single most important habit: **run `make docs` (or the project's build) and read the actual
