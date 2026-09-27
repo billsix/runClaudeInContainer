@@ -28,7 +28,8 @@ ant/maven), .NET SDK 8, Node.js/npm, Ruby, PHP, Perl, R, Julia, Octave,
 Haskell (ghc, cabal), OCaml (+ dune, opam), Erlang, Elixir, Clojure, Racket,
 Common Lisp (sbcl, clisp), Lua (+ luarocks), Zig, Swift, assembly (nasm, yasm),
 shells (bash, zsh, fish, ksh), TeX Live (with dvipng/dvisvgm/standalone),
-WebAssembly (wabt).
+WebAssembly (wabt), and Lean 4 (theorem prover / proof assistant — `lean` +
+`lake`, installed via elan, not dnf; added 2026-09-26 — see `entrypoint/install-lean.sh`).
 
 ## Build, debug, analyze
 
