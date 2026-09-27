@@ -30,7 +30,7 @@ minimal. Flag by flag, with the failure each one answers:
 | `--cap-add=...,net_admin` | The rootful inner podman uses **netavark** (bridge + veth over netlink), which needs `CAP_NET_ADMIN`. Without: `netavark: Netlink error: Operation not permitted`. (pasta/slirp4netns are rootless-only paths — irrelevant here.) |
 | `--security-opt unmask=ALL` | netavark also *writes per-interface sysctls* (`net/ipv4/conf/eth0/arp_notify`) bringing the bridge up, and the sandbox's `/proc/sys` is read-only. `CAP_NET_ADMIN` alone does not help — the mount itself is ro. Unmasking makes bridged (default) networking work end-to-end; host-verified 2026-06-07 (`apt update` in a nested `ubuntu` with no `--network` flag). |
 | `--device /dev/net/tun` | Retained for the rootless/pasta path only; the rootful netavark path never opens it. Harmless, kept for future flexibility. |
-| `--tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE)` | The inner image store. tmpfs (not overlay) because overlay-on-overlay under nested userns is rejected by the kernel; RAM-backed, default 8g (see "Operating it", below). |
+| `--tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE)` | The inner image store **in the opt-in `NESTED_PODMAN_STORE=tmpfs` mode** (the default is now an on-disk dir — see "Store backend" below). tmpfs (not overlay) because overlay-on-overlay under nested userns is rejected by the kernel; RAM-backed, default 8g. |
 | `--tmpfs $(XDG_RUNTIME_DIR)/libpod:rw` | The host's `$XDG_RUNTIME_DIR` is bind-mounted in for Wayland/Pulse, and it carries the **host** podman's `libpod/tmp/pause.pid` — a host PID that doesn't exist in the container's PID namespace. The inner podman tries to `setns()`-join that PID's userns and dies: `cannot re-exec process to join the existing user namespace`. Shadowing *just* `libpod/` with an empty tmpfs fixes it while leaving the Wayland/Pulse sockets intact. |
 
 Plus `entrypoint/dotfiles/.config/containers/storage.conf`, which points the inner
@@ -164,16 +164,18 @@ convention:
    convention, with the single deliberate exception of osbooks-anatomy-physiology
    (above).
 
-   **The same signal can pick a build variant, not just a run flag — but ONLY for downstream
-   projects the agent builds nested, NEVER for the sandboxes themselves.** A downstream project's
-   `Makefile` may default an optional build flag lean when `NESTED_PODMAN=1` (`FLAG ?= $(if $(filter
-   1,$(NESTED_PODMAN)),0,1)`) so a nested `make image` fits the RAM store; `--build-arg` is fine on
-   `podman build` (only `--cgroups` is not). This must NOT be applied to runClaudeInContainer or the
-   runCrushInContainer client, which are built on the host and merely *launched* nested — there the
-   launch flag would silently downgrade the image. The runCrush client tried exactly this
-   (`FULL_TOOLCHAIN ?= $(if …NESTED_PODMAN…)`) and it produced a language-server-less client on
-   `make shell NESTED_PODMAN=1`; it was reverted 2026-09-12 (runCrushInContainer
-   `tasks/reference/nested-podman-vs-image-content.md`).
+   **Image content is a SEPARATE signal, `MINIMAL_IMAGE` — not `NESTED_PODMAN` (renamed 2026-09-27).**
+   Originally the same `NESTED_PODMAN` flag also picked a lean build variant when nested, which
+   overloaded one variable with two unrelated jobs (run capability vs image content) and silently
+   downgraded the runCrush client (`FULL_TOOLCHAIN ?= $(if …NESTED_PODMAN…)` produced a
+   language-server-less client on `make shell NESTED_PODMAN=1`; reverted 2026-09-12, runCrushInContainer
+   `tasks/reference/nested-podman-vs-image-content.md`). Now a downstream project keys image content off
+   a dedicated opt-in `MINIMAL_IMAGE` (`FLAG ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`) which the
+   sandbox does NOT export, so a nested `make image` builds FULL by default (the disk store fits it) and
+   lean is a deliberate `MINIMAL_IMAGE=1` for a small export/airgap image; `--build-arg` is fine on
+   `podman build` (only `--cgroups` is not). `NESTED_PODMAN` keeps ONLY its run-capability role, and
+   `MINIMAL_IMAGE` never applies to the sandboxes themselves. Standard + rollout:
+   `tasks/reference/minimal-nested-images.md`, `tasks/decouple-minimal-image-from-nested-podman.md`.
 
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 
@@ -189,7 +191,9 @@ convention:
   share dnf cache mounts, so concurrent builds queue on the cache lock
   ("Waiting for a lock on the system repository"). Expect sum-of-dnf-steps wall
   time, not parallel speedup.
-- **The store is RAM.** `/var/lib/containers` is a tmpfs sized by
+- **The store is RAM only in the opt-in `NESTED_PODMAN_STORE=tmpfs` mode** (the default is
+  now an on-disk dir — see "Store backend" below, where this RAM-budgeting no longer applies).
+  In tmpfs mode `/var/lib/containers` is a tmpfs sized by
   `NESTED_PODMAN_TMPFS_SIZE` (default 8g). Budget before pulling/building; evict
   with `podman rmi` / `podman image prune -f` only under pressure — a kept image
   saves a rebuild. Images do not survive the session.
@@ -217,13 +221,54 @@ convention:
   tmpfs: `mount -o remount,size=50g /var/lib/containers` let the 22.3 GB image
   commit. The durable fix is the disk-backed store (Open thread).
 
-## Open thread
+## Store backend: disk directory is now the default (2026-09-27, verified in-session)
 
-`tasks/dir-backed-nested-podman-storage.md` (proposed) investigates swapping the
-RAM tmpfs for a host-directory store — motivated by large inner images overflowing
-the RAM store: a ~6 GB TeX Live image overflowing even a 16g tmpfs, and (2026-08-19)
-a 22.3 GB runCrushInContainer client image that failed to *commit* in a 32g tmpfs
-(a `remount,size=50g` unblocked it). If implemented, its findings belong in this doc.
+`tasks/dir-backed-nested-podman-storage.md` swapped the RAM tmpfs for an **ephemeral on-disk
+directory** as the default inner store (`NESTED_PODMAN_STORE=dir`), plus a read-only
+`additionalimagestores` mount of the host image store for reuse — motivated by large inner images
+overflowing the RAM store (a ~6 GB TeX Live image overflowing a 16g tmpfs; a 22.3 GB client image
+failing to *commit* in a 32g tmpfs, needing `remount,size=50g`). The tmpfs rows/lore above and
+below now describe the **opt-in** `NESTED_PODMAN_STORE=tmpfs` mode.
+
+**Verified from inside a relaunched session 2026-09-27** (`runClaudeInContainer`): the store is
+`btrfs` on the host disk (not tmpfs), a `FROM scratch` build committed cleanly, and — after the fix
+below — host-built images are reused read-only and a `FROM localhost/smc:latest` build committed a
+layer without pulling.
+
+**The nested podman is ROOTFUL, so store config must live at `/etc/containers/storage.conf`.**
+`podman info` reports `rootless=false` with graphroot `/var/lib/containers/storage`; rootful podman
+reads `/etc/containers/storage.conf`, **not** the rootless `~/.config/containers/storage.conf`. The
+dotfiles delivered `storage.conf` only to the rootless path, so `additionalimagestores` (and
+`mount_program=fuse-overlayfs`) were silently ignored — `podman images` was empty and the effective
+additional store was the default `/usr/lib/containers/storage`. **Fix:** each Dockerfile now
+`COPY`s `entrypoint/dotfiles/.config/containers/storage.conf` to `/etc/containers/storage.conf`.
+(This is the general rule for rootful-in-userns nested podman: rootless config paths do not apply.)
+
+**Confirmed live after the rebuild (2026-09-27, `runClaudeInContainer`).** The maintainer rebuilt
+and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
+`overlay.additionalImageStores` and `overlay.imagestore` both resolve to `/var/lib/shared-images`,
+`mount_program` is `fuse-overlayfs`, and `podman images` lists the host-built images (`smc`,
+`claudecontainer`, `crushcontainer`, `gacalc`, osbooks bundles, …) as **read-only** — a
+`FROM localhost/smc:latest` resolves with no pull. Mechanics that hold on a disk dir:
+
+- **Writable layer** is an ephemeral `mktemp -d` under `NESTED_PODMAN_STORE_BASE` (default
+  `$(HOME)/.cache`; relocatable per launch — e.g. to an HDD to spare an SSD's write endurance),
+  bind-mounted `:Z` at the inner `/var/lib/containers` and `rm -rf`'d by an
+  `EXIT INT TERM HUP` trap (HUP added 2026-09-27 to match the runCrush network-file cleanup, so a
+  terminal/SSH-drop doesn't leak the store; only `SIGKILL` can still leak one).
+- **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
+  sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*
+  work is pointing the inner store at the host's overlay graphroot directly.
+- **The read-only host store is readable by the mapped root uid** as-is (~655 images), so
+  `additionalimagestores` reuse needed no world-readable chmod on the host store.
+
+**runCrush (`runCrushInContainer/client/`) ships the identical design** (same Makefile store block,
+`storage.conf`, and `/etc` COPY) and was **verified in-session 2026-09-27** in the relaunched client,
+matching runClaude on every point: store on an `ext4` host disk (not tmpfs), `/var/lib/shared-images`
+mounted read-only, host-built images (`crushcontainer`, `claudecontainer`, `smc`) list read-only, and
+a `FROM localhost/crushcontainer:latest` build committed a layer with no pull. A forced ~20 GB fresh
+layer also committed cleanly to the disk store (a 46 GB image, no `no space left on device`),
+retiring the tmpfs OOM-at-commit class the whole task was motivated by.
 
 ## Sources
 

@@ -160,14 +160,38 @@ make shell NESTED_PODMAN=1
 This adds `--device /dev/fuse` (overlay storage), `--device /dev/net/tun` (rootless
 networking via pasta), `--security-opt label=disable`, `--security-opt unmask=ALL` (so the
 inner netavark can write the per-interface sysctls that bridged networking needs — the
-sandbox's `/proc/sys` is otherwise read-only), `--cap-add=sys_admin,mknod,net_admin`, a
-tmpfs-backed inner image store, and a tmpfs over the host runtime dir's `libpod` state
-(so the inner podman doesn't trip over the *host* podman's leftover state — see note
-below). The host Podman stays **rootless** — the container's root is a namespace-mapped
-unprivileged user, so nothing here grants privilege on the real host. The inner image
-store is ephemeral (tmpfs); pulled images don't persist across sessions. That tmpfs
-defaults to **8g** and is RAM-backed; raise it for a large inner build with
-`make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`.
+sandbox's `/proc/sys` is otherwise read-only), `--cap-add=sys_admin,mknod,net_admin`, an
+inner image store (see **Where images are stored** below), and a tmpfs over the host
+runtime dir's `libpod` state (so the inner podman doesn't trip over the *host* podman's
+leftover state — see note below). The host Podman stays **rootless** — the container's
+root is a namespace-mapped unprivileged user, so nothing here grants privilege on the
+real host.
+
+**Where images are stored (and how to reclaim disk).** `make image` writes the
+`claudecontainer` image to your **host** rootless store, `~/.local/share/containers/storage`
+— that is what grows over time. Reclaim it with `podman rmi claudecontainer`, `podman system
+prune -a`, or by deleting that directory (podman recreates it). The **nested** inner store —
+where `podman` *inside* the sandbox writes its layers — is a throwaway dir under `~/.cache/`
+that is removed on exit, so it needs no cleanup (a hard-killed session may leak one:
+`rm -rf ~/.cache/runclaude-nested.*`); it is disk-backed by default (`NESTED_PODMAN_STORE=tmpfs`
+for the old RAM store) and reuses the host images read-only. The full build-and-storage
+pipeline — the two podman levels, and where every layer lands — is in
+`tasks/reference/image-build-and-storage-pipeline.md`.
+
+**Put that throwaway store on a different disk with `NESTED_PODMAN_STORE_BASE`** (default
+`~/.cache`) — e.g. to keep the build write-churn off an SSD by pointing it at an HDD:
+
+```sh
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage
+```
+
+The base is created if missing, and the per-session store under it (`runclaude-nested.XXXXXX`)
+is still deleted on exit — a hard kill would leak it there instead
+(`rm -rf /mnt/sda1/tmpContainerStorage/runclaude-nested.*`). The base must be a **real
+filesystem that supports overlay xattrs** — ext4/xfs are ideal; btrfs works but has had
+overlay quirks — and an HDD trades build speed for fewer SSD writes. `export
+NESTED_PODMAN_STORE_BASE=…` in your shell to make it the default. (Only used in the default
+`dir` mode; ignored under `NESTED_PODMAN_STORE=tmpfs`, which is RAM.)
 
 **Test it — run Podman inside the container:**
 

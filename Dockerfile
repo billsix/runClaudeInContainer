@@ -7,6 +7,15 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 
 COPY entrypoint/dotfiles/ /root/
 
+# The nested podman runs ROOTFUL (uid 0 inside a userns), so it reads the store config from
+# /etc/containers/storage.conf, NOT the rootless ~/.config/containers/ path the dotfiles COPY
+# above delivers. Ship the same storage.conf there too, or additionalimagestores (host image
+# reuse) and mount_program=fuse-overlayfs are silently ignored. Verified 2026-09-27: with the
+# file only at the rootless path, `podman images` was empty and the effective additional store
+# was the default /usr/lib/containers/storage; with it here, host-built images are reused R/O.
+# See runClaudeInContainer tasks/dir-backed-nested-podman-storage.md.
+COPY entrypoint/dotfiles/.config/containers/storage.conf /etc/containers/storage.conf
+
 # The vendored ~/.emacs.d/ tree is the maintainer's personal Emacs setup. Opt-out:
 # ARG defaults 0 (a bare `podman build` is a clean box), and `make image` passes 1.
 # When off, drop the tree so a fork isn't carrying someone else's package set.

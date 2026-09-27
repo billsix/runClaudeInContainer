@@ -1,48 +1,66 @@
-# The lean-image-when-nested standard — what "minimal" means per project
+# The MINIMAL_IMAGE build option — what "minimal" means per project
 
-**Reference document** — the convention that every containerized project builds a *lean* image when
-built nested inside a sandbox and its *full* image on a host, with no flag to remember; the idiom; the
-rules for what may and may not be trimmed; and the 2026-09-10 survey of every project under the
-sandbox's `/foo/opt` mount with a `CLAUDE.md`. Work: `tasks/minimal-image-for-nested-podman-standard.md`
+**Reference document** — the convention that a containerized project can build a *lean* image on
+demand by passing **`MINIMAL_IMAGE=1`**, while its default (host or nested) is the *full* image; the
+idiom; the rules for what may and may not be trimmed; and the 2026-09-10 survey of every project under
+the sandbox's `/foo/opt` mount with a `CLAUDE.md`. Work: `tasks/minimal-image-for-nested-podman-standard.md`
 (umbrella) + one `tasks/minimal-nested-image.md` per project. Sibling of `nested-podman-design.md`
 ("The `PODMAN_RUN_FLAGS` convention"), which it does not repeat. Written 2026-09-10 (William Emerison
 Six <billsix@gmail.com> asked for the standard).
 
+> **The signal was renamed `NESTED_PODMAN` → `MINIMAL_IMAGE` (2026-09-27), and made an OPT-IN.**
+> Originally the lean image was inferred from `NESTED_PODMAN=1` (auto-lean when built nested). Two
+> things changed that: (1) `NESTED_PODMAN` overloaded one variable with two unrelated jobs — run-time
+> nested capability *and* build-time image content — which caused a real bug (the runCrush client
+> silently built minimal; reverted 2026-09-12); and (2) the nested inner store moved to disk
+> (`tasks/dir-backed-nested-podman-storage.md`, 2026-09-27), so a full image now fits nested and lean
+> is no longer a necessity there. So image content keys off a dedicated **`MINIMAL_IMAGE`** flag, which
+> the sandbox does **not** auto-export: a nested `make image` builds FULL unless the user passes
+> `MINIMAL_IMAGE=1` (for a small export/airgap image). `NESTED_PODMAN` keeps ONLY its
+> `PODMAN_RUN_FLAGS` run-capability role. Decision + rollout:
+> `tasks/decouple-minimal-image-from-nested-podman.md`.
+
 > **Scope (2026-09-12): this applies to DOWNSTREAM container-per-project repos only — NEVER to
 > runClaudeInContainer or the runCrushInContainer client themselves.** Those two are built on the host
-> and merely *launched* nested (the maintainer types `NESTED_PODMAN=1` for run-time capability); keying
-> their image content off that flag silently downgrades them (the runCrush client did exactly that and
-> was **reverted 2026-09-12** — runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`).
-> A "downstream project" here is one the *agent builds nested inside a sandbox*; a sandbox's own image
-> is chosen explicitly on the host.
+> and merely *launched* nested (the maintainer types `NESTED_PODMAN=1` for run-time capability); a
+> sandbox's own image is chosen explicitly on the host and never carries `MINIMAL_IMAGE` inference (the
+> runCrush client once keyed its content off the nested flag and was **reverted 2026-09-12** —
+> runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md`). A "downstream project" here
+> is one the *agent builds nested inside a sandbox*.
 
 ## 1. Why
 
-The nested podman store is RAM (`NESTED_PODMAN_TMPFS_SIZE`, 8–16 GB). A batteries-included **downstream
-project** image (anything with a TeX distribution plus Emacs plus Jupyter) cannot be built there, so
-image-level verification of that project's build-file changes needed a real-machine visit every time.
-The runCrushInContainer client first proved the idiom (a `FULL_TOOLCHAIN` flag, 2026-08-29, then
-defaulting it from `NESTED_PODMAN=1`, 2026-09-10) — but that was **reverted 2026-09-12**, because the
-client is a *sandbox* (built on the host, launched nested), not a downstream project built nested (see
-the Scope note above). The standard below is for the downstream projects the agent genuinely builds
-nested, where a nested `make image` should *just build* the lean image.
+When this was written the nested podman store was RAM (`NESTED_PODMAN_TMPFS_SIZE`, 8–16 GB), so a
+batteries-included downstream image (a TeX distribution plus Emacs plus Jupyter) could not be built
+nested at all — image-level verification of a project's build-file changes needed a real-machine visit.
+The original standard therefore built lean *automatically* when nested. Since 2026-09-27 the inner store
+defaults to an on-disk dir (`tasks/dir-backed-nested-podman-storage.md`), removing that size ceiling: a
+full image builds nested fine. So the reason to build lean is no longer "it won't fit nested" but
+**export size / airgap** — a smaller image to `make image-export` or ship. That is a deliberate choice,
+so it is an opt-in flag (`MINIMAL_IMAGE=1`), not inferred from being nested. (History: the
+runCrushInContainer client first proved the idiom — a `FULL_TOOLCHAIN` flag 2026-08-29, then defaulting
+it from `NESTED_PODMAN=1` 2026-09-10 — but that was **reverted 2026-09-12** because the client is a
+*sandbox*, not a downstream project; see the Scope note above.)
 
 ## 2. The standard
 
-**Rule.** Every optional-feature build flag in a project Makefile defaults to its lean value when
-`NESTED_PODMAN=1` and to its full value otherwise:
+**Rule.** Every optional-feature build flag in a project Makefile defaults to its full value, and flips
+to its lean value when **`MINIMAL_IMAGE=1`**:
 
 ```make
-# Full on a real host; lean when built NESTED inside a sandbox (which exports NESTED_PODMAN=1):
-# the full image does not fit the nested RAM store. Same idiom as PODMAN_RUN_FLAGS. Override
-# either way on the command line (FLAG=1 nested needs a store that can take the full image).
-USE_EMACS  ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)
-BUILD_DOCS ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)
+# Full by default (host OR nested); lean only when MINIMAL_IMAGE=1 is passed (a small export/airgap
+# image). MINIMAL_IMAGE is build CONTENT and is independent of NESTED_PODMAN (run capability) — the
+# sandbox does not set it, so a nested `make image` builds FULL unless asked. Override a single flag
+# the other way on the command line (FLAG=1 with MINIMAL_IMAGE=1, or FLAG=0 without it).
+USE_EMACS  ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)
+BUILD_DOCS ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)
 ```
 
 The Dockerfile side is unchanged: `ARG FLAG=0` + the `if [ "$FLAG" = "1" ]` dispatch the template
-already uses; `--build-arg FLAG=$(FLAG)` on `image`. A bare `podman build` stays lean (ARG default 0),
-a host `make image` stays byte-identical (no `NESTED_PODMAN` in the environment → the full value).
+already uses; `--build-arg FLAG=$(FLAG)` on `image`. A bare `podman build` stays lean (ARG default 0).
+`make image` is full by default — a **host** build is byte-identical to before, and a **nested** build
+is now full too (it used to build lean off the inherited `NESTED_PODMAN=1`; the disk store makes full
+fit). `make image MINIMAL_IMAGE=1` builds lean, host or nested.
 
 **What flips (lean = off):** editors and their configs (`USE_EMACS`, Spyder), documentation toolchains
 (`BUILD_DOCS`: TeX, sphinx, inkscape, ImageMagick, pandoc), notebooks (`USE_JUPYTER`), GUI/display
@@ -62,11 +80,11 @@ lean image (maintainer, 2026-09-10 — a declared-but-absent server fails to sta
 Crush's "no LSP client handles file" is expected there); measure both sizes and record them in the
 project's `CLAUDE.md`; a project with nothing optional (pyNuklear) adopts the standard by stating so.
 
-**For new projects:** the template's Makefile flag block starts with the nested-aware form for every
-optional flag. The template spec lives in the maintainer's personal overlay
+**For new projects:** the template's Makefile flag block uses the `MINIMAL_IMAGE`-keyed form above for
+every optional flag. The template spec lives in the maintainer's personal overlay
 (`~/.ai-coding-conventions.personal.md`, host-side); the line to add there is the `make` block above.
-The tracked cross-project `CLAUDE.md` gets a one-paragraph point 3 under "Running projects in a nested
-container" (drafted in the umbrella task).
+The tracked cross-project `CLAUDE.md` documents `MINIMAL_IMAGE` as an option under "Running projects in
+a nested container".
 
 ## 3. The survey (2026-09-10) — every `/foo/opt` project with a `CLAUDE.md`
 
@@ -105,6 +123,7 @@ pgu as converted — re-check on `master` before assuming the record is wrong.
 
 ## 4. Re-sync check
 
-`grep -ln 'NESTED_PODMAN)),0,1)' /foo/opt/*/Makefile /foo/opt/*/*/Makefile /foo/opt/*/client/Makefile`
-from the sandbox lists the converted projects; a project in §3's "lean variant" column that is missing
-from that list has not been done yet (or drifted back).
+`grep -ln 'MINIMAL_IMAGE)),0,1)' /foo/opt/*/Makefile /foo/opt/*/*/Makefile /foo/opt/*/client/Makefile`
+from the sandbox lists the projects that expose the lean option; a project in §3's "lean variant"
+column that is missing from that list has not been done yet (or drifted back). As of 2026-09-27 only
+geometricalgebra and hanoi expose it; the rest of §3's table is still a plan, not converted code.
