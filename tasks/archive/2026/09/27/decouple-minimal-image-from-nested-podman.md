@@ -1,134 +1,89 @@
-# Decouple the lean-image signal from NESTED_PODMAN (give it its own name)
+# Decouple the lean-image signal from NESTED_PODMAN (give it its own name: MINIMAL_IMAGE)
 
-**Status:** DONE 2026-09-27 — the fleet rename is applied and verified; meets the BLUF's "done" test
-(`NESTED_PODMAN` no longer appears in any `--build-arg`-selecting expression). Actual Makefile blast
+**Status:** DONE 2026-09-27 — the fleet rename is applied and verified; meets the "done" test
+(`NESTED_PODMAN` no longer appears in any `--build-arg`-selecting expression). The actual Makefile blast
 radius was ONE file (`hanoi`; gacalc was already on `MINIMAL_IMAGE`) — every other Makefile used
-`NESTED_PODMAN` only for the run-capability `PODMAN_RUN_FLAGS`, which is unchanged. The personal overlay
-needs no rename (checked; all its `NESTED_PODMAN` uses are run-capability); one OPTIONAL host-side
-template addition remains at the maintainer's discretion (§ "Personal overlay").
-**Priority:** 3
-**Difficulty:** 4
-**Created:** 2026-09-27 (William Emerison Six <billsix@gmail.com>: "NESTED_PODMAN doesn't mean
-anything other than let runClaudeInContainer/runCrushInContainer run podman nestedly. A name like
-MINIMAL_IMAGE would make more sense.")
+`NESTED_PODMAN` only for the run-capability `PODMAN_RUN_FLAGS`, which is unchanged.
+**Priority:** 3. **Difficulty:** 4.
+**Created:** 2026-09-27 (William Emerison Six <billsix@gmail.com>: "NESTED_PODMAN doesn't mean anything
+other than let runClaudeInContainer/runCrushInContainer run podman nestedly. A name like MINIMAL_IMAGE
+would make more sense."); decided, implemented and verified the same day.
 
 ## BLUF
 
-Today a downstream project's Makefile keys its lean-vs-full image off `NESTED_PODMAN`
-(`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`). That overloads one variable with two unrelated
-jobs — **run-time nested capability** and **build-time image content** — which already caused a real
-bug in the runCrush client (reverted 2026-09-12; `runCrushInContainer
-tasks/reference/nested-podman-vs-image-content.md`). The fix that reversion applied stopped at the
-sandboxes; the maintainer now wants the naming fixed everywhere: **introduce a dedicated
-`MINIMAL_IMAGE` (or `LEAN_IMAGE`) build signal for image content, and let `NESTED_PODMAN` mean only
-"add the podman-in-podman run flags."** Done = the lean-image standard, the reference docs, the
-downstream Makefiles, and the personal template use the new name; `NESTED_PODMAN` no longer appears
-in any `--build-arg`-selecting expression.
+A downstream project's Makefile had keyed its lean-vs-full image off `NESTED_PODMAN`
+(`FLAG ?= $(if $(filter 1,$(NESTED_PODMAN)),0,1)`), which overloaded one variable with two unrelated
+jobs — **run-time nested capability** and **build-time image content**. That renamed the build-content
+meaning to a dedicated, opt-in **`MINIMAL_IMAGE`** flag and left `NESTED_PODMAN` meaning only "add the
+podman-in-podman run flags." Result: image content keys off `MINIMAL_IMAGE` (which the sandbox does
+**not** auto-export, so a nested `make image` builds FULL unless `MINIMAL_IMAGE=1` is passed), and
+`NESTED_PODMAN` no longer appears in any `--build-arg`-selecting expression across the fleet.
 
-## Context — read first
+## Background — why the overload was wrong
 
-- `tasks/reference/nested-podman-design.md` § "The `PODMAN_RUN_FLAGS` convention" (the two-meaning
-  overload is spelled out there) and § "The store is RAM".
-- `tasks/reference/minimal-nested-images.md` — the lean-image standard, currently written against
-  `NESTED_PODMAN`; the fleet survey/rollout table lives here.
-- `tasks/minimal-image-for-nested-podman-standard.md` — the umbrella this reconsiders.
-- runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md` § 2 — "The two meanings of
-  `NESTED_PODMAN`", the crux of why the name is wrong for build content.
-- `tasks/dir-backed-nested-podman-storage.md` — the storage half. **These two are entangled:** if the
-  inner store moves to disk (no RAM ceiling), a full image builds nested fine, so the lean image
-  becomes an *opt-in* (export size / airgap) rather than a nested necessity — which changes whether
-  the sandbox should auto-set the new signal at all.
+Keying image *content* off `NESTED_PODMAN` conflated two independent things and had already caused a
+real bug: the runCrush client keyed a `FULL_TOOLCHAIN` flag off `NESTED_PODMAN` and so silently built a
+language-server-less client whenever `make shell NESTED_PODMAN=1` was typed (reverted 2026-09-12;
+runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md` § "The two meanings of
+`NESTED_PODMAN`"). That reversion stopped at the sandboxes; this task fixed the naming everywhere. It
+was entangled with the storage half (`dir-backed-nested-podman-storage.md`, archived alongside): once
+the inner store moved to disk and the RAM ceiling was gone, a full image built nested fine, so the lean
+image became a deliberate **opt-in** (export size / airgap) rather than a nested necessity — which is
+why the sandbox does not auto-set the signal.
 
-## The proposal
+## What was decided (2026-09-27, William Emerison Six <billsix@gmail.com>)
 
-1. **Name.** `MINIMAL_IMAGE` reads best for the polarity the maintainer wants ("build a minimal
-   image" — the signal says what it does, and the feature flags flip *off* under it, same as today).
-   `LEAN_IMAGE` is the synonym; pick one (open question 1).
-2. **Downstream Makefiles.** `USE_EMACS ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)` etc. `NESTED_PODMAN`
-   keeps *only* its `PODMAN_RUN_FLAGS ?= $(if $(filter 1,$(NESTED_PODMAN)),--cgroups=disabled)` role.
-3. **Does the sandbox auto-export `MINIMAL_IMAGE=1`?** Two coherent choices, and the storage decision
-   drives it (open question 2):
-   - **If the store stays RAM tmpfs:** the sandbox should still auto-export `MINIMAL_IMAGE=1` so a
-     nested `make image` "just works" (fits the RAM store) with nothing typed — preserving today's
-     ergonomics while fixing the name. It exports two independent signals: `NESTED_PODMAN=1` (run
-     caps) and `MINIMAL_IMAGE=1` (build content).
-   - **If the store moves to disk (the sibling task):** the RAM ceiling is gone, so the sandbox
-     should NOT auto-set it — full images build nested fine, and `MINIMAL_IMAGE=1` becomes a
-     deliberate opt-in for a small export/airgap image.
-4. **Sandboxes themselves stay excluded** either way (the 2026-09-12 rule): a sandbox is built on the
-   host; `MINIMAL_IMAGE` would only ever be typed there deliberately, never inferred.
+1. **Name: `MINIMAL_IMAGE`** — it reads for the polarity wanted ("build a minimal image"; feature flags
+   flip *off* under it). (`LEAN_IMAGE` was the rejected synonym.)
+2. **Opt-in, NOT auto-exported** ("no, just make sure it's a documented option"). The sandbox does not
+   set `MINIMAL_IMAGE`; a nested `make image` builds FULL unless the user passes `MINIMAL_IMAGE=1`.
+   Consistent with the storage decision (disk store → no RAM ceiling → lean optional), so no
+   auto-inference. `NESTED_PODMAN` keeps ONLY its `PODMAN_RUN_FLAGS` run-capability role.
+3. **Sandboxes stay excluded** (the 2026-09-12 rule): a sandbox is built on the host; `MINIMAL_IMAGE`
+   is only ever typed there deliberately, never inferred.
+4. **Atomic rename, NO deprecated fallback.** The disk-store change landed first (same session), and the
+   re-sync grep found only `hanoi` actually keyed image content on `NESTED_PODMAN` (gacalc was already
+   on `MINIMAL_IMAGE`), so there was no fleet of unconverted repos to protect — an atomic rename was
+   clean, and no `MINIMAL_IMAGE ?= $(if …NESTED_PODMAN…)` fallback was added.
 
-## Tradeoffs / why bother
+## What was implemented
 
-- **Pro:** the name finally matches the job; the two-meaning overload that bit the runCrush client
-  can't recur (a typed `NESTED_PODMAN=1` can never again silently pick a minimal image); a reader of
-  a downstream Makefile sees intent, not a proxy.
-- **Con:** it's a fleet-wide rename (a codemod over the converted Makefiles + three docs + the
-  personal template), and it splits "one flag to remember" into two signals the sandbox exports.
-- **Migration:** keep reading `NESTED_PODMAN` as a deprecated fallback for one cycle
-  (`MINIMAL_IMAGE ?= $(if $(filter 1,$(NESTED_PODMAN)),1,)`) so unconverted repos don't silently
-  switch to full mid-rollout — or do it as one atomic sweep. (Open question 3.)
+- **geometricalgebra** had already been converted 2026-09-27 (its four flags read
+  `?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`; `PODMAN_RUN_FLAGS` still keyed on `NESTED_PODMAN`;
+  gate-verified: plain `make image` → full, `make image MINIMAL_IMAGE=1` → lean, 2.42 GB, 649 tests).
+  It was the reference example; nothing about it changed under this task.
+- **`hanoi/Makefile`** — `BUILD_DOCS` now keys off `MINIMAL_IMAGE`. This was the **only** downstream
+  Makefile that needed it (the re-sync grep found no others keyed on `NESTED_PODMAN`). The intended
+  behavior change: a nested `make image` now builds FULL (the disk store fits it); lean is the opt-in.
+- **Reference docs:** `tasks/reference/minimal-nested-images.md` was retitled and reframed
+  (auto-lean-when-nested → opt-in `MINIMAL_IMAGE`; title, intro banner, §1/§2 idiom, "For new projects",
+  and the §4 re-sync grep), and `tasks/reference/nested-podman-design.md`'s PODMAN_RUN_FLAGS-convention
+  overload paragraph was rewritten (image content = `MINIMAL_IMAGE`, run capability = `NESTED_PODMAN`,
+  independent).
+- **Cross-project conventions (the in-sandbox `CLAUDE.md` of both sandboxes):** runClaude
+  `entrypoint/dotfiles/.claude/CLAUDE.md` and the runCrush client's baked
+  `client/entrypoint/dotfiles/.config/crush/CLAUDE.md` both now state `NESTED_PODMAN` = run capability
+  only and document `MINIMAL_IMAGE=1` as the opt-in image-content flag.
+- **Personal overlay (`~/.ai-coding-conventions.personal.md`):** checked — it needed **no rename** (every
+  `NESTED_PODMAN` reference there is run-capability: `PODMAN_RUN_FLAGS`, the `shell-exec` mirror note,
+  the offline-export `make shell NESTED_PODMAN=1`, the conformance checklist, the `--cgroups` standing
+  authorization). This corrected the pre-implementation guess that the template spec referenced a lean
+  idiom — it carried none. At the maintainer's request the `MINIMAL_IMAGE` template idiom
+  (`FLAG ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`) was **added** to the overlay's Makefile-contract
+  "Feature flags" bullet plus a matching conformance-checklist line, so new projects scaffolded from the
+  template expose the lean option. (The overlay is a host-side mounted file, not a repo file — it was
+  writable in-session, so the edit persists to the host file directly; nothing to git-stage for it.)
 
-## Impact on work already done
+## Verification
 
-- **geometricalgebra** was converted 2026-09-27 using the `NESTED_PODMAN` idiom (its
-  `tasks/minimal-nested-image.md`). It is gate-verified (lean image 2.42 GB, 649 tests) but its
-  signal name is **provisional pending this decision** — if the rename lands, its four flags
-  (`USE_EMACS`/`BUILD_DOCS`/`USE_JUPYTER`/`USE_LEAN`) switch from `$(…NESTED_PODMAN…)` to
-  `$(…MINIMAL_IMAGE…)` in one line each. Nothing else about that work changes.
+`hanoi` was checked with `make -n image`: default → `BUILD_DOCS=1` (full); `MINIMAL_IMAGE=1` →
+`BUILD_DOCS=0` (lean); `NESTED_PODMAN=1` → still `BUILD_DOCS=1` (image content no longer affected by the
+run flag); `MINIMAL_IMAGE=1 BUILD_DOCS=1` → `BUILD_DOCS=1` (per-flag override wins).
 
-## Personal overlay (`~/.ai-coding-conventions.personal.md`) — what needs updating
+## See also
 
-The maintainer's overlay refers to `NESTED_PODMAN` in: the `PODMAN_RUN_FLAGS` convention (STAYS —
-that is the correct run-capability use), the `shell-exec` "mirror NESTED_PODMAN" note (STAYS), the
-template conformance checklist, and the offline-export test recipe (`make shell NESTED_PODMAN=1`).
-Only the **image-content** references would gain a `MINIMAL_IMAGE` mention; the run-capability ones
-are correct as-is. The overlay is host-side (blank in the sandbox), so the maintainer edits it — this
-task just lists the lines.
-
-## Decisions (2026-09-27, William Emerison Six <billsix@gmail.com>)
-
-1. **Name: `MINIMAL_IMAGE`.** (resolved)
-2. **Opt-in, NOT auto-exported. Make it a documented option.** ("no, just make sure it's a documented
-   option.") The sandbox does not set `MINIMAL_IMAGE`; a downstream nested `make image` builds FULL
-   unless the user passes `MINIMAL_IMAGE=1`. This is consistent with the storage decision (disk store
-   → no RAM ceiling → lean is optional), so no auto-inference is needed. `NESTED_PODMAN` keeps ONLY
-   its `PODMAN_RUN_FLAGS` run-capability role. (resolved)
-
-## Progress
-
-- **geometricalgebra: converted 2026-09-27** — its four flags now read
-  `?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`, `PODMAN_RUN_FLAGS` still keyed on `NESTED_PODMAN`.
-  Verified: plain `make image` → full, `make image MINIMAL_IMAGE=1` → lean (2.42 GB, 649 tests).
-  gacalc `tasks/minimal-nested-image.md`. This is the reference example for the fleet rollout.
-- **Fleet rollout DONE 2026-09-27** (atomic, disk-store already landed the same session):
-  - `hanoi/Makefile` — `BUILD_DOCS` now keys off `MINIMAL_IMAGE` (verified with `make -n`: default full,
-    `MINIMAL_IMAGE=1` → lean, `NESTED_PODMAN=1` no longer affects it, per-flag `BUILD_DOCS=1` override
-    still wins). The **only** downstream Makefile that needed it — the re-sync grep found no others
-    keyed on `NESTED_PODMAN` (gacalc was already converted). Intended behavior change: a nested
-    `make image` now builds FULL (the disk store fits it); lean is the opt-in `MINIMAL_IMAGE=1`.
-  - Reference docs: `tasks/reference/minimal-nested-images.md` retitled + reframed (auto-lean-when-nested
-    → opt-in `MINIMAL_IMAGE`; title, intro banner, §1/§2 idiom, "For new projects", and the §4 re-sync
-    grep all updated), and `tasks/reference/nested-podman-design.md`'s PODMAN_RUN_FLAGS-convention
-    overload paragraph rewritten (image content = `MINIMAL_IMAGE`, run capability = `NESTED_PODMAN`,
-    independent).
-  - Cross-project conventions (the in-sandbox `CLAUDE.md`): runClaude
-    `entrypoint/dotfiles/.claude/CLAUDE.md` and the runCrush client's baked
-    `client/entrypoint/dotfiles/.config/crush/CLAUDE.md` both now state `NESTED_PODMAN` = run capability
-    only and document `MINIMAL_IMAGE=1` as the opt-in image-content flag.
-- **Personal overlay — checked 2026-09-27: NO required change.** Every `NESTED_PODMAN` reference in
-  `~/.ai-coding-conventions.personal.md` is run-capability (`PODMAN_RUN_FLAGS`, the `shell-exec` mirror
-  note, the offline-export `make shell NESTED_PODMAN=1`, the conformance checklist, the `--cgroups`
-  standing authorization) — all correctly stay, and there is no image-content/`--build-arg` keying to
-  rename. The task doc's pre-implementation guess (that the template spec/checklist referenced the lean
-  idiom) was wrong: the overlay carries no lean idiom. **OPTIONAL (maintainer, host-side):** if you want
-  new projects scaffolded from the template to expose the lean option, add the
-  `FLAG ?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)` block to the overlay's template spec. Not required
-  for this task's "done"; the agent can't edit the overlay (host-side).
-
-## Open questions — resolved
-
-1. **Fleet rename: atomic, NO deprecated fallback (resolved 2026-09-27).** The disk-store change landed
-   first (same session), and the survey found only `hanoi` actually keyed image content on
-   `NESTED_PODMAN` (gacalc already on `MINIMAL_IMAGE`), so there was no fleet of unconverted repos to
-   protect — an atomic rename was clean. No `MINIMAL_IMAGE ?= $(if …NESTED_PODMAN…)` fallback was added.
+- `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md` — the storage half; the disk store is
+  what made the lean image optional rather than a nested necessity.
+- `tasks/reference/minimal-nested-images.md` — the reframed `MINIMAL_IMAGE` standard + the per-project
+  survey/rollout table.
+- runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md` — the original overload bug.
