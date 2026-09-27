@@ -551,9 +551,12 @@ run the plain nested command** (`make image`/`make test`/`make shell`) — the s
 `--cgroups=disabled`; **never pass `NESTED_PODMAN=1` on a downstream command** (it belongs only on
 the outermost host launch, which is the user's to run). Verify only **if a run errors**
 (`/dev/fuse` absent ⇒ tell me to relaunch with `make shell NESTED_PODMAN=1`). Converting an
-unconverted project's Makefile to `PODMAN_RUN_FLAGS` is pre-authorized; lean-image-when-nested
-applies to the **downstream** project, never to the sandboxes themselves. Standing nested-run
-authorizations are personal (`ai-coding-conventions.personal.md`). Full specifics — the headless
+unconverted project's Makefile to `PODMAN_RUN_FLAGS` is pre-authorized. **`NESTED_PODMAN` is run
+capability ONLY; image *content* keys off a separate opt-in `MINIMAL_IMAGE`** (renamed from the old
+overloaded `NESTED_PODMAN` 2026-09-27): pass `MINIMAL_IMAGE=1` to `make image` for a lean
+export/airgap image — a nested `make image` builds FULL by default now that the inner store is on disk
+— and it never applies to the sandboxes themselves (`~/.claude/reference/minimal-nested-images.md`).
+Standing nested-run authorizations are personal (`ai-coding-conventions.personal.md`). Full specifics — the headless
 Xvfb/screenshot recipe, PYTHONPATH escape hatch, `:Z`-poisons-repos, RAM store management,
 networking — in `~/.claude/reference/nested-run-and-gates.md`; flag design/lore in
 `~/.claude/reference/nested-podman-design.md`.

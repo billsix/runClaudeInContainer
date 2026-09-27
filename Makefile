@@ -24,11 +24,28 @@ EXTRA_MOUNTS ?=
 # inner podman via fuse-overlayfs. No privilege is granted on the real host.
 #   usage: make shell NESTED_PODMAN=1
 NESTED_PODMAN ?= 0
-# Size of the tmpfs backing the inner podman image store (/var/lib/containers).
-# It is RAM-backed (only consumes memory as images are written, but a full store
-# costs that much RAM + swap), so the default is a lean 8g. Override per-run for a
-# bigger inner build, e.g.:  make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g
+# Backend for the inner podman image store (/var/lib/containers), used only when
+# NESTED_PODMAN=1:
+#   dir   (default) -- an EPHEMERAL directory on the host's DISK, bind-mounted in and
+#                      `rm`'d when `make shell` exits (a trap). No RAM ceiling: the old
+#                      tmpfs filled RAM and OOM'd on big images and at layer-commit
+#                      (a 22.3 GB client image needed size=50g); disk is plentiful.
+#   tmpfs           -- the old RAM-backed store (fastest, bounded by RAM). Select with
+#                      `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs`; size it
+#                      with NESTED_PODMAN_TMPFS_SIZE.
+# Why a *dir* works where the sandbox's own rootfs does not: overlay-on-overlay under a
+# nested userns is kernel-rejected, but a dir on the host's real fs (like the tmpfs) is
+# not overlay, so fuse-overlayfs runs on it. One sandbox per store dir at a time.
+# Design + host-verification checklist: tasks/dir-backed-nested-podman-storage.md.
+NESTED_PODMAN_STORE ?= dir
+NESTED_PODMAN_STORE_BASE ?= $(HOME)/.cache
 NESTED_PODMAN_TMPFS_SIZE ?= 8g
+# Reuse images built OUTSIDE the project: the host's rootless image store is bind-mounted
+# READ-ONLY and offered to the inner podman as an additionalimagestore (see
+# entrypoint/dotfiles/.config/containers/storage.conf), so a nested `make image` reuses
+# host-built base images without re-pulling. Set empty to disable; auto-skipped if the
+# path does not exist.
+NESTED_PODMAN_HOST_IMAGESTORE ?= $(HOME)/.local/share/containers/storage
 ifeq ($(NESTED_PODMAN),1)
 # The host's $XDG_RUNTIME_DIR is bind-mounted in for Wayland/Pulse passthrough, and it
 # carries the *host* podman's rootless state (libpod/tmp/pause.pid -> a host PID). The
@@ -37,6 +54,17 @@ ifeq ($(NESTED_PODMAN),1)
 # state dir with an empty tmpfs so the inner podman starts clean; the Wayland/Pulse
 # sockets in the rest of the dir are untouched.
 NESTED_PODMAN_RUNTIME_TMPFS := $(if $(XDG_RUNTIME_DIR),--tmpfs $(XDG_RUNTIME_DIR)/libpod:rw)
+# Inner image store mount. tmpfs mode adds the RAM tmpfs here; dir mode's ephemeral disk
+# bind mount is created + cleaned per-recipe (it needs a fresh dir + a cleanup trap), so
+# nothing is added here for it.
+ifeq ($(NESTED_PODMAN_STORE),tmpfs)
+NESTED_PODMAN_STORE_FLAG := --tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE)
+else
+NESTED_PODMAN_STORE_FLAG :=
+endif
+# Read-only host image store for reuse (storage.conf reads it at /var/lib/shared-images).
+# Mounted only when the host path exists, so a machine without it just skips reuse.
+NESTED_PODMAN_IMAGESTORE_MOUNT := $(shell if [ -n "$(NESTED_PODMAN_HOST_IMAGESTORE)" ] && [ -d "$(NESTED_PODMAN_HOST_IMAGESTORE)" ]; then echo "-v $(NESTED_PODMAN_HOST_IMAGESTORE):/var/lib/shared-images:ro"; fi)
 # The inner podman runs *rootful* (container-root), so it uses the netavark backend,
 # not pasta/slirp4netns (those are rootless-only). netavark configures a bridge + veth
 # over netlink, which needs CAP_NET_ADMIN -> without it you get
@@ -64,7 +92,8 @@ NESTED_PODMAN_FLAGS := --device /dev/fuse \
                        --security-opt label=disable \
                        --security-opt unmask=ALL \
                        --cap-add=sys_admin,mknod,net_admin \
-                       --tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE) \
+                       $(NESTED_PODMAN_STORE_FLAG) \
+                       $(NESTED_PODMAN_IMAGESTORE_MOUNT) \
                        $(NESTED_PODMAN_RUNTIME_TMPFS) \
                        -e NESTED_PODMAN=1
 else
@@ -233,14 +262,31 @@ REPO_MOUNT = /$(PROJECT_DIR)
 # run the inline CMD, else the repo-relative SCRIPT. Prefers CMD when both are set.
 SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT))'
 
+# Nested `dir` store: make a fresh EPHEMERAL host dir, bind it at the inner
+# /var/lib/containers, and `rm` it when the run exits (trap). tmpfs mode / non-nested runs
+# leave STORE empty, so the ${STORE:+…} adds nothing (the tmpfs flag, if any, is already
+# in SHELL_RUN_FLAGS). Duplicated verbatim in shell + shell-exec on purpose (a define/call
+# recipe is fragile); keep the two blocks identical.
 .PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_TMPFS_SIZE=16g, EXTRA_MOUNTS="-v /host:/path:z" (":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
-	$(CONTAINER_CMD) run -it --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_STORE=tmpfs (RAM store vs the default ephemeral disk dir), EXTRA_MOUNTS="-v /host:/path:z" (":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
+	@STORE=""; \
+	if [ "$(NESTED_PODMAN)" = "1" ] && [ "$(NESTED_PODMAN_STORE)" = "dir" ]; then \
+	  mkdir -p "$(NESTED_PODMAN_STORE_BASE)"; \
+	  STORE="$$(mktemp -d "$(NESTED_PODMAN_STORE_BASE)/runclaude-nested.XXXXXX")"; \
+	  trap 'rm -rf "$$STORE"' EXIT INT TERM HUP; \
+	fi; \
+	$(CONTAINER_CMD) run -it --rm $${STORE:+-v "$$STORE":/var/lib/containers:Z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
 
 .PHONY: shell-exec
 shell-exec: ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
 	@[ -n "$(SCRIPT)$(CMD)" ] || { echo 'usage: make shell-exec SCRIPT=<repo-relative path> | CMD="..."'; exit 2; }
-	$(CONTAINER_CMD) run --rm $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh $(SHELL_EXEC_ARGS)
+	@STORE=""; \
+	if [ "$(NESTED_PODMAN)" = "1" ] && [ "$(NESTED_PODMAN_STORE)" = "dir" ]; then \
+	  mkdir -p "$(NESTED_PODMAN_STORE_BASE)"; \
+	  STORE="$$(mktemp -d "$(NESTED_PODMAN_STORE_BASE)/runclaude-nested.XXXXXX")"; \
+	  trap 'rm -rf "$$STORE"' EXIT INT TERM HUP; \
+	fi; \
+	$(CONTAINER_CMD) run --rm $${STORE:+-v "$$STORE":/var/lib/containers:Z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh $(SHELL_EXEC_ARGS)
 
 .PHONY: format
 format: image ## Format the repo's shell scripts in place with shfmt (fixes land on the host)
