@@ -1,9 +1,18 @@
-# Investigate: disk-directory-backed nested-podman storage (vs the RAM tmpfs)
+# Rethink nested-podman inner storage: RAM tmpfs vs a disk directory (+ reuse host images)
 
-**Status:** proposed — investigation only (needs go-ahead to implement)
-**Priority:** 5
+**Status:** proposed — investigation + recommendation (needs go-ahead to implement). **Actively
+reconsidered by the maintainer 2026-09-27** (William Emerison Six <billsix@gmail.com>): "I'm
+questioning whether I want the container files to be in tmpfs ram backed … it can cause RAM filling
+up … perhaps use the default podman container storage? or store them in a folder deleted at session
+end, like how runCrush cleans up its networking files. Research the tradeoffs, log them in a task."
+**Priority:** 3 (was 5 — the maintainer raised it by asking)
 **Difficulty:** 6
-**Created:** 2026-07-06
+**Created:** 2026-07-06; reconsideration + options added 2026-09-27.
+**See also:** `tasks/reference/nested-podman-design.md` ("The store is RAM", "Open thread"),
+`tasks/decouple-minimal-image-from-nested-podman.md` (the naming half of this reconsideration — a
+disk store makes the lean-image idea optional rather than forced, and both hinge on decoupling
+`NESTED_PODMAN`'s meanings).
+
 **Motivation:** the nested-podman inner store `/var/lib/containers` is currently a **RAM-backed tmpfs**
 (default 8g, `NESTED_PODMAN_TMPFS_SIZE`). Large inner image builds overflow it: on 2026-07-06 a nested
 `make image` for an OpenStax book (Fedora + **TeX Live**, ~6 GB image) failed with
@@ -14,6 +23,50 @@ failed at the *layer commit* with `no space left on device` in a 32g tmpfs — c
 (base+diff+temp) exceeds the final image size; a `mount -o remount,size=50g /var/lib/containers`
 unblocked it. RAM is the scarce resource; disk is plentiful. Investigate
 backing the inner store with a **host directory (bind mount)** instead of tmpfs.
+
+## Why it is a tmpfs today (the answer to "I'm not sure why I made that decision")
+
+It was **not** an arbitrary default. Leaving `/var/lib/containers` as a plain directory on the
+sandbox's own root filesystem fails: the sandbox rootfs is itself an **overlay** mount (the image
+layers), and the inner podman's `fuse-overlayfs` layered on top is **overlay-on-overlay under a
+nested userns, which the kernel rejects** (`nested-podman-design.md`, the tmpfs row). A tmpfs is a
+*real* filesystem, so fuse-overlayfs runs on it cleanly — that is the actual reason tmpfs was chosen,
+not laziness. The key realization for this task: **a host *directory* bind-mounted from the host's
+real disk fs (ext4/xfs) is ALSO a real filesystem**, so it sidesteps overlay-on-overlay exactly like
+tmpfs does — but disk-backed, so no RAM ceiling. (The one thing that does *not* work is pointing the
+inner store at the host's **default podman overlay store** directly — that is overlay-on-overlay
+again. "Default podman container storage" has to mean a plain dir on disk, not the host's overlay
+graphroot.)
+
+## The three options the maintainer named, with tradeoffs (2026-09-27)
+
+| Option | RAM ceiling? | Persists across sessions? | Build speed | Main risks |
+|---|---|---|---|---|
+| **A. tmpfs RAM store (today)** | **Yes** — fills RAM, OOMs on big/commit | No (ephemeral) | Fastest (RAM) | RAM contention with the host; big images fail; must re-pull/rebuild every session |
+| **B. persistent host dir** (`-v /big/disk:/var/lib/containers:Z`) | No | **Yes** | Slower than RAM, fine in practice | rootless UID-shift ownership on the host dir; accumulates → needs `podman system prune`; "one sandbox per dir" locking; a stale/corrupt store survives |
+| **C. ephemeral host dir, deleted at session end** (a temp dir + a trap `rm -rf`, mirroring runCrush's network-file cleanup) | No | No (by design) | Slower than RAM; re-pull each session | rootless ownership + cleanup reliability (a killed session leaks the dir); no cross-session reuse |
+
+**Fourth, orthogonal, and probably the highest-value piece — reuse host-built images read-only.**
+Podman's **`additionalimagestores`** lets the nested podman mount the *host's* image store **read-only**
+and reuse its images without copying — directly answering "speed up build times, especially when I've
+built the image outside of the project." It is not a writable cache and not a dir of tarballs: it must
+point at a real containers/storage image store, exposed world-readable, and the writable container
+layer stays separate (options A–C still choose *where the writable layer lives*). So the likely design
+is **(B or C) for the writable layer + `additionalimagestores` pointing at the host store for reuse.**
+Online confirmation (2026): Red Hat "Exploring additional image stores in Podman"; rootless overlay +
+fuse-overlayfs ownership via xattrs.
+
+## Recommendation (my read — for the maintainer to decide)
+
+**Default to option C (ephemeral disk dir) + `additionalimagestores` read-only from the host store**,
+keep tmpfs available behind `NESTED_PODMAN_TMPFS_SIZE` for the rare all-RAM-speed case. Rationale:
+C removes the RAM ceiling and the OOM-at-commit class of failures (the whole reason big books/clients
+needed `remount,size=50g`), matches the maintainer's own "cleaned up at session end like the network
+files" instinct, and — via `additionalimagestores` — reuses host-built images so a nested `make image`
+is fast and a pre-built base need not be re-pulled. Persistent (B) is the alternative if cross-session
+image caching matters more than a clean slate; its cost is prune hygiene + ownership drift. **This
+would make the lean-image standard *optional* (a big image now fits on disk), not a nested necessity —
+so pair this decision with `tasks/decouple-minimal-image-from-nested-podman.md`.**
 
 ## Goal
 
