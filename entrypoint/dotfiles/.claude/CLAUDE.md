@@ -479,7 +479,15 @@ the updates** (keep `CLAUDE.md` lean, push detail to reference docs), reconcile 
 `[Unreleased]`, and **stage everything**. **This sweep is a VERIFICATION NET** — each finished unit
 already shipped its doc deltas at staging time, so expect to find nothing from properly finished
 units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
-remind me of any `blocked` tasks (don't run their network re-checks yourself). Full checklist:
+remind me of any `blocked` tasks (don't run their network re-checks yourself).
+
+**Then run each touched project's format + type-check gate** (whatever its `CLAUDE.md`/`README`
+names — e.g. `make format` / `make type-check` / `make lint`), and fix what it reports, **before I
+commit** — I commit and push at session end, so a green local gate is what keeps CI green.
+**A project's *test* gate often does NOT run the type-checker or linter** (e.g. a `make test` that is
+pytest-only while `ty`/ruff run under `make format`) — and `ty`/type errors slip through tests
+silently — so run the actual **format/type-check/lint** gate CI runs, not just the tests. Match CI:
+run the same `make` targets `.github/workflows/*` invoke. Full checklist:
 `~/.claude/reference/reference-doc-conventions.md`.
 
 ## A project's README is commands-forward; prose belongs in reference docs

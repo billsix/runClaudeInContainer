@@ -229,11 +229,22 @@ doc updates here means the staging-time rule was missed — do the update, and t
    pass, so apply the changes (keeping `CLAUDE.md` lean and pushing detail into `tasks/reference/`
    per the convention above) and show me the diffs. Flag anything genuinely ambiguous for me to
    decide rather than guessing.
-5. **Reconcile any touched repo's `CHANGELOG.md`** — `[Unreleased]` against everything since the last
+5. **Run each touched project's format + type-check gate, and fix what it reports (Bill, 2026-10-01).**
+   Run the gate **CI runs** — `.github/workflows/*` is a thin wrapper over `make <target>`, typically
+   **`make format`** / **`make type-check`** / **`make lint`**. I commit **and push** at session end,
+   so a green local gate is what keeps CI green (CI was failing more often than it should because this
+   step was skipped). **Critical: a project's `make test` is usually NOT the type-check/lint gate** —
+   e.g. gacalc's `make test` is pytest-only while `ruff` + `ty` run under `make format`, and
+   type/lint errors slip past the tests **silently**. So run the actual format/type-check/lint gate,
+   not just the tests, and run the **same `make` targets the workflows invoke** so local == CI. Gate
+   runs that auto-fix (`ruff --fix`/format) **mutate files** — those fixes get staged in step 6. If a
+   gate genuinely can't run here (no nested podman, a display/FUSE need only I can satisfy), **say so
+   explicitly** and name which gate went unrun rather than skipping silently.
+6. **Reconcile any touched repo's `CHANGELOG.md`** — `[Unreleased]` against everything since the last
    tag (see "The changelog") — then **stage everything the session touched** (`git add` by path, per "Git: I commit, you don't —
-   but you DO stage"), including the doc updates from this sweep, so the session ends with the
-   work handed off rather than sitting loose in the working tree.
-6. **Blocked-task reminder.** If any touched project has `blocked` tasks (per "Blocked tasks"),
+   but you DO stage"), including the doc updates from this sweep **and any gate auto-fixes from step 5**,
+   so the session ends with the work handed off rather than sitting loose in the working tree.
+7. **Blocked-task reminder.** If any touched project has `blocked` tasks (per "Blocked tasks"),
    list them one line each with their `Blocked on:`, and remind me `/recheck-blocked` can test
    whether their gate cleared. **Don't run the network re-checks yourself** — just surface that
    they're there.
