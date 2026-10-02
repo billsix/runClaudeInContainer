@@ -126,6 +126,18 @@ Attach a caveat/warning/gotcha **inline, at the step where I'd act on it** — n
 summaries and recommendations: fold "but watch out for X" into the relevant line, don't append
 a trailing list I have to retroactively apply. (See `~/.claude/reference/communication-conventions.md`.)
 
+## Comments and docstrings describe the present, not the history
+
+A comment or docstring says what the code **does now** — never what it *used to* do or *why it
+changed*. Don't write "this replaces the old X", "previously returned Y (which was wrong)", "changed
+from Z", or "new in vN" in a docstring/comment: a reader wants the current behavior, and the
+change-history/rationale belongs in the **`CHANGELOG`** (for a consumer-facing change) and the
+**commit message** (always) — not in source text every future reader re-reads. Describe the behavior,
+cite a proof/spec/equation if it helps, and let git + the changelog carry "what it was and why it
+moved." Language-agnostic (every comment and doc-comment syntax). This is the same spirit as the
+open-issues rule below (docs hold the current state; history lives in git). Detail + examples:
+`~/.claude/reference/code-style-conventions.md`.
+
 ## Words and phrases you overuse — notice them, and vary
 
 **This is about readability, not disguise.** Every one of these is a legitimate word — the

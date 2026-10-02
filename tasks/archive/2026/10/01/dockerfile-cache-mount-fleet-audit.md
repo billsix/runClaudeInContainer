@@ -1,17 +1,20 @@
 # Fleet audit: ensure `--mount=type=cache` on package/dep-install RUNs in every project Dockerfile
 
-**Status:** in-progress — started 2026-10-01 (William Emerison Six <billsix@gmail.com>)
+**Status:** DONE 2026-10-01 (William Emerison Six <billsix@gmail.com>) — 31 Dockerfiles cache-mounted +
+staged; the 3 upstream/vendored files skipped by maintainer decision (Q1).
 **Priority:** 4
 **Difficulty:** 4
 
-## BLUF
+## Summary
 
-Go through every project under `/foo/opt`, find its Dockerfile(s), and make sure each **package-
-install / dependency-fetch `RUN`** carries a BuildKit **`--mount=type=cache`** so rebuilds reuse the
-downloaded packages/wheels instead of re-fetching. Scope to the maintainer's **workable** repos
-(per "Upstream-only checkouts are READ-ONLY"); flag upstream/vendored Dockerfiles rather than editing
-them. "Done" = every in-scope Dockerfile's relevant `RUN`s have the right cache mount (and dnf/apt
-have the keepcache/docker-clean handling that makes the mount effective), changes staged.
+Swept every project under `/foo/opt`, found its Dockerfile(s), and ensured each **package-install /
+dependency-fetch `RUN`** carried a BuildKit **`--mount=type=cache`** so rebuilds reuse the downloaded
+packages/wheels instead of re-fetching. Scoped to the maintainer's **workable** repos (per
+"Upstream-only checkouts are READ-ONLY") — 31 Dockerfiles edited and staged across gacalc, 5
+core-template projects, imps (9), and billsEmacsConfigs (16); already-cached projects left untouched;
+the two intentionally-baked offline caches (fossify Gradle, ripgrep cargo) preserved; and three
+upstream/vendored Dockerfiles skipped by maintainer decision. dnf/apt got the keepcache / docker-clean
+handling that makes the mount effective. Details below.
 
 ## Why (trigger)
 
@@ -60,7 +63,9 @@ speeds rebuilds, it is not where the deps live. (Personal overlay: "Self-contain
 - [x] gacalc uv cache mount (the trigger) — DONE (`Dockerfile:159`), **build-verified** (`make image` green).
 - [x] Assess each in-scope Dockerfile (fan-out, 2026-10-01).
 - [x] Apply the mounts + keepcache/docker-clean handling (fan-out, 2026-10-01). **31 Dockerfiles edited + staged.**
-- [ ] Report the three flagged upstream/vendored files for a decision (Open question 1 — still pending).
+- [x] The three flagged upstream/vendored files — **maintainer said skip (2026-10-01)**: left untouched
+      to avoid upstream merge conflicts (`n64/mm/2ship2harkinianBills`, `n64/ocarina/Shipwright`,
+      `Craft/deps/curl`).
 
 ## Results (2026-10-01) — 31 Dockerfiles edited + staged (not committed)
 
@@ -92,8 +97,8 @@ real build will confirm. **Staged per repo; the maintainer commits.**
 
 ## Open questions
 
-1. The three flagged upstream/vendored Dockerfiles (`2ship2harkinianBills`, `Shipwright`, `Craft/deps/curl`)
-   — skip them (my lean: yes, to avoid upstream merge conflicts), or add cache mounts anyway?
-2. Verification depth: build-verify every edited image (hours, fleet-wide), or rely on syntax + the
-   low-risk nature of cache-mount additions and let the next real build confirm? (My lean: the latter,
-   plus build-verify the handful I'm already rebuilding this session, e.g. gacalc.)
+All resolved (2026-10-01):
+1. The three upstream/vendored Dockerfiles (`2ship2harkinianBills`, `Shipwright`, `Craft/deps/curl`) —
+   **skip** (maintainer). Left untouched.
+2. Verification depth — **gacalc build-verified; the rest syntax-checked + deferred to each project's
+   next build** (cache-mount additions are low-risk: ineffective at worst, not breaking).

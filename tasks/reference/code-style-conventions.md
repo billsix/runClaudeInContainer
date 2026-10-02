@@ -90,6 +90,32 @@ Language-agnostic; the tool names are examples.
 The shape to copy: bulk-fix silently, vary the mechanism, protect what matters, and
 surface only the judgment calls.
 
+## Comments and docstrings describe the present, not the history
+
+**A comment/docstring documents the code's CURRENT behavior — not what it used to do, or why it
+changed.** When you fix or change behavior, the temptation is to narrate the change in the docstring
+("this replaces the old `cos θ == 1` test, which was wrong for anti-parallel vectors …"). Don't: a
+docstring is re-read by every future reader, none of whom cares what the code *used to* be, and the few
+who do want the history will look in the **`CHANGELOG`** (consumer-facing changes) or the **commit
+message** (always) — the two places built for it. A docstring that recounts its own history is stale
+the moment the next change lands and buries the one thing the reader needs (what it does now).
+
+- **Write:** the current behavior, the contract, the math/spec it implements, a pointer to a proof or
+  equation if it aids understanding. (`is_parallel_to`: *"True iff `A ∧ B = 0` — so same-direction and
+  anti-parallel both count; verified in `Predicates.lean`."*)
+- **Don't write (in a comment/docstring):** "replaces the old X", "previously did Y", "was wrong
+  because …", "changed from Z", "new in vN", "fixed the bug where …". That's changelog/commit text.
+- **Where the history goes:** `CHANGELOG.md` `[Unreleased]` for anything a consumer would notice; the
+  commit message for the rest. Both are discoverable (`git log -p`, `git blame`) without polluting the
+  source.
+- **One nuance:** a `# TODO`/`# NOTE` about *current* known limitations or a *future* plan is fine
+  (it's present-tense state). The ban is specifically on narrating the *past* — "what this used to be."
+
+Language-agnostic — every comment and doc-comment syntax. Same spirit as the open-issues-list rule
+(docs carry the current state; git carries the history). Worked example: gacalc `is_parallel_to`
+(2026-10-02) — the first fix narrated the old `cos θ == 1` behavior in the docstring; it was rewritten
+to state only the current wedge-zero criterion, with the change recorded in `CHANGELOG.md`.
+
 ## An externally-defined name always wins over a naming convention
 
 **If a name is dictated by something outside the code — a framework superclass method
