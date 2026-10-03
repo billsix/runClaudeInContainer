@@ -255,7 +255,19 @@ and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
   `$(HOME)/.cache`; relocatable per launch — e.g. to an HDD to spare an SSD's write endurance),
   bind-mounted `:Z` at the inner `/var/lib/containers` and `rm -rf`'d by an
   `EXIT INT TERM HUP` trap (HUP added 2026-09-27 to match the runCrush network-file cleanup, so a
-  terminal/SSH-drop doesn't leak the store; only `SIGKILL` can still leak one).
+  terminal/SSH-drop doesn't leak the store).
+- **The trap cleans via `podman unshare rm -rf` (fixed 2026-10-02), not a bare `rm -rf`.** The
+  inner **rootful** podman writes image layers owned by the host user's **mapped subuids** and with
+  the image's original **read-only** dir perms (`dr-xr-x---`). A plain host `rm -rf`, running as the
+  unprivileged host user in the initial namespace, is neither the owning subuid nor root over those
+  files, so it can't traverse the read-only dirs or unlink their contents — it died with a wall of
+  `rm: cannot remove '…/diff/…': Permission denied` and leaked the store on **every** normal exit
+  (not only `SIGKILL`, as first believed). `podman unshare` runs the `rm` inside podman's rootless
+  user namespace, where the host user is root over its whole subuid range (`CAP_DAC_OVERRIDE`), so
+  it deletes everything quietly. Clean a straggler the same way:
+  `podman unshare rm -rf ~/.cache/*-nested.*`. (From inside a uid-0 sandbox a plain `rm -rf` works,
+  which is why the leak is invisible from in-container and only bites the host user.) See
+  `tasks/nested-store-cleanup-permission-denied.md`.
 - **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
   sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*
   work is pointing the inner store at the host's overlay graphroot directly.
