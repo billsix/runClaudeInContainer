@@ -70,3 +70,15 @@ the imps harness (`tasks/reference/imps/headless-gui-port-testing.md` there has 
 - Gotchas that cost time: under Xvfb + llvmpipe a GL window's contents are not capturable
   (screenshots are black, `xdotool` cannot aim), and libultraship ports swallow stdout —
   instrument to stderr; drive ImGui popups with an env-gated auto-click hook on a throwaway branch.
+
+
+## A gate target that depends on `image` rebuilds the image when run nested (2026-10-04)
+
+Observed in geometricalgebra: `make lean` is declared `lean: image`, so a nested `make lean` ran the whole
+`podman build` (a 16 GB Mathlib image) for 19 minutes before I noticed — the host-built image is offered to
+the inner podman only as a read-only base/additional store, not as build cache, so `podman build` starts
+over. On the host the same prerequisite is a no-op. **Nested, run the gate's own `podman run` line directly
+against the existing image** (`podman images` lists it read-only), e.g.
+`podman run --cgroups=disabled --rm -v $PWD:/<proj>:Z --entrypoint /bin/bash localhost/<image> /<proj>/<gate>.sh`,
+or only accept the rebuild when the image genuinely changed. Check `ps` for a `podman build` before
+assuming a slow gate is the gate.

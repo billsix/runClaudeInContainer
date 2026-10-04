@@ -194,3 +194,13 @@ but *wrong* for a Unicode-sensitive substitution — `.` then matches a byte, no
 never edit a file you are reading in the same pipeline (`grep … f | sed -i … f`) — the two-phase
 discover-to-file-then-edit shape above exists to avoid exactly that. (Idioms verified against the
 tool docs, 2026-09-18.)
+
+
+## `pkill -f <pattern>` inside `bash -c '…'` kills the invoking shell (2026-10-04)
+
+`bash -c 'pkill -9 -f "podman run …"; <more commands>'` matched its *own* command line (which contains the
+pattern) and killed itself before `<more commands>` ran — the tool reported exit 1 with no output and the
+rest of the batch silently never happened. Kill by PID (`ps -eo pid,args | grep …` first), or put the
+pattern in a variable the shell's own argv does not contain, and never chain cleanup-then-work in the
+same `bash -c` string as a `pkill -f`. A background `podman build` also ignores plain `kill`; use `kill -9`
+and re-check `ps`.
