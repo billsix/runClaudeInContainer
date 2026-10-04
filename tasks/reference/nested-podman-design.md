@@ -257,16 +257,22 @@ and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
   `EXIT INT TERM HUP` trap (HUP added 2026-09-27 to match the runCrush network-file cleanup, so a
   terminal/SSH-drop doesn't leak the store).
 - **The trap cleans via `podman unshare rm -rf` (fixed 2026-10-02), not a bare `rm -rf`.** The
-  inner **rootful** podman writes image layers owned by the host user's **mapped subuids** and with
-  the image's original **read-only** dir perms (`dr-xr-x---`). A plain host `rm -rf`, running as the
-  unprivileged host user in the initial namespace, is neither the owning subuid nor root over those
-  files, so it can't traverse the read-only dirs or unlink their contents — it died with a wall of
-  `rm: cannot remove '…/diff/…': Permission denied` and leaked the store on **every** normal exit
-  (not only `SIGKILL`, as first believed). `podman unshare` runs the `rm` inside podman's rootless
-  user namespace, where the host user is root over its whole subuid range (`CAP_DAC_OVERRIDE`), so
-  it deletes everything quietly. Clean a straggler the same way:
+  inner **rootful** podman extracts image layers with the image's own modes and owners. Each
+  layer's `diff/` dir mirrors the image's `/`, which on Fedora is `dr-xr-xr-x` (555), and `/root` is
+  `dr-xr-x---` (550); rootless podman maps container uid 0 to the **host user** and other uids to
+  the **subuid range**. GNU `rm` never `chmod`s, so a plain host `rm -rf`, even as the owner, cannot
+  unlink the direct children of a 555/550 dir (and cannot touch subuid-owned files at all) — it
+  died with a wall of `rm: cannot remove '…/diff/…': Permission denied` and leaked the store on
+  **every** normal exit (not only `SIGKILL`, as first believed). A leftover inspected 2026-10-04 was
+  88 KB of empty 555-parented dirs: everything beneath them had been deleted, which pins the
+  blocker to the directory write bit. `podman unshare` runs the `rm` inside podman's rootless user
+  namespace, where the host user is root (`CAP_DAC_OVERRIDE` bypasses the write bits and the whole
+  subuid range is owned), so it deletes everything quietly. Clean a straggler the same way:
   `podman unshare rm -rf ~/.cache/*-nested.*`. (From inside a uid-0 sandbox a plain `rm -rf` works,
-  which is why the leak is invisible from in-container and only bites the host user.) See
+  which is why the leak is invisible from in-container and only bites the host user.) **A Makefile
+  change to the trap applies only to sessions launched afterwards** — `make` reads the recipe at
+  launch — so a session already running when the fix was committed still exits with the old trap.
+  Verification status, the cross-session ledger, the proposed cleanup log and the fallback ranking:
   `tasks/nested-store-cleanup-permission-denied.md`.
 - **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
   sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*

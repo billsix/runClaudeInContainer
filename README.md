@@ -173,7 +173,9 @@ real host.
 prune -a`, or by deleting that directory (podman recreates it). The **nested** inner store —
 where `podman` *inside* the sandbox writes its layers — is a throwaway dir under `~/.cache/`
 that is removed on exit, so it needs no cleanup (a hard-killed session may leak one:
-`rm -rf ~/.cache/runclaude-nested.*`); it is disk-backed by default (`NESTED_PODMAN_STORE=tmpfs`
+`podman unshare rm -rf ~/.cache/runclaude-nested.*` — the `unshare` matters, a bare `rm` cannot
+delete the image layers' read-only dirs; each exit also appends what the cleanup did to
+`~/.cache/runclaude-nested-cleanup.log`); it is disk-backed by default (`NESTED_PODMAN_STORE=tmpfs`
 for the old RAM store) and reuses the host images read-only. The full build-and-storage
 pipeline — the two podman levels, and where every layer lands — is in
 `tasks/reference/image-build-and-storage-pipeline.md`.
@@ -187,7 +189,8 @@ make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorag
 
 The base is created if missing, and the per-session store under it (`runclaude-nested.XXXXXX`)
 is still deleted on exit — a hard kill would leak it there instead
-(`rm -rf /mnt/sda1/tmpContainerStorage/runclaude-nested.*`). The base must be a **real
+(`podman unshare rm -rf /mnt/sda1/tmpContainerStorage/runclaude-nested.*`; the cleanup log moves
+with it, to `<base>/runclaude-nested-cleanup.log`). The base must be a **real
 filesystem that supports overlay xattrs** — ext4/xfs are ideal; btrfs works but has had
 overlay quirks — and an HDD trades build speed for fewer SSD writes. `export
 NESTED_PODMAN_STORE_BASE=…` in your shell to make it the default. (Only used in the default
