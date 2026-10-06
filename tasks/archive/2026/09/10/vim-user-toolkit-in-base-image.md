@@ -1,13 +1,10 @@
 # Give vim users a complete setup in the sandbox image (vim is already there)
 
-**Status:** **implemented and staged 2026-09-10; pending the maintainer's host `make image`** (the image
-is too large for the sandbox's nested store) — then archive. Proven in a throwaway `fedora:44`: the six
-rpms install, `$EDITOR` is `/usr/bin/vim` in a login shell, and with the baked `.vimrc` all five plugin
-commands exist (`:Git`, `:NERDTreeToggle`, `:Commentary`, `:ALEInfo`, `:GitGutterToggle`) with
-`shiftwidth=4` and the space leader in effect. Created 2026-09-10 at the maintainer's request (William
-Emerison Six <billsix@gmail.com>: "add vim, and whatever normally vim users want installed, to the base
-install script"). Twin of runCrushInContainer's task of the same slug — its list should mirror this one
-(runCrush's `01-install-base.sh` is a copy of this repo's, plus its two language-server rpms).
+**Status:** **done 2026-09-10, archived** with its runCrushInContainer twin at the maintainer's word;
+the host `make image` remains the maintainer's own check. Durable facts are in
+`tasks/reference/sandbox-capability-map.md` ("Editors"); this file is the work record. Created 2026-09-10
+at the maintainer's request (William Emerison Six <billsix@gmail.com>: "add vim, and whatever normally
+vim users want installed, to the base install script").
 **Priority:** 6
 **Difficulty:** 2
 
