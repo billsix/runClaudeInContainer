@@ -651,7 +651,9 @@ a whole bug class gone. The ergonomic sweet spot is **template-splice / quasiquo
 with holes, fill programmatically), between raw strings and hand-built nodes. Define "same output" as
 **equivalence** (structural `ast.dump` + behavioural test parity), not byte-identity; build a
 **parity harness first**, convert one emitter at a time; guard **run-to-run determinism** as a gate.
-Full lessons + the gacalc A/B/C study: `~/.claude/reference/codegen-conventions.md`.
+**Never hand-edit a generated file** — change its template/list/generator and regenerate; the project
+`CLAUDE.md` records the output → source mapping. Full lessons + the gacalc A/B/C study:
+`~/.claude/reference/codegen-conventions.md`.
 
 ## Reference docs — read-on-demand at a trigger, plus the two that are auto-imported
 
@@ -690,7 +692,16 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   authoring a reference doc/set, documenting a pinned dependency, or running the session-end sweep.
 - **`~/.claude/reference/versioning-and-changelogs.md`** — read when comparing/listing versions,
   bumping a version, or maintaining a `CHANGELOG.md`.
-- **`~/.claude/reference/codegen-conventions.md`** — read **before** writing a code generator.
+- **`~/.claude/reference/codegen-conventions.md`** — read **before** writing a code generator, or
+  when tempted to edit a generated file.
+- **`~/.claude/reference/porting-with-an-output-oracle.md`** — read **before** verifying a port
+  (new front-end, build system, language translation, modernization) by comparing outputs: when
+  byte identity is the right bar vs equivalence, forcing the output format, one process per case.
+- **`~/.claude/reference/cpp-python-bindings.md`** — read **before** binding a C++ library to Python
+  (nanobind/pybind11): `nm`-check before binding, trampolines, arity dispatch, overload order.
+- **`~/.claude/reference/cpp-build-modernization.md`** — read **before** porting a C++ build to Meson,
+  pinning/bumping `-std`, migrating to `enum class`, or adding a tree-wide reformat commit
+  (`.git-blame-ignore-revs`); `cpp-ownership-migration.md` is the ownership half.
 - **`~/.claude/reference/diversion-stack-and-scope.md`** — read when a task spawns a prerequisite, a
   diversion is deepening, or you need the stack's full mechanics.
 - **`~/.claude/reference/nested-run-and-gates.md`** — read **before** building/running a project's

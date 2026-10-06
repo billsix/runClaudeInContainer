@@ -53,3 +53,16 @@ archived there at `tasks/archive/2026/06/07/codegen-via-python-ast.md`).
   understandable for a metaprogramming mindset — explicit code-as-data, named/testable
   builders, no two-language whitespace fragility. Judge a codegen style by whether a maintainer
   can follow and safely edit it, not by how few lines it is.
+
+## Generated files in a repo: edit the source, never the output
+
+The consumer side of the rule above. Anything a build step produces — an umbrella header
+concatenated from a curated list, driver scripts and man pages from `*.in` templates, a
+`configure_file` output, a jupytext `.ipynb` from a `.py` — is **never hand-edited**: change the
+list / template / generator and regenerate. Two practices make this stick: (1) the project
+`CLAUDE.md` carries a short **"Generated files — do NOT hand-edit"** table mapping each output to
+its source and generator (ePiX: `epix.h` ← `make_header`'s list; `epix`/`elaps`/`flix`/`laps`/
+`epix.1`/`epix.el` ← the `*.in` templates via Meson `configure_file`); (2) generated outputs that
+are *not* committed are gitignored, and those that *are* committed (so an optional heavy target
+can build without its toolchain) are named as such. Build-system porting notes for this:
+`cpp-build-modernization.md`.

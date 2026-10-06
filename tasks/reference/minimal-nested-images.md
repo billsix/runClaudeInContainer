@@ -96,7 +96,7 @@ plan: that project's `tasks/minimal-nested-image.md`.
 |---|---|---|---|---|
 | runCrushInContainer (client — a sandbox) | — | — | **N/A — excluded** (built on host, launched nested) | tried `FULL_TOOLCHAIN`, **reverted 2026-09-12**: `nested-podman-vs-image-content.md` |
 | apue | none | emacs; musl from source (product) | new `USE_EMACS` | man pages stay |
-| epix-mirror | none | six texlive collections, ghostscript, ImageMagick, jupyterlab (pip) | new `BUILD_DOCS` + `USE_JUPYTER` | biggest saving in the fleet; lib/py-ext/ASan need none of it |
+| epix-mirror | `BUILD_DOCS`, `USE_JUPYTER` (**DONE 2026-10-06**) | — | — | full 2.49 GB vs lean 1.13 GB (1392 → 194 rpms); lib/py-ext/ASan/harness need none of the trimmed layers; guarded targets exit 2 with the flag to re-enable |
 | geometricalgebra | `USE_SPYDER` 0, `USE_EMACS` 0 (**dead ARG**), `BUILD_DOCS` 1 | emacs in `01-install-base.sh`; `03-install-notebook-tex.sh` unconditional | `BUILD_DOCS` flips; make `USE_EMACS` live; gate notebook-tex | `make test` is the gate |
 | gltron | `USE_GRAPHICS` 1 | emacs, ffmpeg in base | `USE_GRAPHICS` flips; new `USE_EMACS` | confirm image-time `ctest` needs no X |
 | hanoi | `BUILD_DOCS` 1 | — | `BUILD_DOCS` flips | trivial |

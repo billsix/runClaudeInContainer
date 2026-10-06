@@ -42,6 +42,13 @@ runs a script/command in the *same* container env as `shell` and exits — no TT
 | X11 flag var name | `$(X_FLAGS_FOR_CONTAINER)` (now standard) — was `$(USE_X)` in mvp/apue (renamed 2026-08-29) |
 | `shell.sh` mode | 755 vs 644 (invoked as `bash shell.sh`, so +x not required) |
 
+**A quoting gotcha (epix-mirror, 2026-10-06):** a `CMD='...'` payload that itself contains **double
+quotes** (e.g. `python -c "..."`) breaks the empty-payload guard — make pastes `$(CMD)` verbatim into
+`[ -n "$(SCRIPT)$(CMD)" ]`, so the inner quotes end the test string and bash reports a syntax error.
+Likewise make expands `$var` inside `CMD` (`$n` → empty, `$st` → `t`): write `$$var`, or avoid shell
+variables in a `CMD`. Use `SCRIPT=<repo-relative path>` for anything beyond a quote-free, variable-free
+one-liner (a saved script under `tasks/adhoc/<slug>/` doubles as the committed record of the gate).
+
 **A make gotcha worth keeping:** `make shell-exec` with no args runs the `image`/`format` PREREQUISITE
 before the empty-guard fires (prereqs run before the recipe) — so on a prereq-carrying project a bare
 invocation builds/reformats, then prints usage. Test the guard via `make -n` on prereq projects.

@@ -246,3 +246,16 @@ recon → codemod → compiler-drive → runtime-verify method, the raw→`uniqu
 double-free-that-compiles trap, and the clang-tidy checks that misfire on old code. It lives in its
 own doc: **`cpp-ownership-migration.md`** (read it before starting such a migration). The
 compiler/runtime "oracle" method it relies on is in `print-debugging.md`.
+
+## A tree-wide reformat is its own commit, listed in `.git-blame-ignore-revs`
+
+When a formatter is first applied tree-wide (`clang-format`, `ruff format`, a line-length change),
+commit **only the reformat** — no doc edits, no config tweaks, no fixes riding along — so the
+commit can be hidden from `git blame` without hiding real history. Then add the SHA to a root
+`.git-blame-ignore-revs` (GitHub reads it automatically; a clone needs
+`git config blame.ignoreRevsFile .git-blame-ignore-revs`, so the project `CLAUDE.md` says so). The
+negative example: ePiX's 2026-06-09 reformat commit also carried `Makefile`, `format.sh`,
+`pyproject.toml` and task-doc edits, so ignoring it costs the blame on those lines (accepted, noted
+in the file's comment). Reformatting upstream-authored sources in a *mirror* is a maintainer
+decision to record next to the mirror rule. Related C++ modernization notes (Meson port, `-std`,
+`enum class`): `cpp-build-modernization.md`.
