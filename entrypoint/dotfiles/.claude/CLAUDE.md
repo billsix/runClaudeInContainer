@@ -408,14 +408,15 @@ Archiving: when complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<
 (harvest to reference docs, fix inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never
 present a done task as an archive *candidate*. **BUT the archive is its OWN commit AFTER the work
 commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts, (3) archive-move +
-one-shot `git rm`. **Always `git mv` the archive (and `git add` its new path) so the rename is
-STAGED — never a plain `mv`.** A plain `mv` leaves the old path tracked-deleted and the new path
-untracked, so a `git add -u`/`git commit -a` of the work then commits the deletion and **orphans**
-the archived doc — it lands in HEAD nowhere, surviving only as an untracked file (incident: gacalc
-2026-10-08). "Separate commit" means a separate *commit*, NOT *unstaged*: keep the archive out of the
-*work's* commit by committing the work paths first, then the archive paths — never one combined
-"work + archive". When I commit by default, stage the archive rename (an owed, tracked action I commit
-separately); when you're authorized to commit this session, you make both commits. At session start, scan `tasks/` (not
+one-shot `git rm`. **Stage the work and STOP — do NOT move to archive yet.** Once the work commit
+exists (I make it by default), **then** `git mv` the task into `tasks/archive/…` (+ `git rm` one-shot
+scripts) and stop again — the rename sits staged for its OWN commit (commit 3, *after* the work's
+commit 2); never move the archive *before* the work commit. **And always `git mv`, never a plain
+`mv`** — a plain `mv` leaves the old path tracked-deleted and the new path untracked, so a
+`git add -u`/`git commit -a` orphans the archived doc into HEAD nowhere (incident: gacalc 2026-10-08).
+The archive is an **owed, tracked** action (record it in the task's `Status`/the stack), done after the
+work commit and never bundled into it. When you're authorized to commit this session, you make both
+commits in order — work, then archive — never one combined "work + archive". At session start, scan `tasks/` (not
 `tasks/archive/`) for in-flight work, list easy-wins-first, and list `blocked` tasks separately.
 Full lifecycle + incidents: `~/.claude/reference/task-doc-conventions.md`.
 

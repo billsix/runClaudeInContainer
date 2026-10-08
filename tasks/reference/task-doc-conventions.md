@@ -71,17 +71,19 @@ itself is genuinely ambiguous.
 handoff (Bill, 2026-09-07).** The maintainer's lifecycle is **three commits**: (1) task-add, ideally
 standalone; (2) work + adhoc scripts, together; (3) archive-move + the one-shot adhoc `git rm`,
 together, in a *separate* commit after the work commit — so `git log` shows "work + its scripts" and
-"archive + script deletion" as two related, self-contained points. **Always `git mv` the task (and
-`git rm` its one-shot scripts) at completion, so the archive rename is STAGED — never a plain `mv` that
-leaves the new file untracked (staging corrected 2026-10-08).** A plain `mv` leaves the old path
-tracked-deleted and the new path untracked; a later `git add -u` / `git commit -a` of the work then
-commits the deletion and **orphans** the archived doc — it lands in HEAD nowhere, surviving only as an
-untracked file (incident: gacalc 2026-10-08). **"Separate commit" means a separate *commit*, NOT
-*unstaged*:** keep the archive out of the *work's* commit by committing the **work paths first, then
-the archive paths** — not by leaving the move on disk only. So: stage the work by path, `git mv` the
-archive (+ `git rm` one-shot scripts), and stop — the archive rename now sits **staged** as an
-**owed, tracked** action I commit separately (record it in the task's `Status` or the stack); say so
-plainly (*"done and staged; the archive move is staged for its own commit"*), never as a question. **When I've authorized you to commit this session** (per-project, per-session —
+"archive + script deletion" as two related, self-contained points. **Stage the work and STOP — do NOT
+move the task to archive yet. Once the work commit exists (I make it by default), THEN `git mv` the
+task (+ `git rm` one-shot scripts) and stop again** — the archive rename sits **staged** for its own
+commit (commit 3, *after* the work's commit 2); never move the archive *before* the work is committed
+(staging + timing corrected 2026-10-08). **And always `git mv`, never a plain `mv` that leaves the new
+file untracked:** a plain `mv` leaves the old path tracked-deleted and the new path untracked; a later
+`git add -u` / `git commit -a` of the work then commits the deletion and **orphans** the archived doc —
+it lands in HEAD nowhere, surviving only as an untracked file (incident: gacalc 2026-10-08). **"Separate
+commit" means a separate *commit*, NOT *unstaged*:** keep the archive out of the *work's* commit by
+committing the **work paths first, then the archive paths** — not by leaving the move on disk only, and
+not by moving it before the work commit. The archive is an **owed, tracked** action I do after the work
+commit (record it in the task's `Status` or the stack); say so plainly (*"done and staged; I'll `git
+mv` it to archive in its own commit once you've committed the work"*), never as a question. **When I've authorized you to commit this session** (per-project, per-session —
 the quick-save mode), you make the commits yourself: commit the work (+ adhoc scripts), then commit the
 archive-move + one-shot `git rm` as a **separate** commit — the same two boundaries, never one combined
 "work + archive" commit. "Pending review" applies to the *work*, not the lifecycle move.
