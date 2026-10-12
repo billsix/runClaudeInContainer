@@ -221,3 +221,20 @@ explaining *why* the base image isn't vendored, *why* `hf` is flag-gated, and so
 lines: three numbered steps, command blocks first, each critical warning condensed to a one-line
 `>`-quote, and the design rationale pushed into `tasks/reference/architecture.md` and linked. The
 README now answers "what do I type?" at a glance; the "why" is one hop away for whoever needs it.
+
+## Say whether each follow-up is required, recommended, or optional
+
+A closing list of follow-ups / next steps / cleanup items must make each item's **action status
+explicit — required, recommended, or optional** — and say *when* it would matter ("only if you
+`git add -A`"; "only if you run the image without the mount"). A vague header — "housekeeping",
+"notes", "FYI" — buries that status and forces the reader to re-read each item and infer whether
+they must act, which is the opposite of what a status update is for. Offer to do the optional items
+yourself in a yes/no-answerable way, so the reader can clear them in one word. This is the
+follow-up-list counterpart of "Caveats belong with the step they affect": attach the actionable
+status to the item, never to a trailing catch-all label.
+
+**Incident (William Emerison Six <billsix@gmail.com>, 2026-10-12).** A status update ended with a
+"Two bits of housekeeping on your side" section listing two items. The maintainer replied that
+"housekeeping as a phrase doesn't tell me if I need to do something or not." Both items were in fact
+optional — labelling them *optional* up front (and offering to do them) would have answered the
+question before it was asked.

@@ -126,6 +126,14 @@ Attach a caveat/warning/gotcha **inline, at the step where I'd act on it** — n
 summaries and recommendations: fold "but watch out for X" into the relevant line, don't append
 a trailing list I have to retroactively apply. (See `~/.claude/reference/communication-conventions.md`.)
 
+## Say whether each follow-up is required, recommended, or optional
+
+When you list follow-ups, next steps, or cleanup — or I ask "what's next" — **tag each item with
+its action status (required / recommended / optional) and say when it would matter** ("only if you
+`git add -A`"). Never bucket them under a vague header like "housekeeping", "notes", or "FYI" that
+forces me to re-read and infer whether I must act; offer to do the optional ones myself in a way I
+can answer in one word. (Detail + the incident: `~/.claude/reference/communication-conventions.md`.)
+
 ## Comments and docstrings describe the present, not the history
 
 A comment or docstring says what the code **does now** — never what it *used to* do or *why it
