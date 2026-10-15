@@ -198,7 +198,7 @@ The offenders, grouped:
   elegant variation (in technical prose, repeat the exact term — synonym-cycling
   creates ambiguity).
 
-## Python and C++: the shared coding standards live in reference docs
+## Python, C++, and C: the shared coding standards live in reference docs
 
 For **Python** specifically, the full coding standard — the ruff-enforced tiers plus the judgment
 calls ruff can't check (naming grammar, expression / mutate-vs-return, reduce-with-`sum`, annotate every
@@ -208,8 +208,13 @@ open it). For **C++** the same shape exists: **`~/.claude/reference/cpp-coding-s
 what clang-format / clang-tidy / the warning level already enforce, then the judgment calls they
 can't check (`auto` with intent and qualifiers, initialize-and-`const`, RAII/`unique_ptr` and
 non-owning raw pointers, the four parameter shapes and return-over-out-params, `enum class` /
-casts / signed integers, one error strategy per project, the modern-C++ reach-for list). The
-language-agnostic conventions in this file apply to both languages too; a project keeps only its
+casts / signed integers, one error strategy per project, the modern-C++ reach-for list). For **C**
+there is a sibling, **`~/.claude/reference/c-coding-standard.md`** — the same (a)/(b) split across
+C89→C23: fixed-width types and `size_t`, manual one-owner memory with the free-once discipline, the
+`snprintf`-over-`strncpy` buffer rules (and why Annex K `_s` and stack VLAs are out), undefined
+behavior and strict aliasing, prefer-the-language-to-the-macro, and the C23 `nullptr` / `[[...]]`
+attributes / `_Generic` niceties. The
+language-agnostic conventions in this file apply to all three languages too; a project keeps only its
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
@@ -697,6 +702,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/cpp-coding-standard.md`** — read **before** writing/reviewing C++, for the
   clang-format/clang-tidy/warning tiers and the judgment calls they can't check (`auto`, `const`,
   ownership, parameter passing, `enum class`/casts/integers, error strategy, modern-C++ spellings).
+- **`~/.claude/reference/c-coding-standard.md`** — read **before** writing/reviewing C, for the
+  clang-format/clang-tidy/warning+sanitizer tiers and the judgment calls they can't check
+  (fixed-width types, manual ownership / free-once, `snprintf`-not-`strncpy` buffers, undefined
+  behavior / strict aliasing, language-over-macro, the C23 `nullptr`/attributes/`_Generic` set).
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
