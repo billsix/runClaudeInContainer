@@ -181,7 +181,15 @@ Persistence belongs in *host directories mounted in*, never in the container.
 
 - **Conventions / slash commands:** edit `entrypoint/dotfiles/.claude/` (in
   this repo). In a live session the bind mounts make the edit take effect on
-  the next read *and* land in the working tree for commit.
+  the next read *and* land in the working tree for commit. **Gotcha (2026-10-15):
+  `CLAUDE.md` is a single-FILE bind mount, and an editor that saves by
+  write-temp-then-rename (the agent's Edit/Write tools, Emacs by default) replaces
+  the inode, so the mounted `/root/.claude/CLAUDE.md` keeps showing the OLD content
+  while the repo file is already updated** — verify with `stat -c %i` on both paths
+  or a `diff`. The repo copy is the truth and is what gets staged; the live view
+  catches up at the next `make shell`. The `commands/` and `reference/` mounts are
+  DIRECTORY mounts and do not have this problem (a new or rewritten file appears at
+  once).
 - **Reference docs:** edit `tasks/reference/` as usual; same live-mount effect.
 - The Dockerfile's `COPY entrypoint/dotfiles/ /root/` matters **only** for
   containers run without the host `~/.claude` mount (e.g. someone else's bare

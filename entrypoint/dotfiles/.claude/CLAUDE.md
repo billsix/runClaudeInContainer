@@ -198,15 +198,20 @@ The offenders, grouped:
   elegant variation (in technical prose, repeat the exact term — synonym-cycling
   creates ambiguity).
 
-## Python: the shared coding standard lives in a reference doc
+## Python and C++: the shared coding standards live in reference docs
 
 For **Python** specifically, the full coding standard — the ruff-enforced tiers plus the judgment
 calls ruff can't check (naming grammar, expression / mutate-vs-return, reduce-with-`sum`, annotate every
 binding, the idiom checklist) — is a shared cross-project reference doc, **read on demand:
 `~/.claude/reference/python-coding-standard.md`** (not auto-imported, so it costs nothing until you
-open it). The language-agnostic conventions in this file apply to Python too; a project keeps only
-its own repo-specific Python invariants inline in its `CLAUDE.md`. The canonical source and its
-mirrors (including the Crush client's baked copy) are named in that doc's header.
+open it). For **C++** the same shape exists: **`~/.claude/reference/cpp-coding-standard.md`** —
+what clang-format / clang-tidy / the warning level already enforce, then the judgment calls they
+can't check (`auto` with intent and qualifiers, initialize-and-`const`, RAII/`unique_ptr` and
+non-owning raw pointers, the four parameter shapes and return-over-out-params, `enum class` /
+casts / signed integers, one error strategy per project, the modern-C++ reach-for list). The
+language-agnostic conventions in this file apply to both languages too; a project keeps only its
+own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
+mirrors (including the Crush client's baked copies) are named in its header.
 
 ## An externally-defined name always wins over a naming convention
 
@@ -689,6 +694,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python, for
   the ruff tiers and the naming/idiom judgment calls ruff can't check (incl. the Google/napoleon
   docstring standard).
+- **`~/.claude/reference/cpp-coding-standard.md`** — read **before** writing/reviewing C++, for the
+  clang-format/clang-tidy/warning tiers and the judgment calls they can't check (`auto`, `const`,
+  ownership, parameter passing, `enum class`/casts/integers, error strategy, modern-C++ spellings).
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
