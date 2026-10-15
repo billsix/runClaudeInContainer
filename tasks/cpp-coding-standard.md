@@ -1,6 +1,6 @@
 # Write the shared C++ coding standard (sibling of the Python one)
 
-**Status:** done 2026-10-15 (William Emerison Six <billsix@gmail.com>) — staged, awaiting the
+**Status:** done 2026-10-15, revised the same day with the smart-pointer table, move/forward, lambdas, const/constexpr/noexcept, the feature ladder and the Meyers items (William Emerison Six <billsix@gmail.com>) — staged, awaiting the
 maintainer's commit; archive is owed after the work commit (commit 3 of the lifecycle).
 **Priority:** 4
 **Difficulty:** 4
