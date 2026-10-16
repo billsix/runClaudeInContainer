@@ -574,8 +574,15 @@ My projects are local git checkouts bind-mounted at container paths (`/foo/opt/<
 exist **only inside this sandbox**. In conversation the local path is fine; **in anything committed
 or shared** (README, CLAUDE.md, task/reference doc, code comment, commit/PR body) **use the
 project's canonical remote URL, read from the appropriate git remote — and if you can't confirm it,
-ask rather than invent one** (a mount's directory name can differ from the repo name). Which remote
-to read and the project → URL mapping are personal — see `ai-coding-conventions.personal.md`.
+ask rather than invent one** (a mount's directory name can differ from the repo name). **This
+covers the `~/.claude/` shared layer too** — this `CLAUDE.md`, the personal overlay, and every
+`~/.claude/reference/*` doc live in the sandbox repo that ships them, so in committed content cite
+them by that repo's canonical URL (e.g. "the c-coding-standard.md reference doc from <that repo>"),
+never by their `~/.claude/...` path. **A commit message is committed content**: a `~/.claude/...` or
+`/foo/opt/...` path in a commit body is meaningless to anyone reading the history from the remote —
+name the repo, or a repo-relative path within the repo the commit belongs to. Which remote to read
+and the project → URL mapping (including which repo owns the `.claude` layer) are personal — see
+`ai-coding-conventions.personal.md`.
 
 ## My project layout (the container-per-project template)
 
