@@ -706,6 +706,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   clang-format/clang-tidy/warning+sanitizer tiers and the judgment calls they can't check
   (fixed-width types, manual ownership / free-once, `snprintf`-not-`strncpy` buffers, undefined
   behavior / strict aliasing, language-over-macro, the C23 `nullptr`/attributes/`_Generic` set).
+- **`~/.claude/reference/c-modernization-sweep.md`** — read **before** sweeping those modern idioms
+  through an *existing*/legacy C tree, for the preservation hazards (where the idioms must NOT be
+  applied — setjmp/longjmp locals, loop-carried accumulators, deliberate teaching bugs, wire-format
+  `strncpy` zero-fill) and the sweep's verification + mechanics.
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
