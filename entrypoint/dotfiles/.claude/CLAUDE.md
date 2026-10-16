@@ -674,6 +674,8 @@ outputs) — never hand-transcribe it. Full method + the hand-instrumentation (p
 recipes: **`~/.claude/reference/print-debugging.md`** — read it **before** hand-instrumenting a bug
 in an unfamiliar language.
 
+**Integer types and conversions have a sharp version of this.** When choosing precise widths or auditing signed/unsigned boundaries in C/C++, don't eyeball it: build under `-Wconversion -Wsign-conversion` for a per-site worklist (each diagnostic names the from→to types), and use **`clang -Xclang -ast-dump[=json]`** or **`clang-query`** (AST matchers on `implicitCastExpr` / `CastKind`) to see every subexpression's type and the otherwise-invisible implicit casts. The flagged sites usually collapse into a handful of type-pair boundaries, so decide a policy **per boundary**, not per site.
+
 ## Generating source code (any target language)
 
 When you write a **code generator**, prefer building **STRUCTURED output** (an AST + pretty-printer,
