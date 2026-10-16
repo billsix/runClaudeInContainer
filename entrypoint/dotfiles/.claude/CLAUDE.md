@@ -279,6 +279,8 @@ hypothetical), and when a doc moves/archives, fix what pointed at it in the same
 Applies to `See also:`, commit/PR links, manpage `SEE ALSO`, header includes, a Makefile target
 you tell me to run. (Detail: `~/.claude/reference/communication-conventions.md`.)
 
+**A commit SHA is such an artifact, and it rots when history is squashed.** When **archiving a task** or running the **session-end sweep**, scan the docs you touch for SHA1 commit ids and confirm each still resolves (`git cat-file -e <sha>^{commit}` or `git rev-parse --verify <sha>^{commit}`). I squash history at times, so a SHA a doc cited earlier may be gone; repoint it to the squashed commit that replaced it (find it by subject/date via `git log --oneline`) or drop it if it no longer earns its place. A dangling SHA is the same failure as a missing file path.
+
 ### A bare label is not a reference — name it, and say where it lives
 
 "Option 2", "Tier 1", "the approach we discussed" are pointers I am usually not holding.
