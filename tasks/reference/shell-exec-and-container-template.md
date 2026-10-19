@@ -53,6 +53,36 @@ one-liner (a saved script under `tasks/adhoc/<slug>/` doubles as the committed r
 before the empty-guard fires (prereqs run before the recipe) — so on a prereq-carrying project a bare
 invocation builds/reformats, then prints usage. Test the guard via `make -n` on prereq projects.
 
+## Compiled-language projects (C/C++): bake the build, rebuild on entry
+
+A project whose demos/binaries must be *compiled* (not just imported) follows a
+**bake-then-rebuild-on-entry** shape, so one `make image`/`make shell` both builds and
+runs it. First proven in `github.com/McNopper/OpenGL` (a CMake C tree with a Python port
+beside it; its top-level `Dockerfile`/`Makefile`/`entrypoint/` are the reference), 2026-10-18.
+
+- **Bake the build in the `Dockerfile`** after `COPY . /<mount>`: run the project's real
+  build (`cmake -S /<mount> -B <build-tree> && cmake --build <build-tree>`). This validates
+  the build at `make image` time and makes a *pulled* image runnable standalone.
+- **`make shell` bind-mounts the live repo over `/<mount>`, shadowing the baked build**, so
+  `entrypoint/shell.sh` (via `loadpackages.sh`) **re-runs the build incrementally against the
+  mount** — the same editable-install-on-entry idea the Python projects use, applied to a
+  compiled tree. A failed build should still drop you into the shell (no `set -e` around it,
+  or guard it) so you can debug inside.
+- **The build TREE must live OUTSIDE the mount** (e.g. `/opt/<proj>-build`), NOT under
+  `/<mount>/build`. A build tree under the mount collides with the host's own `build/`
+  CMakeCache (configured for the host path) and cmake refuses with "source does not match" /
+  "CMakeCache directory is different". Outside the mount, the baked tree (configured for
+  `/<mount>`, the same path the mount uses) stays valid, so entry is a fast incremental
+  relink. Output artifacts still land wherever the project's CMake puts them (OpenGL writes
+  binaries into the in-source `Binaries/`, which is gitignored, so the mounted tree stays
+  clean).
+- **A hybrid project** (compiled + an interpreted package, like OpenGL's C + Python port)
+  does both on entry: rebuild the C and editable-install the package. Keep the no-display
+  health check (`make check`) a fast import-only gate — do not build the C there.
+- **This is a per-project *contract* addition**, so the compiled-build half also belongs in
+  the cross-project contract in the personal overlay (`~/.ai-coding-conventions.personal.md`),
+  alongside the `shell-exec` half — update it there too.
+
 ## Applied (2026-08-29) + still open
 
 - **Applied everywhere:** the `shell`/`shell-exec` pair + `SHELL_RUN_FLAGS` + `exec bash "$@"` +
