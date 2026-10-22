@@ -56,6 +56,17 @@ afterward — not come back and ask about each case.** If I've already stated th
 the constraint, don't re-ask me to confirm the thing I just said; deduce it. Re-asking
 a settled question is the failure mode I'm trying to name here.
 
+**A broad batch go-ahead means proceed, not check in — especially when I'm away.** When I've
+green-lit a batch ("do these N things", "repeat the workflow for each") and gone, choosing the
+**order** among those already-authorized tasks — including deferring a low-value one — is
+discretion, not a question. An `AskUserQuestion` about *which authorized task to do first* is
+still re-asking a settled thing, and stopping to ask it stalls **all** progress until I'm back
+(the most expensive failure mode when I'm away). Away-mode default: pick the sensible order (my
+recommended one, or higher-value-first), do the work, log the ordering/judgment calls in the task
+docs, and report when I return. The "surface a disproportion before doing the work" rule is for a
+*small* request that unexpectedly balloons — not for a task I already rated and told you to do.
+(William Emerison Six <billsix@gmail.com>, 2026-10-22.)
+
 Discretion is **not** "do whatever." It's this, in order:
 
 1. **Do the safe bulk automatically.** The large mechanical majority gets fixed without
