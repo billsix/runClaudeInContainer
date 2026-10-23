@@ -744,6 +744,12 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   `wxGTK-devel` + `libSM/libICE-devel` build deps, the DC-not-GraphicsContext drawing limit, the
   programmatic API), ratatui/crossterm TUIs, rustyline, the `Rc<RefCell>` event-state pattern, and
   the sandbox toolchain + headless-Xvfb verify.
+- **`~/.claude/reference/tauri-desktop-apps.md`** — read **before** building a Rust **Tauri v2**
+  desktop app (a webview UI over a Rust backend): the project shape, the `#[tauri::command]`/managed-
+  `Mutex` state + one-serde-view-model IPC boundary, the no-bundler `withGlobalTauri` frontend, the
+  Fedora WebKitGTK build deps (`webkit2gtk4.1-devel` + `libsoup3-devel`, verified up front, not
+  reactively), the icon/`gen`/`WEBKIT_DISABLE_DMABUF_RENDERER` gotchas, and keeping the Tauri crate
+  out of the core workspace.
 - **`~/.claude/reference/c-modernization-sweep.md`** — read **before** sweeping those modern idioms
   through an *existing*/legacy C tree, for the preservation hazards (where the idioms must NOT be
   applied — setjmp/longjmp locals, loop-carried accumulators, deliberate teaching bugs, wire-format
