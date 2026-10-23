@@ -267,6 +267,21 @@ its keep on *structural* patterns; a `match` whose every case is a boolean guard
 `if`/`elif` chain in disguise — don't convert every two-branch conditional. Bug-class example:
 `~/.claude/reference/code-style-conventions.md`.
 
+## Prefer a named recursion scheme; shape recursion to the data
+
+**map, filter, and fold are the names of the three recursions you keep hand-writing** —
+transform-each, select, combine-with-a-running-value. Reach for the **most specific** one that
+fits (a 1:1 transform is a map, a selection is a filter, a fold/`reduce` is the last resort and
+the least specific), and hand-write recursion only when none fits. When you do recurse, let the
+shape **follow the data** — the nil/cons split (base case + recursive case) — and do per-element
+work by **mapping over the tail**, not by threading a hand-rolled accumulator. Keep an
+accumulator only when genuinely needed (a true left-fold of state, or a tail/iterative form);
+then **name it `acc`/`accumulator`** and keep it accumulator-first — never flip the order between
+a helper's parameters and its reducer. This is language-agnostic (Lisp/Haskell-rooted; the
+per-language *spelling* differs — in Python map/filter is a comprehension, and there is no TCO so
+recurse only over bounded structures, else iterate). Full guide, schemes, and the worked example:
+`~/.claude/reference/recursive-design.md`.
+
 ## Keep the original goal in sight; a prerequisite is not a new project
 
 **Before designing around a blocker, verify the blocker is real** (try it, watch it fail — don't
@@ -761,6 +776,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, or choosing total dispatch (the "use your discretion" 80-column worked
   example lives here too).
+- **`~/.claude/reference/recursive-design.md`** — read **before** writing or reviewing a
+  non-trivial recursion, or choosing a recursion scheme (map/filter/fold as named schemes,
+  nil/cons structural recursion, mapping over the tail vs. an accumulator, fold direction, the
+  Python no-TCO caveat).
 - **`~/.claude/reference/communication-conventions.md`** — read when writing a status update, asking a
   decision question, creating a task with open questions, or shaping a README.
 - **`~/.claude/reference/git-workflow-conventions.md`** — read when staging finished work, or (if I've
