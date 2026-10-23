@@ -224,8 +224,14 @@ there is a sibling, **`~/.claude/reference/c-coding-standard.md`** — the same 
 C89→C23: fixed-width types and `size_t`, manual one-owner memory with the free-once discipline, the
 `snprintf`-over-`strncpy` buffer rules (and why Annex K `_s` and stack VLAs are out), undefined
 behavior and strict aliasing, prefer-the-language-to-the-macro, and the C23 `nullptr` / `[[...]]`
-attributes / `_Generic` niceties. The
-language-agnostic conventions in this file apply to all three languages too; a project keeps only its
+attributes / `_Generic` niceties. For **Rust** there is **`~/.claude/reference/rust-coding-standard.md`**
+— the same (a)/(b) split, but tier (a) is unusually wide (rustfmt, clippy, and the compiler's borrow
+checker / type system / default lints settle at compile time what are style debates elsewhere), so
+tier (b) is mostly API shape and which tool to reach for: the std method/getter vocabulary,
+derive-and-implement-the-standard-trait, `#[non_exhaustive]`/`#[must_use]`, borrow-over-clone and the
+`Option`/`Result`/`panic!` split, `unsafe` isolation with `// SAFETY:`, and the `thiserror`(lib) /
+`anyhow`(app) error strategy (sourced from Google's Rust style guide). The
+language-agnostic conventions in this file apply to all four languages too; a project keeps only its
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
@@ -728,6 +734,11 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   clang-format/clang-tidy/warning+sanitizer tiers and the judgment calls they can't check
   (fixed-width types, manual ownership / free-once, `snprintf`-not-`strncpy` buffers, undefined
   behavior / strict aliasing, language-over-macro, the C23 `nullptr`/attributes/`_Generic` set).
+- **`~/.claude/reference/rust-coding-standard.md`** — read **before** writing/reviewing Rust, for the
+  rustfmt/clippy/compiler-lint tiers and the judgment calls they can't check (the std method/getter
+  vocabulary, derives + standard traits, `#[non_exhaustive]`/`#[must_use]`, generics-over-`dyn` and
+  the borrowed-parameter forms, borrow-over-clone, the `Option`/`Result`/`panic!` split, `unsafe`
+  isolation, the `thiserror`/`anyhow` error strategy). Sourced from Google's Rust style guide.
 - **`~/.claude/reference/c-modernization-sweep.md`** — read **before** sweeping those modern idioms
   through an *existing*/legacy C tree, for the preservation hazards (where the idioms must NOT be
   applied — setjmp/longjmp locals, loop-carried accumulators, deliberate teaching bugs, wire-format
