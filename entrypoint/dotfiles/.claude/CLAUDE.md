@@ -739,6 +739,11 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   vocabulary, derives + standard traits, `#[non_exhaustive]`/`#[must_use]`, generics-over-`dyn` and
   the borrowed-parameter forms, borrow-over-clone, the `Option`/`Result`/`panic!` split, `unsafe`
   isolation, the `thiserror`/`anyhow` error strategy). Sourced from Google's Rust style guide.
+- **`~/.claude/reference/rust-gui-tui-and-ecosystem.md`** — read **before** a Rust GUI/TUI/bindings
+  task, for the practical ecosystem facts the standard doesn't cover: wxDragon/wxWidgets (the
+  `wxGTK-devel` + `libSM/libICE-devel` build deps, the DC-not-GraphicsContext drawing limit, the
+  programmatic API), ratatui/crossterm TUIs, rustyline, the `Rc<RefCell>` event-state pattern, and
+  the sandbox toolchain + headless-Xvfb verify.
 - **`~/.claude/reference/c-modernization-sweep.md`** — read **before** sweeping those modern idioms
   through an *existing*/legacy C tree, for the preservation hazards (where the idioms must NOT be
   applied — setjmp/longjmp locals, loop-carried accumulators, deliberate teaching bugs, wire-format

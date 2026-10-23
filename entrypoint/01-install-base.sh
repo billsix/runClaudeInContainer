@@ -65,6 +65,7 @@ dnf install -y \
     clang-analyzer \
     clang-devel \
     clang-tools-extra \
+    clippy \
     clisp \
     cloc \
     clojure \
@@ -186,6 +187,7 @@ dnf install -y \
     libgit2-devel \
     libglvnd-gles \
     libheif-devel \
+    libICE-devel \
     libjpeg-turbo-devel \
     libnotify \
     libogg-devel \
@@ -195,6 +197,7 @@ dnf install -y \
     libseccomp-devel \
     libselinux-devel \
     libshaderc-devel \
+    libSM-devel \
     libsodium-devel \
     libssh2-devel \
     libssh-devel \
