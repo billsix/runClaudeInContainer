@@ -785,6 +785,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   isolation, the `thiserror`/`anyhow` error strategy). Primarily from Google's Rust style guide — and it
   records where the **house style deliberately OVERRIDES** that guide (e.g. "annotate every binding",
   stronger than Google's inference default), so a reviewer sees the deviations, not just the baseline.
+- **`~/.claude/reference/javascript-coding-standard.md`** — read **before** writing/reviewing vanilla
+  JavaScript, for JSDoc type annotations on **every binding** (the Python-style "annotate everything" rule
+  via JSDoc), the `@ts-check` / `jsconfig.json` `checkJs` type-gate, `eslint-plugin-jsdoc`, and the safe
+  `make type-check` (`npm ci --ignore-scripts` → `tsc --noEmit` + `eslint`).
 - **`~/.claude/reference/rust-gui-tui-and-ecosystem.md`** — read **before** a Rust GUI/TUI/bindings
   task, for the practical ecosystem facts the standard doesn't cover: wxDragon/wxWidgets (the
   `wxGTK-devel` + `libSM/libICE-devel` build deps, the DC-not-GraphicsContext drawing limit, the
