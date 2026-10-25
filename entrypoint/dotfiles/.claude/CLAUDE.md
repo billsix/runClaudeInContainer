@@ -789,6 +789,12 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   JavaScript, for JSDoc type annotations on **every binding** (the Python-style "annotate everything" rule
   via JSDoc), the `@ts-check` / `jsconfig.json` `checkJs` type-gate, `eslint-plugin-jsdoc`, and the safe
   `make type-check` (`npm ci --ignore-scripts` → `tsc --noEmit` + `eslint`).
+- **`~/.claude/reference/reimplementing-third-party-libraries.md`** — read **before** writing your own
+  in-tree version of a third-party library (tailored, trimmed, under the upstream licence with upstream
+  links) instead of depending on it — the deliberate exception to "just use the library." Covers when it's
+  worth it, the clean-room-vs-derivative licence distinction (an obligation, not a choice, if you touched
+  upstream source), the `pgzero_gl` header/licence mechanics, and that fetching source to learn from is
+  transient, not a dependency. (Sibling of the import-as-is `vendoring-third-party-source-deps.md`.)
 - **`~/.claude/reference/rust-gui-tui-and-ecosystem.md`** — read **before** a Rust GUI/TUI/bindings
   task, for the practical ecosystem facts the standard doesn't cover: wxDragon/wxWidgets (the
   `wxGTK-devel` + `libSM/libICE-devel` build deps, the DC-not-GraphicsContext drawing limit, the
