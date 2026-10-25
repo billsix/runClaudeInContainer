@@ -551,6 +551,13 @@ already shipped its doc deltas at staging time, so expect to find nothing from p
 units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
 remind me of any `blocked` tasks (don't run their network re-checks yourself).
 
+**Also review the session for generalizable token waste.** If the session burned tokens in a way that
+would recur — an unneeded fork or parallel fan-out (each re-ingests the whole conversation + this
+instruction set), reading files that only get compiled or vendored/generated trees, a bloated
+always-loaded doc — capture the lesson where it belongs: a project-specific pattern in that repo's own
+`CLAUDE.md`, a general one in this cross-project file (kept terse — it's paid every turn) or
+`~/.claude/reference/token-and-context-economy.md`. Say "nothing to add" if the session was lean.
+
 **Then run each touched project's format + type-check gate** (whatever its `CLAUDE.md`/`README`
 names — e.g. `make format` / `make type-check` / `make lint`), and fix what it reports, **before I
 commit** — I commit and push at session end, so a green local gate is what keeps CI green.
