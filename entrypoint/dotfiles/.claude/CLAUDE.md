@@ -782,7 +782,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   rustfmt/clippy/compiler-lint tiers and the judgment calls they can't check (the std method/getter
   vocabulary, derives + standard traits, `#[non_exhaustive]`/`#[must_use]`, generics-over-`dyn` and
   the borrowed-parameter forms, borrow-over-clone, the `Option`/`Result`/`panic!` split, `unsafe`
-  isolation, the `thiserror`/`anyhow` error strategy). Sourced from Google's Rust style guide.
+  isolation, the `thiserror`/`anyhow` error strategy). Primarily from Google's Rust style guide — and it
+  records where the **house style deliberately OVERRIDES** that guide (e.g. "annotate every binding",
+  stronger than Google's inference default), so a reviewer sees the deviations, not just the baseline.
 - **`~/.claude/reference/rust-gui-tui-and-ecosystem.md`** — read **before** a Rust GUI/TUI/bindings
   task, for the practical ecosystem facts the standard doesn't cover: wxDragon/wxWidgets (the
   `wxGTK-devel` + `libSM/libICE-devel` build deps, the DC-not-GraphicsContext drawing limit, the
