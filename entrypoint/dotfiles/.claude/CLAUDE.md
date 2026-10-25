@@ -235,6 +235,14 @@ language-agnostic conventions in this file apply to all four languages too; a pr
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
+**How far to apply my coding standard — keyed on whose repo it is (language-agnostic: types, naming, any
+house rule).** In **a repo I maintain or a file I mainly control**, sweeping the whole file/project to
+bring it fully to the standard (e.g. annotating every binding) is welcome. In **someone else's repo**,
+apply my style to **the code I add** — a new function gets my full style — but do **not** sweep the rest
+of the file/project: a whole-file restyle buries what I actually changed and isn't my call; use my style
+for my additions, or the project's documented style where it conflicts. (Per-language detail: the
+coding-standard docs, e.g. `~/.claude/reference/rust-coding-standard.md` "annotate every binding".)
+
 ## An externally-defined name always wins over a naming convention
 
 **A name dictated by something outside the code — a framework superclass method you override, a
