@@ -722,6 +722,20 @@ with holes, fill programmatically), between raw strings and hand-built nodes. De
 `CLAUDE.md` records the output → source mapping. Full lessons + the gacalc A/B/C study:
 `~/.claude/reference/codegen-conventions.md`.
 
+## Token & context economy — spend tokens like they cost money
+
+The two biggest wastes, in order. **(1) Spawning subagents you don't need:** a **fork re-ingests the
+entire conversation PLUS this whole always-loaded instruction set** (~25K tokens here) before it does any
+work — so **default to inline**, and reserve a fork for large, independent, build-heavy work where keeping
+verbose build logs out of the main thread is worth that re-ingest; a parallel fan-out multiplies the
+ingest per agent. (Measured: one implementation fork cost ~633K tokens; a 3-way audit ~400K.) **(2)
+Reading what you don't need:** never read vendored / generated / `build`/`target`/`node_modules` trees or
+files you'll only compile — the build validates them; `grep`/`rg` to the spot and `Read` an
+`offset`/`limit` region instead of whole files; inspect build output by **exit status + a short `tail`**,
+never cat a full log; don't re-read a file you just edited. Keep this file and `stack.md` **lean** — every
+word here is paid every turn and by every fork. Full detail + the measured incident + the pre-action
+self-check: `~/.claude/reference/token-and-context-economy.md`.
+
 ## Reference docs — read-on-demand at a trigger, plus the two that are auto-imported
 
 Claude Code inlines `@`-path references from this file at load, putting the target's *content* in
@@ -816,6 +830,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/claude-config-layering.md`** — read when reasoning about or changing how
   `~/.claude`, auth/login, sessions, or the mounts are assembled.
 - **`~/.claude/reference/bluf-bottom-line-up-front.md`** — read when writing a task's `## BLUF`.
+- **`~/.claude/reference/token-and-context-economy.md`** — read **before** spawning a subagent/fork or a
+  parallel fan-out, or before reading large / vendored / generated files; the rules for not burning tokens
+  (the everyday essence is inline above under "Token & context economy").
 
 All these paths, and the two `@`-imports below, resolve in the container, where the Makefile mounts
 `tasks/reference/` to `~/.claude/reference/`.
