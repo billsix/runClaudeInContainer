@@ -45,6 +45,13 @@ auth, sessions, and credentials come from the host `~/.claude` mount instead. Ed
 conventions/commands in `entrypoint/dotfiles/.claude/` and reference docs in
 `tasks/reference/` — both flow back to git.
 
+Besides docs, `tasks/reference/` also holds a few **SHARED, VENDORED tool scripts** — currently
+`check_local_annotations.py` (the Python annotate-every-binding gate) and `update_dep_common.sh`
+(the source-dep re-vendor helper; pattern in `tasks/reference/vendoring-third-party-source-deps.md`).
+Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
+this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
+(runCrush mirrors both byte-identically).
+
 **Auth persistence needs TWO host mounts**, because Claude Code splits its auth state:
 `~/.claude/.credentials.json` (OAuth tokens, covered by the `~/.claude` mount,
 `CLAUDE_CONFIG_MOUNT`) **and `~/.claude.json`** (onboarding state — a *sibling* of
