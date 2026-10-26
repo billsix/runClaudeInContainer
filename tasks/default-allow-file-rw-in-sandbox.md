@@ -1,6 +1,7 @@
 # Default-allow file read/write inside the sandbox (stop the per-file permission prompts)
 
-**Status:** proposed — needs go-ahead (the maintainer asked to file this task, 2026-10-26).
+**Status:** proposed — design settled (all open questions resolved by the maintainer 2026-10-26);
+ready to implement on go-ahead.
 **Priority:** 4 **Difficulty:** 2
 **Created:** 2026-10-26 (William Emerison Six <billsix@gmail.com>). From the maintainer: "why does
 claude, as in runClaudeInContainer, keep asking me for permissions to read and write files and
@@ -9,16 +10,28 @@ by claude. can you make a task ... to allow this by default?"
 
 ## BLUF
 
-Claude Code, running inside this sandbox, prompts the maintainer to approve file reads/writes
-(reading a path outside the working dir, editing/creating files). The **container is already the
-trust boundary** — nothing in it is precious that a clobber would lose (repos are bind-mounted and
-committed/pushed from the host; the store is ephemeral), so those prompts are pure friction. Ship a
-**baked `settings.json`** in the sandbox's `~/.claude` layer that **allows file reads/writes by
-default** across the container, so a fresh sandbox is quiet out of the box without the maintainer
-touching anything. "Done" = a new `make shell` session never prompts for an ordinary `Read`/`Edit`/
-`Write`/file-create, the setting is documented + version-controlled in this repo, and the broader
-blast radius (does this also silence *bash* prompts?) is a conscious, documented choice — not a
-side effect.
+Claude Code, running inside this sandbox, prompts the maintainer to approve file reads/writes/deletes
+(reading a path outside the working dir, editing/creating files, `rm`-ing them). The **container is
+the trust boundary** for files, so those prompts are friction. Ship a **baked `settings.json`** in
+the sandbox's `~/.claude` layer that, by default, **allows reading, writing, and deleting files/folders**
+across the container — but **grants nothing about the network**, and does **not** invite deleting the
+mounted-in project repos themselves (those are the maintainer's real git repos on the host). "Done" =
+a new `make shell` session never prompts for an ordinary file read / edit / create / delete done while
+implementing a task, while network actions (and whole-repo destruction) still surface; the setting is
+documented + version-controlled in this repo.
+
+## Maintainer decisions (2026-10-26)
+
+- **Grant by default: read, write, AND delete files/folders** done as part of implementing a task. The
+  original Q1 is resolved toward the *file-scoped* side — but explicitly including **delete**, not just
+  edit/create.
+- **Grant NOTHING about the network by default.** Network actions (curl/wget, `git push`/`fetch`, pip/
+  npm/cargo installs that reach out, ssh) must still prompt. This is the firm boundary.
+- **Protect the mounted-in project repos.** The agent should not delete a mounted project (or its
+  `.git`) — those live on the host. Whether this is a hard settings-level guard or agent judgment is
+  Open question 2.
+- **Do NOT mirror this to `runCrushInContainer`** — the runCrush client "handles things differently",
+  so this stays runClaude-only (supersedes the earlier "mirror to the twin" idea).
 
 ## Context (read first)
 
@@ -47,21 +60,26 @@ side effect.
   deletes) still deserve thought, which is why a **file-scoped** allow is cleaner than a blanket
   bypass (see Open question 1).
 
-## Options (decide in Open questions)
+## Design (from the decisions — settle the remaining forks in Open questions)
 
-1. **File-scoped allowlist (recommended).** A baked `settings.json` with
-   `permissions.allow: ["Read", "Edit", "Write"]` plus `additionalDirectories` covering the mount
-   roots (so cross-repo Reads don't prompt) — or equivalently `permissions.defaultMode: "acceptEdits"`
-   with `additionalDirectories`. Silences the file prompts the maintainer named, while bash / network
-   / destructive actions still surface. Narrowest fix that solves the stated problem.
-2. **`defaultMode: "bypassPermissions"`** (or launching `claude --dangerously-skip-permissions`).
-   Silences *everything*, not just files. Simplest, but it also removes the bash/network confirmations
-   — a bigger blast radius than the maintainer asked for. Only if option 1's file rules turn out
-   insufficient or fiddly.
-3. **Launch-flag vs settings-file.** A flag on the `claude` invocation lives in the launcher
-   (`entrypoint/shell.sh` / `Makefile`); a `settings.json` is declarative and also applies to nested
-   / headless invocations. Prefer the settings file (option 1/2 are expressed through it) unless a
-   flag is needed for a reason the file can't express.
+A baked `settings.json` (not a launch flag — declarative, also applies to nested/headless runs). Its
+shape, given "files yes / network no / delete yes / don't nuke the repos":
+
+- **Edit/Write/Read:** `permissions.allow: ["Read", "Edit", "Write"]` (plus `additionalDirectories`
+  covering the mount roots so cross-repo *reads* don't prompt). Alternatively `defaultMode:
+  "acceptEdits"` for the Edit/Write half. This part is uncontentious.
+- **Delete is the subtlety:** deletion is **not a distinct tool** — it happens through the **Bash tool**
+  (`rm`, `rmdir`, `git rm`). So "allow delete by default, but not network" means **allowing the
+  file-mutating shell commands** (`rm`, `rmdir`, `mv`, `mkdir`, `cp`, `touch`, `git rm`, `git mv`) via
+  `permissions.allow: ["Bash(rm:*)", …]` **while the network stays on the default (ask)** path. A
+  blanket `Bash` allow is wrong here — it would silence network commands too. (Open question 1 fixes
+  the exact command set and whether to express it as an allowlist or as narrow network-focused
+  `deny` rules layered under a broader allow.)
+- **Protecting the mounted repos** (Open question 2): a settings `deny` on removing a repo root / its
+  `.git` is possible but *fragile* (path-pattern matching on `rm` args is easy to slip past), so it may
+  be better treated as agent judgment than a hard rule. Decide which.
+- `bypassPermissions` / `--dangerously-skip-permissions` is explicitly **rejected** — it would silence
+  the network too, which the maintainer ruled out.
 
 ## Plan (sketch — refine after the decision)
 
@@ -74,8 +92,8 @@ side effect.
    create a new file — none should prompt. Confirm whatever was deliberately left prompting (bash, if
    option 1) still does.
 4. Document it: a short note in this repo's `README`/`CLAUDE.md` and, if it's a reusable convention,
-   a line in `tasks/reference/claude-config-layering.md`. Mirror into the runCrush twin if it applies
-   there too (its config layering is the sibling).
+   a line in `tasks/reference/claude-config-layering.md`. **Do not mirror to runCrush** (maintainer:
+   it handles things differently).
 
 ## Gates / verify
 
@@ -84,13 +102,24 @@ side effect.
 - The setting is committed in `entrypoint/dotfiles/.claude/` (version-controlled, not a host-only
   tweak), and survives a rebuild.
 
-## Open questions
+## Open questions — RESOLVED (maintainer, 2026-10-26)
 
-1. **File-scoped allow (option 1) or full bypass (option 2)?** The request is specifically "read or
-   write ... files and folders", so option 1 (recommended) matches it and keeps bash/network/delete
-   confirmations. Confirm you want those kept, or say "bypass everything" for option 2.
-2. **Does this belong in the runCrush twin (`runCrushInContainer`) too**, kept in step like the other
-   shared `.claude` layer pieces? (Recommend yes if its layering is the same.)
+1. **How to express "delete allowed, network not" over the Bash tool → (a) the allowlist of file-ops
+   commands.** `Bash(rm:*)`, `Bash(rmdir:*)`, `Bash(mv:*)`, `Bash(mkdir:*)`, `Bash(cp:*)`,
+   `Bash(touch:*)`, `Bash(git rm:*)`, `Bash(git mv:*)` allowed; every other Bash command still on ask
+   (so network tools are never silenced). Fails safe. (Not the broad-allow-with-network-deny option.)
+2. **Guard the mounted repos → by judgment, no hard deny-rule.** The maintainer: "you shouldn't really
+   need to delete folders unless you know why as part of the task" — deletion is a purposeful,
+   understood act, so this is agent discipline, not a settings guard (a path-pattern `deny` would be
+   best-effort and evadable anyway). Do NOT add a deny-rule for the repo roots.
+3. **Also allowlist ordinary safe non-file commands → yes.** Add the common read-only / build commands
+   — `Bash(ls:*)`, `Bash(cat:*)`, `Bash(grep:*)` (and `rg`/`find`), `Bash(make:*)`, and the project
+   gate commands (format/test/type-check) — so they don't prompt either. Still nothing network.
+
+Implementation note from these: a `settings.json` with `permissions.allow` = `["Read", "Edit", "Write"]`
++ the file-ops Bash allowlist (Q1) + the safe read-only/build Bash allowlist (Q3) + `additionalDirectories`
+for the mount roots; NO network commands allowed; NO repo-deletion deny-rule (Q2, judgment). Verify the
+exact `Bash(cmd:*)` rule syntax against current Claude Code docs before shipping.
 
 ## Pointers
 
