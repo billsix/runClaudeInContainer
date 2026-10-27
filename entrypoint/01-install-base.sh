@@ -132,6 +132,7 @@ dnf install -y \
     glib2-devel \
     glibc-static \
     gmp-devel \
+    gnat \
     gnupg2 \
     gnuplot \
     golang \
@@ -139,6 +140,7 @@ dnf install -y \
     gopls \
     gource \
     gperf \
+    gprbuild \
     graphviz \
     groff \
     gsl-devel \

@@ -725,6 +725,21 @@ in an unfamiliar language.
 
 **Integer types and conversions have a sharp version of this.** When choosing precise widths or auditing signed/unsigned boundaries in C/C++, don't eyeball it: build under `-Wconversion -Wsign-conversion` for a per-site worklist (each diagnostic names the from→to types), and use **`clang -Xclang -ast-dump[=json]`** or **`clang-query`** (AST matchers on `implicitCastExpr` / `CastKind`) to see every subexpression's type and the otherwise-invisible implicit casts. The flagged sites usually collapse into a handful of type-pair boundaries, so decide a policy **per boundary**, not per site.
 
+## A tool is an oracle — install what you need, and persist it in the image
+
+The tool closest to a question is ground truth, not a guess (see "Instrumentation-driven debugging"
+and `~/.claude/reference/porting-with-an-output-oracle.md`): the compiler, the **reference
+implementation you are porting from or against**, an interpreter, a linter/formatter, a disassembler,
+a profiler. **If a tool could plausibly serve as an oracle or otherwise help the task, you are
+pre-authorized to `dnf install` it in the sandbox without asking** (the sandbox has network). **Then
+persist it** so future sessions have it offline instead of re-installing ad hoc: add the package to
+BOTH sandbox base lists — `runClaudeInContainer/entrypoint/01-install-base.sh` and
+`runCrushInContainer/client/entrypoint/01-install-base.sh` (each a plain alphabetical `dnf install`
+list). This is the **permanent-provisioning** complement to the personal overlay's "temporary
+build-file additions" arrangement (which stays for one-off dev/debug aids you remove when done).
+(E.g. porting Whitaker's WORDS Ada→Rust, 2026-10-27: `dnf install gnat gprbuild` so the Ada `words`
+can be built and run as the differential output oracle, and both added to the base lists.)
+
 ## Generating source code (any target language)
 
 When you write a **code generator**, prefer building **STRUCTURED output** (an AST + pretty-printer,
