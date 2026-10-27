@@ -791,6 +791,12 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   (`deno check --check-js` + `deno lint`/`deno fmt` — one binary, no `node_modules`, npm lifecycle scripts
   off, zero supply-chain surface); npm + `tsc` + `eslint-plugin-jsdoc` (installed `npm ci --ignore-scripts`)
   is the documented fallback for already-npm repos.
+- **`~/.claude/reference/doctests-by-default.md`** — read **before** migrating tests to doctests, or
+  wiring doctests into a project's test gate (Python `--doctest-modules`, Rust `cargo test`). A unit
+  test is a **doctest by default** unless a listed reason keeps it a plain test; covers the
+  consolidation hazards (dangling `pinned by tests/…` refs, book doc-region sources,
+  generator-authored doctests for codegen) and the authoring/lint traps. Language-agnostic core +
+  `## Python` / `## Rust` sections.
 - **`~/.claude/reference/reimplementing-third-party-libraries.md`** — read **before** writing your own
   in-tree version of a third-party library (tailored, trimmed, under the upstream licence with upstream
   links) instead of depending on it — the deliberate exception to "just use the library." Covers when it's
