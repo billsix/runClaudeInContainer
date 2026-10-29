@@ -421,6 +421,20 @@ harvest the commit history into the task doc** (walk `<upstream>..HEAD`, record 
 decision/rejection chronologically, reconcile `[Unreleased]`) and **normalize the doc into ONE
 consistent tense/voice**. Full detail: `~/.claude/reference/git-workflow-conventions.md`.
 
+## The authorized-batch workflow (when I've said you may commit a task / list)
+
+When I hand you a task or a list and authorize committing (usually while I'm away), run the whole
+cycle yourself and log your decisions: **gpg off** for the project (`commit.gpgsign false`) → **one
+branch** off the branch I was on, named for the work (the task slug is fine) → **per task**: task-add
+commit → raise open questions (inline + a closing numbered list) and **wait**; when I answer, write
+the decisions into the task doc and commit → implement, a commit per meaningful step → pre-squash
+rewrite of the task + any touched reference docs, commit → archive (`git mv`), commit → **repeat for
+every task** → a single **session-end sweep** (reconcile the always-read docs, run the gate), commit
+→ **gpg back on** (`commit.gpgsign true`) → **ask me to merge** the branch into whatever I was on, and
+stop. The stage-only default still governs; this is only for a batch I explicitly told you to commit,
+and the say-so doesn't carry to the next session. Full choreography:
+`~/.claude/reference/git-workflow-conventions.md`.
+
 ## Task documents
 
 For non-trivial / multi-step / resumable work, keep `tasks/<slug>.md` in the repo root, one per
