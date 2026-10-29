@@ -9,4 +9,5 @@
 #
 # EXTRA_MOUNTS mounts host:container dir pairs (":z" for SELinux shared relabel).
 
-make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
+#make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
