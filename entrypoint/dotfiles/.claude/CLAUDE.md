@@ -521,6 +521,25 @@ bonus, not required (the point is the worklog). Verify by re-grep = zero.
 Full detail + incidents: `~/.claude/reference/task-doc-conventions.md`; bulk-op command idioms:
 `~/.claude/reference/shell-and-gate-scripts.md`.
 
+## Choosing a script's language — shell for glue, Python for logic
+
+When you write an ad-hoc script or a `tools/` tool, **default to shell when the job is to DRIVE
+programs** (spawn/pipe/redirect, sequence `git`/`make`/`podman`/compiler calls, move files,
+env+`exec`); **reach for Python the moment it does DATA/CONTROL logic shell expresses awkwardly** —
+the test is the work, not the length. Tells it should be Python (any one): `declare -A` maps/sets;
+recursion or a graph/closure walk; bit-twiddling / combinatorics / a hand-rolled PRNG; set logic
+faked with the `case " $x " in *" "*` substring idiom; parsing JSON/CSV/compile-commands (an
+embedded `python3 <<PY` heredoc or a `jq` dep **inside bash** is the smell); several parallel arrays
+threaded through `mapfile`. **Stays shell even when long:** real-tool pipelines, process/signal/job
+control (`trap`, `set -m`, PATH shims), `exec` wrappers, the template's `entrypoint/*.sh` +
+`format.sh` + gate scripts (must be host shell), and the `update-<dep>.sh` dependency-updater system
+(git/tar/cp glue — deliberately bash). **Convert without breaking callers:** leave `tools/foo.sh` as
+a 2-line `exec python3 "$(dirname "$0")/foo.py" "$@"` shim (keep `+x`), move the logic to `foo.py`,
+and prove byte-identical output before relying on it. **Promotion is orthogonal to language**
+(adhoc→`tools/` by the usual rule); a helper inside a tool (e.g. a `git()` wrapper) becomes a SHARED
+module only at the 2–3-real-consumer bar — inline it until then. Full guide + the 2026-10-29 worked
+examples: `~/.claude/reference/script-language-choice.md`.
+
 ## Reference documents — durable knowledge that isn't tracked work
 
 Durable knowledge that **outlives** the work that produced it (comparisons, survey/landscape,
@@ -889,6 +908,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/shell-and-gate-scripts.md`** — read when writing/reviewing a gate or format
   script, editing a committed script, doing a bulk find-and-fix across many files, or a Bash tool
   command fails with zsh-flavoured errors.
+- **`~/.claude/reference/script-language-choice.md`** — read when writing a new ad-hoc script or
+  `tools/` tool and choosing Bash vs Python, converting a logic-heavy shell script to Python, or
+  deciding whether a helper inside a tool earns promotion to a shared module (the everyday rule is
+  inline above under "Choosing a script's language").
 - **`~/.claude/reference/print-debugging.md`** — read **before** hand-instrumenting a bug with
   print/trace statements in an unfamiliar language (also holds the instrumentation-driven method).
 - **`~/.claude/reference/claude-config-layering.md`** — read when reasoning about or changing how
