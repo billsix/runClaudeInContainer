@@ -1,7 +1,7 @@
 # Make the done-record rewrite a step of ARCHIVING, not just pre-squash
 
-**Status:** DONE 2026-11-02 (William Emerison Six <billsix@gmail.com>) — Option 2 implemented across both
-sandbox repos; staged, not committed. Archive after the maintainer's work commit.
+**Status:** complete — **Completed:** 2026-11-02 (William Emerison Six <billsix@gmail.com>). Option 2
+implemented across both sandbox repos (two commits each).
 **Priority:** 3 **Difficulty:** 3
 
 ## BLUF
