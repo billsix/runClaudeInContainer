@@ -418,8 +418,10 @@ one-commit-per-task**, folding `tasks:` tracking commits into the work commit. M
 `git cherry-pick -n <parent>..<end>` + `git commit -F msg` (note: `cherry-pick` has no `-q`),
 and verify `git diff <rebuilt> <backup>` is **empty** before `reset --hard`. **Before a squash,
 harvest the commit history into the task doc** (walk `<upstream>..HEAD`, record every
-decision/rejection chronologically, reconcile `[Unreleased]`) and **normalize the doc into ONE
-consistent tense/voice**. Full detail: `~/.claude/reference/git-workflow-conventions.md`.
+decision/rejection chronologically, reconcile `[Unreleased]`). **Normalizing the doc into ONE
+consistent past-tense voice is the done-record rewrite, a *completion* step done at archive time**
+(see "Task documents") — not squash-only; a squash merely reuses it. Full detail:
+`~/.claude/reference/git-workflow-conventions.md`.
 
 ## The authorized-batch workflow (when I've said you may commit a task / list)
 
@@ -427,8 +429,9 @@ When I hand you a task or a list and authorize committing (usually while I'm awa
 cycle yourself and log your decisions: **gpg off** for the project (`commit.gpgsign false`) → **one
 branch** off the branch I was on, named for the work (the task slug is fine) → **per task**: task-add
 commit → raise open questions (inline + a closing numbered list) and **wait**; when I answer, write
-the decisions into the task doc and commit → implement, a commit per meaningful step → pre-squash
-rewrite of the task + any touched reference docs, commit → archive (`git mv`), commit → **repeat for
+the decisions into the task doc and commit → implement, a commit per meaningful step → **done-record
+rewrite** of the task (+ any touched reference docs) — the completion rewrite, done whether or not a
+squash follows — commit → archive (`git mv`), commit → **repeat for
 every task** → a single **session-end sweep** (reconcile the always-read docs, run the gate), commit
 → **gpg back on** (`commit.gpgsign true`) → **ask me to merge** the branch into whatever I was on, and
 stop. The stage-only default still governs; this is only for a batch I explicitly told you to commit,
@@ -479,10 +482,16 @@ over-scaffold** — a two-step job is one task with a phase list. Detail:
 
 Archiving: when complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md`.
 **Archiving is yours to do proactively at the moment of completion — no go/no-go question**
-(harvest to reference docs, fix inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never
-present a done task as an archive *candidate*. **BUT the archive is its OWN commit AFTER the work
-commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts, (3) archive-move +
-one-shot `git rm`. **Stage the work and STOP — do NOT move to archive yet.** Once the work commit
+(harvest durable knowledge to reference docs, **rewrite the task doc into a lean done-record**, fix
+inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never present a done task as an archive
+*candidate*. **The done-record rewrite is NOT contingent on a squash:** the moment a task is done,
+normalize it into one past-tense voice and drop the forward-looking scaffolding (the plan-shaped BLUF,
+"Context (read first)", Plan, Open questions) and the stale `Status:` line — so a scaffolded doc can
+never reach the archive. (A squash, when it happens, reuses this same rewrite; it is not the only
+trigger.) **BUT the archive is its OWN commit AFTER the work
+commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts + the done-record
+rewrite of the task doc, (3) archive-move + one-shot `git rm` (so the doc is already a clean
+done-record when it is renamed into the archive). **Stage the work and STOP — do NOT move to archive yet.** Once the work commit
 exists (I make it by default), **then** `git mv` the task into `tasks/archive/…` (+ `git rm` one-shot
 scripts) and stop again — the rename sits staged for its OWN commit (commit 3, *after* the work's
 commit 2); never move the archive *before* the work commit. **And always `git mv`, never a plain
@@ -547,8 +556,9 @@ investigation conclusions, design rationale/decision records, capability maps/ga
 notes) lives in `tasks/reference/<slug>.md`, one per topic, **never archived**, updated in place.
 The test: "still worth reading after the work is done, and states what is TRUE not what to DO."
 Think of it as an expanded, agent-facing `CLAUDE.md`. **When archiving a task, first harvest its
-decisions/rationale into a reference doc**, then slim the task to a lean work record that points to
-it. **When you archive a survey/investigation whose deliverable recommends an action, also scaffold
+decisions/rationale into a reference doc**, then **rewrite the task into a lean done-record** that points
+to it (the done-record rewrite — one past-tense voice, the forward-looking scaffolding dropped; done at
+archive whether or not a squash follows). **When you archive a survey/investigation whose deliverable recommends an action, also scaffold
 the follow-on task** (`proposed — needs go-ahead`, or `blocked` on the one decision), cross-linked
 — don't strand the recommendation. Read the relevant reference doc before touching a subsystem it
 covers. Full conventions: `~/.claude/reference/reference-doc-conventions.md`. Helpers:

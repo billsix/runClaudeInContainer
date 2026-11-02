@@ -51,8 +51,10 @@ completed task's *work log* — what was done, when, which gates passed — belo
 But the **decisions, rationale, rejected alternatives, and how-it-actually-works** it
 accumulated are exactly the reference material listed above, and archiving (or a history
 squash) would otherwise bury them where I never look. So at archive time: **extract that
-content into a `tasks/reference/` doc**, slim the task to a lean work record that *points to*
-the reference, then archive the task and cross-link both. Do this as a normal part of
+content into a `tasks/reference/` doc**, and **rewrite the task into a lean done-record** that *points
+to* the reference (the done-record rewrite — one consistent past-tense voice, the forward-looking
+scaffolding dropped; done at archive whether or not a squash follows — see `task-doc-conventions.md`
+§"Archiving a completed task"), then archive the task and cross-link both. Do this as a normal part of
 archiving a non-trivial task — not only when I ask. (Worked example, 2026-07-21: the
 "type-precise products" task's decision rationale — why overloads over free functions, why
 `-> MultiVectorBase` not `G2` — was extracted to `tasks/reference/generated-product-typing.md`
