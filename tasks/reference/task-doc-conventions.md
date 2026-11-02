@@ -60,7 +60,8 @@ When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<s
 
 **Archiving is yours to do, proactively, at the moment of completion — no go/no-go question (Bill,
 2026-08-31; timing corrected 2026-09-07).** The instant a task's done-state is met and its gates are
-green, the archive is *owed*: harvest to reference docs, fix inbound pointers, `git mv` the task into
+green, the archive is *owed*: harvest durable knowledge to reference docs, **rewrite the task doc into a
+lean done-record** (see "The done-record rewrite" below), fix inbound pointers, `git mv` the task into
 `tasks/archive/…`, and `git rm` any one-shot adhoc scripts. **Never ask whether to archive, and never
 present a done task as an archive *candidate*** — that surprise-me-by-asking behavior is the failure
 this rule exists to stop (origin: two verifiably-done gacalc tasks presented with a go/no-go question
@@ -87,6 +88,20 @@ mv` it to archive in its own commit once you've committed the work"*), never as 
 the quick-save mode), you make the commits yourself: commit the work (+ adhoc scripts), then commit the
 archive-move + one-shot `git rm` as a **separate** commit — the same two boundaries, never one combined
 "work + archive" commit. "Pending review" applies to the *work*, not the lifecycle move.
+
+**The done-record rewrite (do it at archive, not only before a squash).** A task doc accretes
+forward-looking scaffolding while the work is open — a plan-shaped BLUF, a "Context (read first)", a
+Plan, Open questions, a `Status:` reading "proposed"/"in progress". When the task is done, **rewrite it
+into a lean done-record before the `git mv`**: one consistent past-tense voice; the scaffolding dropped
+or folded into a short "what this did / what was built / decisions / verification" shape; the `Status:`
+set to the done state; volatile `file:line` anchors replaced by symbol references (they rot). This is a
+**completion** step, decoupled from squashing — it ships in the **work commit (commit 2)**, so the
+commit-3 rename moves an already-clean doc into the archive, and a scaffolded doc can never reach the
+archive. It is the same rewrite the pre-squash harvest performs (`git-workflow-conventions.md`); a
+squash is one occasion that also triggers it, not its only trigger. (Harvesting durable knowledge into a
+*reference* doc is separate and still happens too — `reference-doc-conventions.md`.) Origin: the
+2026-11-02 incident where four tasks were archived with their scaffolding intact because the rewrite was
+defined as squash-only.
 
 Older flat archives (`tasks/archive/<slug>.md`) from before this convention are not migrated automatically; the `/archive-task` command will detect them on each run and offer to port them into the date hierarchy using the file's last-touched date from git history.
 
