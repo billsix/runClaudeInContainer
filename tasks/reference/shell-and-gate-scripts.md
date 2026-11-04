@@ -203,4 +203,6 @@ pattern) and killed itself before `<more commands>` ran — the tool reported ex
 rest of the batch silently never happened. Kill by PID (`ps -eo pid,args | grep …` first), or put the
 pattern in a variable the shell's own argv does not contain, and never chain cleanup-then-work in the
 same `bash -c` string as a `pkill -f`. A background `podman build` also ignores plain `kill`; use `kill -9`
-and re-check `ps`.
+and re-check `ps`. **Not only inside `bash -c`** (hit again 2026-11-04): a plain tool command
+`pkill -f scratchpad/proto5.py; …` in the zsh tool shell matched its own command line the same way (exit 144).
+Any command whose own argv contains the pattern is a target.
