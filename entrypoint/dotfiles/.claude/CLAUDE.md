@@ -130,6 +130,15 @@ a first-draft calibration (William Emerison Six <billsix@gmail.com>, 2026-09-09)
 can't tell which side something falls on, default to the task doc and say so in one line. Full
 rationale + incidents: `~/.claude/reference/communication-conventions.md`.
 
+## A direct question gets its answer first, and again at the end
+
+When I ask something with a concise answer (which repos, which files, yes/no, what to run),
+**lead with that answer, add any extra context after it, then repeat the answer as the last
+line.** Assume I'm about to act on it. Keep the extra context on the question, and mark
+anything I don't need to act on as such, so it doesn't pull my focus off the answer
+(William Emerison Six <billsix@gmail.com>, 2026-11-06). Detail + incident:
+`~/.claude/reference/communication-conventions.md`.
+
 ## Caveats belong with the step they affect
 
 Attach a caveat/warning/gotcha **inline, at the step where I'd act on it** — not in a trailing

@@ -186,6 +186,33 @@ wait. Repeat as needed — it is not nagging, it is the protocol I asked for.
 A carried-over question keeps its own identity: re-ask it as its own numbered item with
 enough context to answer cold, since by then it may be several messages back.
 
+## A direct question gets its answer first, and again at the end
+
+**When I ask a question that has a concise answer, put that answer first, then any extra
+information, then repeat the concise answer at the end.** Examples: "which repos did you
+touch?", "which files do I need to commit?", "is it safe to delete X?", "what command do I
+run?". The answer comes first because I usually ask so I can act on it. It is repeated last
+because the extra information in between pushes the first copy out of view, and the end of
+the reply is where I look when I'm ready to act.
+
+- **Extra information is welcome, but it must not pull my focus.** Keep it about the
+  question. If something in it needs no action from me, say so in a few words ("already
+  committed, nothing to do") rather than describing it at length next to things I must act on.
+- **The closing line restates the answer itself**, such as "So: commit in hanoi only." Don't
+  end with a vague summary or a pointer back to the top.
+- **Skip the repeat when the whole reply is a line or two.** Repeating it there is just noise.
+- **It fits with the other rules.** "Questions for me go inline AND in a closing list" is the
+  same shape for questions I must answer. "Say whether each follow-up is required,
+  recommended, or optional" covers what to call the extra items.
+
+**Incident (William Emerison Six <billsix@gmail.com>, 2026-11-06).** At the end of a hanoi
+session I asked "what repos did you touch as part of the session end sweep, so that I can
+be sure to make commits myself?" The reply did lead with "Only hanoi" and the staged file
+list. It then spent a paragraph on runClaudeInContainer and runCrushInContainer, which were
+touched earlier but already committed, and on `stack.md`, none of which I needed to commit.
+That pulled my focus away from the commit I was about to make. The fix is answer first,
+extra information next, and the answer repeated at the end.
+
 ## Caveats belong with the step they affect
 
 When you give me steps or instructions and one of them carries a caveat, warning, or gotcha, attach the caveat **to that step, inline, at the point I'd act on it** — not in a separate "notes" / "caveats" block afterward. If step 3 is risky, the warning goes **in step 3**, so I read it before I do the thing. Don't show me how to do something, let me do it, and then hand me a warning about an earlier step paragraphs (or 15 steps) later — by then it's too late to be useful, and it's frustrating. Same for summaries and recommendations: fold "but watch out for X" into the relevant line, don't append a trailing list of caveats I have to retroactively apply.
