@@ -602,6 +602,18 @@ already shipped its doc deltas at staging time, so expect to find nothing from p
 units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
 remind me of any `blocked` tasks (don't run their network re-checks yourself).
 
+**Trim the diversion stack (`~/.claude/stack.md`) back to pointers — it is `@`-imported every
+session, so a bloated stack is paid every turn and will make the agent complain at startup.** The
+stack is a depth gauge + cross-session handoff, **never a task log**: harvest any durable detail
+into the relevant `tasks/`/`tasks/reference/` doc (push it there if it isn't already), then **delete
+all completed-work narration** (DONE/ARCHIVED/MERGED — that record lives in git history +
+`tasks/archive/`). What stays is only: the active diversion chain (if any), cross-session git-state
+handoffs not captured as a task doc (owed branch merges, blame-ignore additions), and passive
+maintainer-waits. Everything else — open/proposed/blocked/paused/deferred work — is a task doc
+found by scanning each repo's `tasks/`, so it does not belong in the stack. A tremendous reduction
+here is normal and expected (474 → ~30 lines, 2026-11-06); if in doubt, trim harder and back up the
+prior contents first.
+
 **Also review the session for generalizable token waste.** If the session burned tokens in a way that
 would recur — an unneeded fork or parallel fan-out (each re-ingests the whole conversation + this
 instruction set), reading files that only get compiled or vendored/generated trees, a bloated
