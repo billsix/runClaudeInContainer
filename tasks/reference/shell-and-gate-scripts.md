@@ -38,6 +38,15 @@ for `bash -c` specifically when the line contains a glob, a character class, a p
 inside an argument, or bash-only syntax. (This is about the *interactive login shell
 the tool wraps*, which is host-configurable; don't assume it's bash on any machine.)
 
+**Gotcha: a single quote inside the `bash -c '…'` body ends the quoting early.** An
+apostrophe in an embedded script (`"Sheet 2's answer"` in a Python heredoc) closes the
+outer quote, and zsh then parses the rest: `(eval):N: unmatched "` or `parse error near`
+a backtick. A multi-line Python/awk script with its own quotes and backticks does not belong
+inline. Write it to a file in the scratchpad with the Write tool and run the file
+(`python3 -I <scratchpad>/fix.py <args>`). That also makes it easy to re-run.
+(hanoi workbook session, 2026-11-06: two inline heredoc edits failed this way before
+being moved to scratchpad files.)
+
 ## A multi-step check script must propagate every step's failure
 
 **The design intent of `format.sh` (and any `make format` / `lint` / `check` target
