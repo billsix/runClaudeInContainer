@@ -35,20 +35,37 @@ A third mechanism already in the fleet: `update-emacs-packages` forces `$(MAKE) 
 as a prerequisite (force-the-flag-and-rebuild). Fine for a cheap image; too heavy to auto-trigger
 for a 7 GB Lean image, so not the general answer.
 
-## The message — name the capability and the REBUILD command, never an env var
+## The message — name the capability, then set-the-flag → rebuild → re-run
 
-These are **build-time** flags. The common fix is a rebuild, not a shell export:
+These are **build-time** flags: the fix is to get the flag set when `make image` runs. The
+maintainer's preferred message (William Emerison Six <billsix@gmail.com>, 2026-11-06) walks the user
+through the persistent path:
 
-    ERROR: `make docs` needs the Sphinx + TeX docs toolchain,
-           gated by the build-time flag BUILD_DOCS (currently BUILD_DOCS=0, e.g. from MINIMAL_IMAGE=1).
-    Rebuild the image with it on:  make image BUILD_DOCS=1
-    Then re-run:                   make docs
+    ERROR: make docs needs the Sphinx + TeX docs toolchain,
+           gated by the build-time flag BUILD_DOCS (currently BUILD_DOCS=0).
 
-`export BUILD_DOCS=1 && make docs` does **not** fix it — the flag only affects `make image`, and
-with a flag-echo guard the export would even make the guard pass and *then* fail cryptically. Say
-`make image FLAG=1`. Cite `MINIMAL_IMAGE=1` in the "currently 0" clause only for flags defined as
-`?= $(if $(filter 1,$(MINIMAL_IMAGE)),0,1)`; for a plain `?= 1` flag (e.g. spimulator's
-`BUILD_DOCS`) drop the `MINIMAL_IMAGE` mention — it isn't wired to it.
+    Enable it persistently, then rebuild and run:
+      echo 'export BUILD_DOCS=1' >> ~/.bashrc && source ~/.bashrc
+      make image
+      make docs
+
+    (This session only: run  export BUILD_DOCS=1  instead of the echo/source line.)
+
+**An exported env var genuinely works** (this was verified; my first draft wrongly said "never an
+env var"). In GNU Make an environment variable has origin `environment`, which `?=` treats as
+already-defined, so it **overrides the `?=` default** — even the `?= $(if $(filter
+1,$(MINIMAL_IMAGE)),0,1)` form. So `export BUILD_DOCS=1` makes the next `make image` build the
+feature in, and the flag-echo guard then reads the same value and passes. The one thing that does
+**not** work is exporting the flag and *skipping* the rebuild on a stale image — which can't happen
+for a target with an `: image` prereq (it rebuilds). `make image BUILD_DOCS=1` on the command line
+is the one-shot equivalent.
+
+Message details: show the live value with `(currently BUILD_DOCS=$(BUILD_DOCS))` — make expands it.
+Caveat worth knowing (not in every message): `~/.bashrc` persists across sessions only for a bash
+login shell; a zsh host needs `~/.zshrc`, though `source ~/.bashrc` still applies it to the current
+session since `export FOO=1` parses in both. Where a target needs two flags (gacalc `docs` →
+`BUILD_DOCS` + `USE_EPIX`) use one combined guard so the user sets both at once rather than hitting a
+second error after the first rebuild.
 
 ## How this compares to autoconf/automake (the detect/record/fail-fast model)
 

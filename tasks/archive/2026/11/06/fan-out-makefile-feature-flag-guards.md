@@ -10,15 +10,19 @@ the capability, the flag, and the rebuild command, then `exit 2`. Pattern + the 
 Mechanism decision (maintainer, 2026-11-06, via AskUserQuestion): **flag-echo** guard
 (`@[ "$(FLAG)" = 1 ] || { … exit 2; }`), **Tier 1 only**. This is correct for these targets because
 each has an `: image` (phony) prerequisite, so `make <target>` rebuilds the image to the current
-flags first — the make variable honestly reflects what the image will contain. Message uses the
-**rebuild** fix (`make image FLAG=1`), not an env-var export (these are build-time flags; the
-maintainer's original `make spyder` example's `export …` advice was wrong for a build-time flag).
+flags first — the make variable honestly reflects what the image will contain.
 
-Implemented (one guard per gated target; `MINIMAL_IMAGE=1` cited only where the flag is
-`MINIMAL_IMAGE`-derived):
+Message format (updated 2026-11-06 at the maintainer's request): walk the user through
+`echo 'export FLAG=1' >> ~/.bashrc && source ~/.bashrc` → `make image` → `make <target>`. An
+exported env var overrides a `?=` default in GNU Make — verified, even the `$(if MINIMAL_IMAGE…)`
+form — so `make image` then builds the feature in; `make image FLAG=1` is the one-shot equivalent.
+The maintainer's original `make spyder` example was right to use an export; it only omitted the
+`make image` rebuild before re-running.
 
-- **geometricalgebra** — `jupyter` (`USE_JUPYTER`), `docs` (`BUILD_DOCS` **and** `USE_EPIX`, two
-  guards — docs.sh renders ePiX figures), `lean` (`USE_LEAN`).
+Implemented (one guard per gated target):
+
+- **geometricalgebra** — `jupyter` (`USE_JUPYTER`), `docs` (`BUILD_DOCS` **and** `USE_EPIX` in one
+  combined guard so both get set at once — docs.sh renders ePiX figures), `lean` (`USE_LEAN`).
 - **spimulator** — `html`/`pdf`/`epub` (`BUILD_DOCS`; plain `?= 1` here, so no `MINIMAL_IMAGE`
   mention). `docs` just depends on the three, so it is covered.
 - **hanoi** — `docs` (`BUILD_DOCS`).
