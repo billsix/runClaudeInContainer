@@ -4,7 +4,7 @@ A Podman-based Fedora dev sandbox for running [Claude Code](https://claude.com/c
 (and doing general development) inside a disposable container, with your host's
 Claude configuration, git/GPG identity, and project directories bind-mounted in.
 
-The image is a "batteries-included" Fedora 44 box: compilers and runtimes for a
+The image is a "batteries-included" Fedora 45 box: compilers and runtimes for a
 couple dozen languages, build tooling, debuggers/profilers, graphics dev libraries,
 a scientific-Python stack, databases, networking/security tools, and editors — plus
 the Claude Code native binary.
@@ -92,7 +92,7 @@ conventions in `~/.ai-coding-conventions.personal.md` (copy the template from
 
 The build (`Dockerfile`):
 
-1. `FROM registry.fedoraproject.org/fedora:44`, then `dnf upgrade`.
+1. `FROM registry.fedoraproject.org/fedora:45`, then `dnf upgrade`.
 2. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the
    tracked `.claude/` conventions).
 3. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain

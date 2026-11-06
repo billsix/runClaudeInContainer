@@ -12,7 +12,7 @@ overlay). See `README.md` for the user-facing overview.
 
 ## What the pieces do
 
-- **`Dockerfile`** — Fedora 44 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
+- **`Dockerfile`** — Fedora 45 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
   into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~430-package
   toolchain — a host-runnable script the Dockerfile sources, not an inline
   `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is

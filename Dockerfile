@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:44
+FROM registry.fedoraproject.org/fedora:45
 
 RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
@@ -32,6 +32,11 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     /usr/local/bin/01-install-base.sh && \
     echo "source ~/.extrabashrc" >> ~/.bashrc
+
+# shfmt and procs were dnf packages under Fedora 44 but were dropped in Fedora 45;
+# install them from upstream release binaries (own layer, own host-runnable script).
+COPY entrypoint/01b-install-binary-tools.sh /usr/local/bin/
+RUN /usr/local/bin/01b-install-binary-tools.sh
 
 
 RUN echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc

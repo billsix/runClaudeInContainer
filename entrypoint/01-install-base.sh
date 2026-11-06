@@ -83,7 +83,7 @@ dnf install -y \
     diffutils \
     direnv \
     distcc \
-    dotnet-sdk-8.0 \
+    dotnet-sdk-10.0 \
     doxygen \
     duf \
     eigen3-devel \
@@ -186,7 +186,7 @@ dnf install -y \
     libevent-devel \
     libffi-devel \
     libgcrypt-devel \
-    libgit2-devel \
+    libgit2_1.9-devel \
     libglvnd-gles \
     libheif-devel \
     libICE-devel \
@@ -300,7 +300,6 @@ dnf install -y \
     parallel \
     patch \
     patchutils \
-    pcre-devel \
     pcre2-devel \
     perf \
     perl \
@@ -320,7 +319,6 @@ dnf install -y \
     postgresql-devel \
     pre-commit \
     procps-ng \
-    procs \
     progress \
     protobuf-compiler \
     pv \
@@ -393,7 +391,6 @@ dnf install -y \
     SDL3_sound-devel \
     sed \
     ShellCheck \
-    shfmt \
     skopeo \
     socat \
     sox \
