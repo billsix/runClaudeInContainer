@@ -909,7 +909,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   nil/cons structural recursion, mapping over the tail vs. an accumulator, fold direction, the
   Python no-TCO caveat).
 - **`~/.claude/reference/communication-conventions.md`** — read when writing a status update, asking a
-  decision question, creating a task with open questions, or shaping a README.
+  decision question, answering a direct question I will act on, creating a task with open
+  questions, or shaping a README.
 - **`~/.claude/reference/git-workflow-conventions.md`** — read when staging finished work, or (if I've
   authorized committing) for the quick-save/squash rhythm and the pre-squash harvest.
 - **`~/.claude/reference/task-doc-conventions.md`** — read when creating/archiving a task, scaffolding
