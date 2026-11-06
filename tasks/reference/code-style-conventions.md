@@ -188,8 +188,8 @@ agnostic; the examples are Python because that is where it came up.
   `walk_back`, both capturing the endpoints, reads as the algorithm; its tail collapsed
   to one line.
 - **Do neither when the helper would be used exactly once** and exists only to reshape
-  control flow or avoid mutating a local. That is the "inline a value used exactly once"
-  rule applied to functions. I proposed exactly this once and the user declined it — the two
+  control flow or avoid mutating a local. That is the "inline a value used once" rule
+  applied to functions. I proposed exactly this once and the user declined it — the two
   helpers were single-use and existed only to fill a constructor call.
 
 **A corollary worth its own line: raise an error from the code that discovers it.** The
@@ -200,6 +200,32 @@ the search*, which is the only place that knows the target is unreachable.
 cheap top-of-function guard is fine and usually right. When I swept a codebase looking
 for functions that "should" be restructured this way, the honest answer for nearly all of
 them was: leave them alone.
+
+## Names: inline what is used once, declare at the point of use, nest and shadow
+
+Language-agnostic (the examples are Python; the rules hold for C, C++, Rust, shell, Lisp). Decided by
+William Emerison Six <billsix@gmail.com>, 2026-11-06, while refactoring gacalc's
+`Frame.to_invertible_function`; the Python wording and worked example are in
+`python-coding-standard.md` ("Inline a value used once, and name it in a comment instead of a binding").
+
+- **A name bound once and used once is inlined, even if it was there to explain the expression.** A
+  reader who meets a declaration scans ahead to see how far it is used, and a single-use binding makes
+  that scan pointless; the longer the function, the worse. Put a comment above the inlined
+  subexpression that describes it and gives it its name instead.
+- **Two uses do not automatically earn a name.** Check whether one expression absorbs them: "this value,
+  or a fallback if it is absent" is usually a library call with a default argument (`getattr(obj,
+  name, fallback)`, `dict.get(key, default)`, `next(it, default)`, `std::optional::value_or`,
+  `Option::unwrap_or_else`, `${VAR:-default}`); a cheap, clear expression can simply be repeated. Keep
+  the name when repeating the expression would read worse or recompute something expensive.
+- **Declare a name at the point of use**, not many lines before it.
+- **A helper with one caller is nested inside that caller** where the language allows it (a nested
+  `def`, a lambda/closure, a local `struct` or lambda in C++, a `let`/`flet`/`labels` in Lisp, an inner
+  `fn` in Rust). Where it does not (C), keep it `static` beside its caller.
+- **When nesting, shadow deliberately and verify it.** Give the helper's parameter the caller's name when
+  it holds the same kind of value, so the reader knows the outer binding is out of play inside the
+  helper. Correct shadowing means the helper never needs the outer value, and none of its other names
+  hide an enclosing binding it does need. A linter that warns on shadowing (`-Wshadow`, clippy's
+  `shadow_*`, pylint `redefined-outer-name`) gets a narrow suppression with the reason at the site.
 
 ## Prefer total dispatch over an open-ended conditional chain
 

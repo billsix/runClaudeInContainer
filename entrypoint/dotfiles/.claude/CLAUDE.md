@@ -273,6 +273,11 @@ the error from the code that discovers it.** Don't chase a shape for its own sak
 existing early-return code — a cheap top-of-function guard is usually right. Cases + net-line
 counts: `~/.claude/reference/code-style-conventions.md`.
 
+**Names:** inline a binding used once (a comment above names the subexpression); two uses don't
+automatically earn a name (absorb them, e.g. `getattr(obj, name, fallback)`); declare at the point of use;
+nest a one-caller helper inside its caller, shadowing the caller's same-meaning names on purpose (and
+verify the helper never needs the outer value). Detail: the same doc, "Names: inline what is used once".
+
 ## Prefer total dispatch over an open-ended conditional chain
 
 **An `if`/`else if` chain with no final `else` can fall through silently, and the hole is
@@ -902,7 +907,7 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   fallbacks, reading real build warnings).
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
-  extracting a function, or choosing total dispatch (the "use your discretion" 80-column worked
+  extracting a function, deciding whether a local earns its name or a helper should be nested, or choosing total dispatch (the "use your discretion" 80-column worked
   example lives here too).
 - **`~/.claude/reference/recursive-design.md`** — read **before** writing or reviewing a
   non-trivial recursion, or choosing a recursion scheme (map/filter/fold as named schemes,
