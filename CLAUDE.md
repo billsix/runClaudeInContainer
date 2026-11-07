@@ -32,6 +32,10 @@ overlay). See `README.md` for the user-facing overview.
   (prompt, `GPG_TTY`, `ls` alias), `.emacs.d/`, and `.claude/`.
 - **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`
   and `EXTRA_MOUNTS` populated.
+- **`tools/`** — repo tools, not copied into the image. `check_helm_file_at_point.{sh,el}` is an ERT
+  check that a vendored `.emacs.d`'s `C-x C-f` prefills a repo-root-relative doc path from any depth
+  (`bash tools/check_helm_file_at_point.sh <.emacs.d>`; needs that config's `elpa/`). runCrushInContainer
+  mirrors it byte-identically. The contract it checks: `tasks/reference/emacs-container-contract.md`.
 
 ## The layered Claude config
 
