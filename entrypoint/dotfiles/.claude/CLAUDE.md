@@ -914,6 +914,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
+- **`~/.claude/reference/emacs-container-contract.md`** — read **before** creating or changing a
+  project's vendored `.emacs.d` (or conforming a new project): the `init.el` order and LSP-root pin, the
+  byte-identical `helm.el`/`preferences.el`, the package-list tiers, and the known drift.
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, deciding whether a local earns its name or a helper should be nested, or choosing total dispatch (the "use your discretion" 80-column worked
