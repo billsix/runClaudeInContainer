@@ -31,7 +31,7 @@ overlay). See `README.md` for the user-facing overview.
 - **`entrypoint/dotfiles/`** — copied into `/root/` at build time: `.extrabashrc`
   (prompt, `GPG_TTY`, `ls` alias), `.emacs.d/`, and `.claude/`.
 - **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`
-  and `EXTRA_MOUNTS` populated.
+  and `EXTRA_PODMAN_FLAGS` populated.
 - **`tools/`** — repo tools, not copied into the image. `check_helm_file_at_point.{sh,el}` is an ERT
   check that a vendored `.emacs.d`'s `C-x C-f` prefills a repo-root-relative doc path from any depth
   (`bash tools/check_helm_file_at_point.sh <.emacs.d>`; needs that config's `elpa/`). runCrushInContainer

@@ -30,7 +30,7 @@ swapping in your own personal layer — and pull upstream improvements without c
    without it, or replace it with your own.
 
 3. **The example launcher.** `exampleRunClaude.sh` hardcodes the maintainer's host paths
-   (`EXTRA_MOUNTS=...`). Edit those to your own directories, or write your own launcher.
+   (`EXTRA_PODMAN_FLAGS=...`). Edit those to your own directories, or write your own launcher.
 
 4. **Auth is yours automatically.** Your host `~/.claude` (Claude auth/sessions) is
    mounted in as-is — nothing to change; just sign in once on the host.

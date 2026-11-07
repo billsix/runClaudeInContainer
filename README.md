@@ -130,10 +130,11 @@ host directories that are mounted in.
 
 ### Mounting extra directories
 
-Use `EXTRA_MOUNTS` to bind additional host paths:
+Use `EXTRA_PODMAN_FLAGS` for extra `podman run` flags, such as binding additional host paths (`-v`) or
+setting an environment variable (`-e`); the old name `EXTRA_MOUNTS` still works:
 
 ```sh
-make shell EXTRA_MOUNTS="-v /home/me/project:/project:z"
+make shell EXTRA_PODMAN_FLAGS="-v /home/me/project:/project:z"
 ```
 
 > **Use `:z` or no label flag — never `:Z`.** The sandbox runs

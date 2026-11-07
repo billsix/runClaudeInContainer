@@ -5,8 +5,10 @@
 #  make shell                 interactive shell in an ephemeral container
 #  make shell NESTED_PODMAN=1 ^ same, but ALSO able to run `podman` inside the
 #                               sandbox (podman-in-podman). Opt-in; see below.
-#  make shell EXTRA_MOUNTS="-v /host/path:/path:z"   bind extra host dirs
-#                               (":z" or no flag — NEVER ":Z": the sandbox runs
+#  make shell EXTRA_PODMAN_FLAGS="-v /host/path:/path:z"   extra podman-run
+#                               flags, passed verbatim: bind mounts (above),
+#                               environment (-e VAR=value), any other run flag.
+#                               For a mount use ":z" or no flag — NEVER ":Z": the sandbox runs
 #                               label=disable so ":Z" gains nothing, and it
 #                               relabels the host repo with this container's
 #                               SELinux category pair, locking out normal
@@ -16,6 +18,8 @@
 CONTAINER_CMD ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 CONTAINER_NAME = claudecontainer
 
+EXTRA_PODMAN_FLAGS ?=
+# EXTRA_MOUNTS is the old name, still accepted (it is appended after EXTRA_PODMAN_FLAGS).
 EXTRA_MOUNTS ?=
 
 # Opt-in nested Podman (run `podman` inside the sandbox). Off by default to keep
@@ -244,6 +248,7 @@ SHELL_RUN_FLAGS = \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		-v ./entrypoint/shell.sh:/shell.sh:Z \
+		$(EXTRA_PODMAN_FLAGS) \
 		$(EXTRA_MOUNTS) \
 		$(NESTED_PODMAN_FLAGS) \
 		$(CLAUDE_CONFIG_MOUNT) \
@@ -277,7 +282,7 @@ SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT)
 # define/call recipe is fragile); keep the two blocks identical. See
 # tasks/nested-store-cleanup-permission-denied.md.
 .PHONY: shell
-shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_STORE=tmpfs (RAM store vs the default ephemeral disk dir), EXTRA_MOUNTS="-v /host:/path:z" (":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
+shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_STORE=tmpfs (RAM store vs the default ephemeral disk dir), EXTRA_PODMAN_FLAGS="-v /host:/path:z -e VAR=value" (extra podman-run flags; mounts ":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
 	@STORE=""; \
 	if [ "$(NESTED_PODMAN)" = "1" ] && [ "$(NESTED_PODMAN_STORE)" = "dir" ]; then \
 	  mkdir -p "$(NESTED_PODMAN_STORE_BASE)"; \
