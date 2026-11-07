@@ -206,10 +206,10 @@ convention:
   test killed at its 30s limit while 24/25 passed). A nested timeout with zero
   real failures is evidence of slowness, not breakage — prefer the project's
   documented opt-out (e.g. `RUN_SANITIZERS=0`) over raising limits.
-- **`:Z` on `EXTRA_MOUNTS` poisons repos for host-side use.** The sandbox runs
+- **`:Z` on `EXTRA_PODMAN_FLAGS` poisons repos for host-side use.** The sandbox runs
   `label=disable`, so `:Z` relabels the whole mounted repo to a container type
   that the project's own *confined* `make shell` then can't read
-  (`cd: Permission denied`). Use `:z` or no label flag on `EXTRA_MOUNTS`; fix
+  (`cd: Permission denied`). Use `:z` or no label flag on `EXTRA_PODMAN_FLAGS`; fix
   damage on the host with `restorecon -R`.
 - **A large image can overflow the RAM store at *commit*, not just at install.**
   Building a big image completes the `dnf install`, then dies at the layer commit

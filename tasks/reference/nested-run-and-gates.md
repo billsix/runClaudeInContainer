@@ -39,7 +39,7 @@ edit and wait for the go-ahead, per point 2 above.
   ```
   Software GL works through this (glfw reports `4.6 (Compatibility Profile) Mesa`), so real GL demos render. Then **verify pixels, not just exit codes**: a GUI app that doesn't crash may still be drawing nothing. `import -display :99 -window root shot.png`, then check unique-colour count / non-black fraction, and *look at the PNG*. A long-running demo has no exit code worth reading — wrap it in `timeout N` and treat rc=124 as "ran the full duration", with a screenshot as the actual evidence.
 - **If a project's editable install is broken, `-e PYTHONPATH=/proj/src` gets you running anyway** — don't let a packaging bug block behavioural verification. (mvp's `loadpackages.sh` currently fails on a missing `setuptools` build dep; the demos still run fine with PYTHONPATH set.)
-- **`:Z` on EXTRA_MOUNTS poisons repos for host-side `make shell`.** The sandbox runs `--security-opt label=disable`, so a `:Z` project mount at sandbox launch relabels the whole repo to `container_file_t:s0:c1022,c1023` — which a normal *confined* container (the project's own `make shell`) cannot read, and its `:Z` won't relabel away. Symptom: `cd /<project>: Permission denied` inside the project container while the sandbox is (or was) up. Host-side fix: `sudo restorecon -R <repo>`; prevention: use `:z` or no label flag on EXTRA_MOUNTS entries (the label-disabled sandbox doesn't need `:Z` at all). Diagnosed 2026-07-07 (spimulator).
+- **`:Z` on EXTRA_PODMAN_FLAGS poisons repos for host-side `make shell`.** The sandbox runs `--security-opt label=disable`, so a `:Z` project mount at sandbox launch relabels the whole repo to `container_file_t:s0:c1022,c1023` — which a normal *confined* container (the project's own `make shell`) cannot read, and its `:Z` won't relabel away. Symptom: `cd /<project>: Permission denied` inside the project container while the sandbox is (or was) up. Host-side fix: `sudo restorecon -R <repo>`; prevention: use `:z` or no label flag on EXTRA_PODMAN_FLAGS entries (the label-disabled sandbox doesn't need `:Z` at all). Diagnosed 2026-07-07 (spimulator).
 - **Networking just works** — default bridged/netavark networking is verified (an inner `apt update` / package pull reaches the network). No `--network` flag needed. If a run ever dies on `netavark: set sysctl ... Read-only file system`, `--network=host` is a working fallback. **Gotcha — `podman build` is different (observed 2026-11-06, geometricalgebra `make image`):** a
   nested build's `RUN` step died with `setup network: pasta failed with exit code 1: Couldn't open network
   namespace /proc/<pid>/ns/net: Permission denied` (Error 125), while a nested `podman run` of the same base
@@ -51,7 +51,7 @@ edit and wait for the go-ahead, per point 2 above.
   github.com`: the default and `--network=bridge` fail; `--network=host`, `--isolation=chroot` and the
   environment variable `BUILDAH_ISOLATION=chroot` all work. **Fix:** launch the sandbox with
   `-e BUILDAH_ISOLATION=chroot` (the example launcher `exampleRunClaude.sh` passes it through
-  `EXTRA_MOUNTS`, which goes straight into `podman run`); then every nested `podman build` works unchanged.
+  `EXTRA_PODMAN_FLAGS`, which goes straight into `podman run`); then every nested `podman build` works unchanged.
   Without it, add `--network=host` to the one `podman build` command (run the `make -n image` line by
   hand rather than editing the Makefile).
 - **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.

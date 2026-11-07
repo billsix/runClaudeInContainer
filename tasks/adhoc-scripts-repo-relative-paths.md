@@ -30,7 +30,7 @@ convention post-dates some of them. A sibling convention for *format/gate* scrip
 separate rule; don't merge the two.
 
 Why it matters (the maintainer's framing): the mount path exists **only** because *this*
-`make shell` was launched with that `EXTRA_MOUNTS`; `/foo/opt` here is ephemeral to this
+`make shell` was launched with that `EXTRA_PODMAN_FLAGS`; `/foo/opt` here is ephemeral to this
 session. A script that bakes it in is dead on arrival for the next launch, another machine, or
 another contributor who mounted things elsewhere.
 
