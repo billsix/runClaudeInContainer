@@ -7,7 +7,14 @@
 #   NESTED_PODMAN_TMPFS_SIZE   RAM-backed inner image store size
 #   USE_CONTROLLER=1           pass host gamepads through
 #
-# EXTRA_MOUNTS mounts host:container dir pairs (":z" for SELinux shared relabel).
+# EXTRA_MOUNTS mounts host:container dir pairs (":z" for SELinux shared relabel). It is
+# passed straight into `podman run`, so it also carries
+#   -e BUILDAH_ISOLATION=chroot   nested `podman build` RUN steps use the sandbox's own
+#                                 network. Without it, Fedora 45's buildah (1.45) takes the
+#                                 rootless pasta path inside the sandbox's user namespace
+#                                 and every networked RUN fails ("pasta failed ... Couldn't
+#                                 open network namespace"). See
+#                                 tasks/reference/nested-run-and-gates.md.
 
 #make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_MOUNTS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
