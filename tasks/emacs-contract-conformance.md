@@ -18,7 +18,9 @@ is empty (or each remaining item is recorded as a deliberate variant), each chan
 
 - Read first: `tasks/reference/emacs-container-contract.md` (the contract + the drift list) and the
   personal overlay's emacs-vendoring rule (dotfiles `.ai-coding-conventions.personal.md`).
-- hanoi's missing helm is its own task: hanoi `tasks/emacs-config-match-geometricalgebra.md`.
+- hanoi was conformed by its own task (hanoi `tasks/archive/2026/11/07/emacs-config-match-geometricalgebra.md`).
+- Also from the snapshot: make the shared `preferences.el` eglot comment language-neutral (it names
+  C/C++ in every language's copy), then re-copy it byte-identically to every config.
 
 ## Work (from the snapshot)
 
