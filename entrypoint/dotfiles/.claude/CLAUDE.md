@@ -335,6 +335,15 @@ you tell me to run. (Detail: `~/.claude/reference/communication-conventions.md`.
 
 **A commit SHA is such an artifact, and it rots when history is squashed.** When **archiving a task** or running the **session-end sweep**, scan the docs you touch for SHA1 commit ids and confirm each still resolves (`git cat-file -e <sha>^{commit}` or `git rev-parse --verify <sha>^{commit}`). I squash history at times, so a SHA a doc cited earlier may be gone; repoint it to the squashed commit that replaced it (find it by subject/date via `git log --oneline`) or drop it if it no longer earns its place. A dangling SHA is the same failure as a missing file path.
 
+### Doc file paths are repo-root-relative
+
+**Write a file reference in a doc as a path from the repository root** (`tasks/reference/x.md`), even
+inside `tasks/` or deep in `tasks/archive/…`, never `../`-relative to the doc. An agent opens a prose
+path relative to its working directory (the repo root), the path stays valid when a doc is archived,
+and the same string greps everywhere. Editors resolve it too: every vendored `helm.el` sets
+`helm-ff-guess-ffap-filenames`, so `C-x C-f` on the name finds the file from any depth (William Emerison
+Six <billsix@gmail.com>, 2026-11-07; `tools/check_helm_file_at_point.sh` tests a config).
+
 ### A bare label is not a reference — name it, and say where it lives
 
 "Option 2", "Tier 1", "the approach we discussed" are pointers I am usually not holding.
@@ -905,6 +914,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
+- **`~/.claude/reference/emacs-container-contract.md`** — read **before** creating or changing a
+  project's vendored `.emacs.d` (or conforming a new project): the `init.el` order and LSP-root pin, the
+  byte-identical `helm.el`/`preferences.el`, the package-list tiers, and the known drift.
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, deciding whether a local earns its name or a helper should be nested, or choosing total dispatch (the "use your discretion" 80-column worked
