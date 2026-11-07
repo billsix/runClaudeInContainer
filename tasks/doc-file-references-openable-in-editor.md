@@ -1,134 +1,127 @@
-# Make doc file references openable from the editor (file-relative paths, or an Emacs root fallback)
+# Open root-relative doc references from Emacs: a project-root fallback for `C-x C-f`
 
-**Status:** proposed — needs a decision (open questions below)
+**Status:** in progress — pilot passed its automated tests in geometricalgebra (2026-11-07); waiting on
+the maintainer's interactive check, then the rollout needs a go-ahead. **When done, mirror to runCrushInContainer.**
 **Priority:** 5
-**Difficulty:** 4 for the Emacs-side option; 7 for the full rewrite (fleet-wide, ~6,300+ references)
-Created 2026-11-07 (William Emerison Six <billsix@gmail.com>). **When done, mirror to
-runCrushInContainer** (its conventions copy and its task docs).
+**Difficulty:** 4
+Created 2026-11-07 (William Emerison Six <billsix@gmail.com>).
 
 ## BLUF
 
-Docs across the fleet cite files **root-relative**: `tasks/reference/galgebra-comparison.md` inside
-`tasks/foo.md`. In Emacs, find-file-at-point resolves that against the *buffer's* directory and looks
-for `tasks/tasks/reference/…`, which doesn't exist. The maintainer wants references to open from the
-editor. Two ways to get there: **(a)** rewrite every reference as a path relative to the file that
-contains it, climbing to the repo root first (`../tasks/reference/galgebra-comparison.md` from
-`tasks/foo.md`), make that the convention, and sweep every repo including archived tasks; or **(b)**
-leave the docs alone and teach Emacs to fall back to the project root when the buffer-relative path
-doesn't exist. Done = the chosen option is in place, the cross-project conventions say what a doc path
-means, and (for (a)) every repo's references are rewritten and verified to resolve.
+Docs across the fleet cite files **repo-root-relative** (`tasks/reference/galgebra-comparison.md` inside
+`tasks/foo.md`). In Emacs, `C-x C-f` with the cursor on such a name prefills it relative to the current
+file's folder (`tasks/tasks/reference/…`, which doesn't exist). Fix it in the editor, not the docs: turn on helm's use
+of Emacs's own find-file-at-point guesser, which already looks in parent folders
+(`(setq helm-ff-guess-ffap-filenames t)`, one line per config). Pilot it in **geometricalgebra**. If it works, add the line to every vendored `helm.el` and the host
+`dotfiles` Emacs, promote the test to `tools/`, and record the convention. Done = the setting is tested and in every Emacs config the
+maintainer uses, and the conventions say doc paths are root-relative and why that is enough.
+
+## Decision (William Emerison Six <billsix@gmail.com>, 2026-11-07)
+
+**Keep doc references root-relative; teach Emacs to resolve them.** The alternative, rewriting every
+reference to be relative to the file containing it (`../tasks/reference/x.md` from `tasks/`), was
+rejected:
+- An agent opens a path written in prose relative to its working directory (the repo root), not
+  relative to the doc. Claude Code resolves `@`-imports relative to the containing file, but prose paths
+  relative to the working directory (claudeissues.com issue 51305). File-relative paths would be misread,
+  worst in archived tasks five levels deep.
+- Archiving changes a doc's depth by four, so every reference *inside* a moved doc would need rewriting
+  on every archive.
+- Commit messages, chat, and code comments have no containing file, so there would be two conventions.
+- Scale: ~6,300+ backticked root-relative references fleet-wide (geometricalgebra ~2,194, imps ~1,010,
+  runCrushInContainer ~735, spimulator ~614, runClaudeInContainer ~449, hanoi ~437, …; `git grep`,
+  2026-11-07).
+
+Root-relative paths are also depth-independent, so the fallback makes archived tasks work with no
+changes, and the editor and the agent read every path the same way.
 
 ## Context
 
-- The maintainer's request (2026-11-07): references should be "relative to the pwd" of the file, e.g.
-  from `tasks/` either `../tasks/reference/galgebra-comparison.md` or a path that resolves from there,
-  "for the purpose of use in a text editor like emacs".
-- Conventions that would change under (a): `entrypoint/dotfiles/.claude/CLAUDE.md` ("Never cite an
-  artifact you have not verified exists", "A bare label is not a reference", the archiving rule that
-  says to fix inbound pointers when a doc moves) and `tasks/reference/task-doc-conventions.md`,
-  `tasks/reference/communication-conventions.md`; the runCrush mirrors of each.
-- Emacs config for (b): github.com/billsix/billsEmacsConfigs (per-language
-  `<lang>/entrypoint/dotfiles/.emacs.d/preferences.el`), plus each project's vendored `.emacs.d`.
-  None of them configure `ffap`, `project.el` file-at-point, or projectile today (checked 2026-11-07).
-- Upstream-only checkouts (e.g. `galgebra`) are read-only per the personal overlay and are excluded
-  from any sweep.
+- **How the maintainer opens a path:** cursor on the file name, `C-x C-f`, and the name is prefilled.
+  Every config remaps `find-file` to helm's `helm-find-files` (`.emacs.d/helm.el`:
+  `[remap find-file] #'helm-find-files`). Helm builds the prefill in `helm-find-files-initial-input`,
+  which calls `helm-ffap-guesser`, Emacs's built-in "find file at point" guesser (ffap) with a few
+  features removed. Read in the vendored `elpa/helm-20261025.1539/helm-files.el`.
+- **Repository root** = the nearest folder above the file that contains `.git`, from Emacs's built-in
+  `project.el` (`(project-root (project-current))`). Inside a repo that holds another checkout with its
+  own `.git` (e.g. imps' `games/gzdoom/checkout/`), the root is that checkout.
+- **Emacs configs that would carry it** (git-tracked `.emacs.d/*.el`, 2026-11-07): billsEmacsConfigs
+  (20 language folders, each standalone by design), Craft, apue, dotfiles (the host Emacs:
+  `.emacs.d/init.el` loads `helm.el`), geometricalgebra, gltron, hanoi, multivariate-math,
+  runClaudeInContainer, smalltalk, spimulator, texExpToPng. Each project's `init.el` does
+  `(load-file "~/.emacs.d/helm.el")`.
 
-## Research (2026-11-07)
+## The fix: one helm setting (found and tested 2026-11-07)
 
-**Scale.** Backticked root-relative references (`tasks/…`, `src/…`, `tools/…`, `entrypoint/…`,
-`proofs/…`, `book/…`) via `git grep` per repo: geometricalgebra ~2,194, imps ~1,010,
-runCrushInContainer ~735, spimulator ~614, runClaudeInContainer ~449, hanoi ~437, smc ~215, impo ~189,
-gltron ~159, Craft ~141, epix-mirror ~100, billsEmacsConfigs ~73. That is ~6,300+ before counting other
-prefixes and plain-prose paths.
-
-**How an agent resolves a path in a doc.** Claude Code resolves `@`-imports relative to the file that
-contains them, but a path written in prose is opened relative to the agent's **working directory**
-(the repo root). A filed Claude Code issue describes exactly that split causing silent load failures
-(claudeissues.com issue 51305, "@ imports and prose paths resolve against different roots"). So under
-(a), an agent reading `../tasks/reference/x.md` in `tasks/foo.md` will by default open
-`<root>/../tasks/reference/x.md`, outside the repo. A conventions rule ("a path in a doc is relative to
-the doc's own directory") prevents most such misreads, but it is a standing source of mistakes, and
-worse in deep files: an archived task at `tasks/archive/2026/11/07/` needs `../../../../../`.
-
-**Other costs of (a).**
-- **A moved file's outgoing references all break.** Archiving (`tasks/x.md` →
-  `tasks/archive/<Y>/<M>/<D>/x.md`) changes the depth by four, so every reference *inside* the moved
-  doc must be rewritten, on top of today's "fix inbound pointers". This needs a tool run on every
-  archive, or it rots.
-- **Locations that have no "file" stay root-relative:** commit messages, chat/terminal output, and
-  reports. Code comments would need `../../tasks/...` from `src/pkg/x.py`. So it becomes two
-  conventions.
-- **Mitigated by the maintainer's form:** climbing to the root and then writing the root-relative tail
-  (`../tasks/reference/x.md`, not the shortest `reference/x.md`) keeps the tail constant, so
-  `git grep tasks/reference/x.md` still finds every reference. If (a) is chosen, use this form.
-- **Benefit beyond Emacs:** GitHub resolves Markdown *links* (`[text](path)`) relative to the file, so
-  real links become clickable on GitHub. Backticked paths are not links on GitHub either way.
-
-**How the maintainer opens a path today (2026-11-07):** cursor on the file name, `C-x C-f`, and the
-name is prefilled. In billsEmacsConfigs that key is remapped to helm's `helm-find-files`
-(`<lang>/entrypoint/dotfiles/.emacs.d/helm.el`: `[remap find-file] #'helm-find-files`). Helm builds the
-prefill in `helm-find-files-initial-input`, which calls `helm-ffap-guesser`, which is Emacs's `ffap`
-("find file at point") guesser with a few features removed (read in the vendored
-`elpa/helm-20261025.1539/helm-files.el`). The guess is resolved against the buffer's directory, so in
-`tasks/foo.md` the name `tasks/reference/x.md` prefills as the nonexistent `tasks/tasks/reference/x.md`.
-
-**Option (b), the Emacs side.** `ffap` resolves a relative name against `default-directory`, and
-an advice on helm's guesser can add a fallback. About ten lines in each `helm.el`: when the name at
-point doesn't exist relative to the buffer, try it relative to `(project-root (project-current))` (the
-git root via the built-in `project.el`). Sketch (to be tested, not final):
+Emacs's own find-file-at-point guesser (ffap) **already** resolves a root-relative name: when the name
+doesn't exist next to the current file, it looks in the parent folders, so from `tasks/foo.md` (and from
+`tasks/archive/2026/11/07/old.md`) it finds `<root>/tasks/reference/x.md`. Helm switches that guesser
+off by default (`helm-ff-guess-ffap-filenames` is nil) and builds its prefill from the raw name instead,
+which is the whole bug. So the fix is one line in each config's `helm.el`, no custom code:
 
 ```elisp
-(defun bill/helm-guess-from-project-root (guess)
-  "If the file name at point doesn't exist here, try it from the project root."
-  (let ((name (thing-at-point 'filename t))
-        (project (project-current)))
-    (or (and guess (file-exists-p guess) guess)
-        (and name project
-             (let ((from-root (expand-file-name name (project-root project))))
-               (and (file-exists-p from-root) from-root)))
-        guess)))
-(advice-add 'helm-ffap-guesser :filter-return #'bill/helm-guess-from-project-root)
-``` Every existing reference then opens, nothing in the docs
-changes, and there is no agent-resolution risk. Limitation: it fixes Emacs only (not another editor or
-GitHub), and it has to reach every vendored `.emacs.d` (the same fan-out the `update-emacs-packages`
-targets already do).
+;; C-x C-f on a file name prefills it using Emacs's own find-file-at-point
+;; guesser, which also looks in parent folders.  Docs cite files relative to the
+;; repository root (tasks/reference/x.md written inside tasks/foo.md); without
+;; this, helm prefills tasks/tasks/reference/x.md, which does not exist.
+(setq helm-ff-guess-ffap-filenames t)
+```
 
-**Agent recommendation:** (b). If GitHub clickability matters too, add a narrow (a′): convert only
-real Markdown links to file-relative, and leave backticked paths root-relative.
+A custom advice (resolve from the `project.el` root, strip `:<line>` and trailing punctuation) was
+written first and also passed the tests below. It was dropped in favour of the built-in behaviour: same
+results, nothing to vendor or maintain. Things to watch: ffap's parent search is not bounded by the
+repo, so a same-named file in a folder *above* the repo could win (none exists today); and with the
+option on, ffap's mode-specific guessing (e.g. library names in Lisp buffers) also feeds helm's prefill.
+
+## Pilot results (geometricalgebra, 2026-11-07)
+
+- Change: the five lines above added to `geometricalgebra/entrypoint/dotfiles/.emacs.d/helm.el`.
+- Automated test: `tasks/adhoc/doc-file-references-openable-in-editor/run-tests.sh [<.emacs.d>]`
+  (default: the sibling geometricalgebra checkout) runs `test-project-root-file-at-point.el` with ERT
+  headless (`emacs --batch -Q`), loading helm from that config's vendored `elpa/` and then its
+  `helm.el`. It builds a throwaway git repo and checks helm's prefill (`helm-ffap-guesser`) with the
+  cursor on a name: a root-relative name resolves; `x.md:42` and `x.md.` resolve; a file-relative name
+  that exists next to the doc still wins; a name in a deep archived doc resolves; a nonexistent name is
+  not turned into some other file; plain `ffap-file-at-point` resolves too.
+- Result: **7/7 pass** with the new `helm.el` (Emacs 31.1 in the sandbox, helm 20261013.553).
+  **Negative control:** against `helm.el` from git `HEAD` (no setting), the 4 root-relative cases fail
+  and the other 3 pass, so the tests do exercise the fix.
+- Remaining: the **maintainer's check** in the real container. gacalc's Makefile bind-mounts only
+  `.emacs.d/elpa/`, and the Dockerfile delivers the rest with `COPY entrypoint/dotfiles/ /root/`, so
+  run `make image`, then `make shell`, open `tasks/reciprocal-frame-hestenes.md`, put the cursor on
+  `tasks/reference/frames-qr-and-reciprocal-frames.md`, and press `C-x C-f`.
 
 ## Plan
 
-**If (b):**
-1. Write the fallback (the sketch above) in billsEmacsConfigs `helm.el` (one copy per language
-   config), keeping buffer-relative as the first try. No new key: it rides on `C-x C-f`.
-2. Test in the sandbox's Emacs: from `tasks/foo.md`, `ffap` on `tasks/reference/x.md` opens the file;
-   a genuinely buffer-relative path still wins.
-3. Propagate to every project's vendored `.emacs.d` (list the repos; each is its own commit).
-4. Add a line to the cross-project conventions: "doc paths are repo-root-relative; Emacs resolves them
-   via the project-root fallback".
+1. ~~Pilot in geometricalgebra~~ (automated part done, above); the maintainer's interactive check.
+2. **Roll out** (after the maintainer's go-ahead): add the setting to every `helm.el`. Re-check the
+   list with `git ls-files` for `.emacs.d/helm.el` first. As of 2026-11-07:
+   - **billsEmacsConfigs, every language folder** (the maintainer asked for all of them explicitly,
+     2026-11-07): `bash c cpp csharp go haskell java kotlin ksh nushell ocaml python racket ruby rust
+     scala swift typescript zig zsh` (20 folders, each with its own
+     `<lang>/entrypoint/dotfiles/.emacs.d/helm.el` and vendored `elpa/`). The folders are standalone by
+     design, so each gets its own copy of the line. One commit for the repo is fine.
+   - Craft, apue, dotfiles (host Emacs), gltron, hanoi, multivariate-math, runClaudeInContainer,
+     smalltalk, spimulator, texExpToPng: one commit per repo.
+   - Run `run-tests.sh <that .emacs.d>` for every config that vendors `elpa/` (all 20 billsEmacsConfigs
+     folders do). Report any config whose helm version lacks `helm-ff-guess-ffap-filenames`.
+3. **Promote the test** from `tasks/adhoc/` to `tools/check-helm-file-at-point.sh` (+ the `.el`) here,
+   mirrored in runCrushInContainer, so a new or conformed project can be checked.
+4. **Record the convention** (wording below), in both repos.
 
-**If (a):**
-1. Decide the exact rules (open questions 2–3) and write them into
-   `entrypoint/dotfiles/.claude/CLAUDE.md` + `task-doc-conventions.md` (and the runCrush mirrors):
-   doc paths are file-relative via the root (`../…/<root-relative tail>`); the archiving step rewrites
-   the moved doc's outgoing references.
-2. Write `tools/relativize_doc_refs.py`: per repo, `git grep` the candidate references, keep only those
-   that resolve from the repo root (so prose that merely looks like a path is untouched), rewrite each
-   to the file-relative form, and report anything ambiguous. Idempotent: a second run changes nothing.
-   Also a `--check` mode that fails on any reference that does not resolve from its file (the gate,
-   and the tool the archive step runs).
-3. Run it repo by repo over every maintainer-owned repo under the parent directory, **including
-   `tasks/archive/`**; one commit per repo; `--check` clean after each.
-4. Mirror the tool and the conventions to runCrushInContainer.
+## Where the advice lives (agent's recommendation, revised for the one-line fix)
+
+- **The rule "doc paths are repo-root-relative; don't write `../`-relative paths in docs" → the shared
+  cross-project `CLAUDE.md`** (`entrypoint/dotfiles/.claude/CLAUDE.md`, and runCrushInContainer's
+  mirror), next to "Never cite an artifact you have not verified exists". It applies to anyone using
+  these conventions and keeps agents and editors reading paths the same way.
+- **"Every vendored `helm.el` sets `helm-ff-guess-ffap-filenames`" → the personal overlay**
+  (`dotfiles/.ai-coding-conventions.personal.md`), in its container-template section, next to the
+  existing emacs-vendoring rule. The helm-based Emacs setup is the maintainer's own template, and the
+  overlay is where the agent looks when making a new project conform.
+- **The check tool → runClaudeInContainer `tools/` (mirrored in runCrushInContainer).** With the fix
+  down to one built-in setting, there is no shared `.el` to vendor.
 
 ## Open questions
 
-1. **Which approach:** (a) rewrite every doc reference to be file-relative (your proposal), (b) keep
-   root-relative references and add an Emacs project-root fallback (my recommendation), or (c) (b) plus
-   converting only real Markdown links to file-relative for GitHub?
-2. **If (a), which contexts convert?** My suggestion: task docs, reference docs, `CLAUDE.md`, and
-   READMEs convert; commit messages, chat, and code comments stay root-relative. Do you want code
-   comments converted too?
-3. ~~If (b), which key?~~ **Answered (William Emerison Six <billsix@gmail.com>, 2026-11-07):** cursor
-   on the name, `C-x C-f`, which is helm's `helm-find-files` prefilling from `helm-ffap-guesser`. The
-   fallback attaches there.
+None for the pilot. The rollout in steps 2–3 needs the maintainer's go-ahead after the step-1 check.
