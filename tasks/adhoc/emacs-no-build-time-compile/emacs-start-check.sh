@@ -2,7 +2,7 @@
 #
 # emacs-start-check.sh IMAGE MOUNT_FLAG... -- start Emacs in batch inside IMAGE with
 # the project's own Emacs mount(s) and report: Emacs's exit status, how many .elc the
-# run-time compile (init.el's byte-recompile-directory) left in the mounted elpa/,
+# run-time compile (init.el compile block) left in the mounted elpa/,
 # and any error lines Emacs printed. Used to verify the "no build-time MELPA install"
 # change in each project (runClaudeInContainer tasks/emacs-contract-conformance.md).
 #
