@@ -25,7 +25,7 @@ while read -r init; do
       grep -i -E "^error|error:|cannot open load file" /tmp/e.log | grep -v compat-macs | head -2 | sed "s/^/    /"')
     first=$(printf '%s\n' "$out" | head -1)
     case "$first" in exit=0*) ;; *) status=1 ;; esac
-    line="$line run$run[$first $(( $(date +%s) - start ))s]"
+    line="$line run${run}[$first $(( $(date +%s) - start ))s]"
     extra=$(printf '%s\n' "$out" | tail -n +2)
     [ -n "$extra" ] && line="$line"$'\n'"$extra"
   done

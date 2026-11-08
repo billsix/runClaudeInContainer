@@ -30,8 +30,8 @@ BLOCK: str = (
     ";; newer Emacs) still gets its other .elc and is not retried on every start.\n"
     "(dolist (entry package-alist)\n"
     "  (let ((desc (cadr entry)))\n"
-    "    (unless (directory-files-recursively (package-desc-dir desc) \"\\\\.elc\\\\'\")\n"
-    "      (with-demoted-errors \"Error while compiling: %S\"\n"
+    '    (unless (directory-files-recursively (package-desc-dir desc) "\\\\.elc\\\\\'")\n'
+    '      (with-demoted-errors "Error while compiling: %S"\n'
     "        (package-recompile desc)))))\n"
 )
 CLANG_USE: str = "(use-package clang-format\n"
