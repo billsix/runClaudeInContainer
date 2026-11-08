@@ -272,7 +272,14 @@ and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
   which is why the leak is invisible from in-container and only bites the host user.) **A Makefile
   change to the trap applies only to sessions launched afterwards** — `make` reads the recipe at
   launch — so a session already running when the fix was committed still exits with the old trap.
-  Verification status, the cross-session ledger, the proposed cleanup log and the fallback ranking:
+  Each exit appends a `== <date> store=…` / `== rm exit=N` / `== clean` (or `== LEFTOVER: …`) block
+  to `$(NESTED_PODMAN_STORE_BASE)/runclaude-nested-cleanup.log` (runCrush:
+  `crush-nested-cleanup.log`), a file outside the store so it survives the `rm` and can be read from
+  inside the next sandbox. Verified 2026-11-08: 11 post-fix runClaude exits, 2026-10-04 to
+  2026-11-08, all `rm exit=0` / `== clean`. If a `LEFTOVER` ever appears: an `unshare` error with the
+  whole store left points at host rootless state (`podman unshare true`), a 555 parent still blocking
+  calls for `chmod -R u+rwX` inside the same `unshare`, and leftover subuid-owned files point at
+  `/etc/subuid` vs `podman unshare cat /proc/self/uid_map`. Investigation record:
   `tasks/nested-store-cleanup-permission-denied.md`.
 - **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
   sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*
