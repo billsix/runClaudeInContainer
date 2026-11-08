@@ -51,10 +51,9 @@ Committed ad-hoc scripts in this repo:
      unchanged. Open questions 1–2 were answered there (arg with derived default; yes, worth fixing).
 
 2. `tasks/adhoc/separate-general-and-personal-conventions/gut_personal_from_claude_md.py:40` —
-   the `/foo/opt/<name>` at that line is **inside a string literal being processed** (prose the
-   script edits out of `CLAUDE.md`), not a filesystem path the script opens. Verify this during
-   execution and, if confirmed, leave it — an explicit in-code note is the correct opt-out per
-   the "use your discretion" convention, not a mangle.
+   **RESOLVED 2026-11-08:** the script was a one-shot and was removed when its task archived
+   (`tasks/archive/2026/11/08/separate-general-and-personal-conventions.md`), so there is nothing left
+   to check.
 
 No other `tasks/adhoc/` scripts exist. Check for a `tools/` dir at execution time (promoted
 scripts inherit the same rule — `task-doc-conventions.md:133` "make it repo-relative").

@@ -7,7 +7,7 @@
 ## Goal
 
 The `USE_EMACS_CONFIG` opt-out flag was added in
-`tasks/separate-general-and-personal-conventions.md` (Makefile default `1`, Dockerfile
+`tasks/archive/2026/11/08/separate-general-and-personal-conventions.md` (Makefile default `1`, Dockerfile
 `ARG USE_EMACS_CONFIG=0`, gating a `RUN if [ "$USE_EMACS_CONFIG" != "1" ]; then rm -rf
 /root/.emacs.d; fi` right after `COPY entrypoint/dotfiles/ /root/`). The logic is a
 trivial conditional and can't affect the package install, so it was **not** rebuild-tested
