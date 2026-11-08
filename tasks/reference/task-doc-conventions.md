@@ -159,7 +159,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"   # or: git rev-pa
 
 The session **scratchpad still handles true ephemera** (baseline copies, intermediate data, throwaway venvs); only substantive scripts move into `tasks/adhoc/`. And not every change is a script — many edits go through the editor directly and are captured by the diff and the task doc, so `tasks/adhoc/` records only the *scripted* subset, not "everything I did". Create `tasks/adhoc/` the first time it's needed; committable by default (that's the point), gitignore only if I ask. **A directory the conventions promise must survive being empty: git tracks files, not
 directories, so put an empty `.keep` file in `tasks/adhoc/` (and in `tasks/reference/`,
-`tasks/archive/`, `tools/` — any directory these conventions tell a reader to look in) the moment
+`tasks/archive/`, `tasks/review/`, `tools/` — any directory these conventions tell a reader to look in) the moment
 you create it, and never `git rm` the `.keep`.** Otherwise the first cleanup that removes the last
 file removes the directory from the repo, and the next reader finds the conventions pointing at a
 path that isn't there (2026-09-06, mvp: archiving the last one-shot codemods `git rm`'d

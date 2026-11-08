@@ -677,8 +677,24 @@ mechanics: `~/.claude/reference/diversion-stack-and-scope.md`.
 
 ## Repo audits
 
-- `/audit-repo` — full read of the current repo, cross-referencing the docs (CLAUDE.md, README, task docs) against the actual source to surface stale claims, undocumented features, and internal inconsistencies. **Read-only** — it reports findings and stops.
-- `/findings-to-tasks` — turn those findings (or any list of discussion items) into in-depth task docs under `tasks/`, one per item, each `proposed — needs go-ahead`.
+- `/audit-repo` — **quick**: a full read of the current repo, cross-referencing the docs
+  (`CLAUDE.md`, `README`, task docs) against the actual source to surface stale claims,
+  undocumented features and internal inconsistencies. Findings go in chat. **Read-only.**
+- `/audit-repo deep` — a **deep review** of everything. It covers ten named dimensions: docs,
+  docs ↔ code, product content, code, generators and tools, tests, proofs, build/CI, the
+  open-task backlog, and the archive. Readers fan out across the corpora while the main thread
+  reads the product itself.
+  - The output is a dated, **frozen** record at `tasks/review/<YYYY>/<MM>/<DD>/repo-review.md`
+    (not `tasks/reference/`: a snapshot there would be read as current truth). The project
+    `CLAUDE.md` holds a one-line pointer to the latest record.
+  - Never edit a record afterwards. Act on it through tasks that cite its sections; the next
+    review reports what carried over.
+  - Expensive (~millions of subagent tokens), so run it **only when I ask**.
+  - Method, dimensions, record layout and lifecycle: `~/.claude/reference/repo-review-conventions.md`.
+- `/findings-to-tasks <record [§sections]>` — turn findings (a `tasks/review/` record's sections, or any
+  list of discussion items) into in-depth task docs under `tasks/`, one per unit of work, each
+  `proposed — needs go-ahead` and citing its source section. It proposes the grouping and waits
+  before writing; it never edits the record.
 
 ## Open-issues sections in project docs
 
@@ -836,7 +852,9 @@ The two biggest wastes, in order. **(1) Spawning subagents you don't need:** a *
 entire conversation PLUS this whole always-loaded instruction set** (~25K tokens here) before it does any
 work — so **default to inline**, and reserve a fork for large, independent, build-heavy work where keeping
 verbose build logs out of the main thread is worth that re-ingest; a parallel fan-out multiplies the
-ingest per agent. (Measured: one implementation fork cost ~633K tokens; a 3-way audit ~400K.) **(2)
+ingest per agent. (Measured: one implementation fork cost ~633K tokens; a 3-way audit ~400K.) The one
+named exception is a deep review I asked for (`/audit-repo deep`), which fans out fresh agents by design.
+**(2)
 Reading what you don't need:** never read vendored / generated / `build`/`target`/`node_modules` trees or
 files you'll only compile — the build validates them; `grep`/`rg` to the spot and `Read` an
 `offset`/`limit` region instead of whole files; inspect build output by **exit status + a short `tail`**,
@@ -966,6 +984,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/claude-config-layering.md`** — read when reasoning about or changing how
   `~/.claude`, auth/login, sessions, or the mounts are assembled.
 - **`~/.claude/reference/bluf-bottom-line-up-front.md`** — read when writing a task's `## BLUF`.
+- **`~/.claude/reference/repo-review-conventions.md`** — read **before** running `/audit-repo deep`,
+  or when a repo's `tasks/review/` record is the subject (its dimensions, method, layout, lifecycle).
 - **`~/.claude/reference/token-and-context-economy.md`** — read **before** spawning a subagent/fork or a
   parallel fan-out, or before reading large / vendored / generated files; the rules for not burning tokens
   (the everyday essence is inline above under "Token & context economy").
