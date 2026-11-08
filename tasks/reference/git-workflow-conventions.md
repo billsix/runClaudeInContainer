@@ -58,4 +58,14 @@ When I hand you a task — or a **list of tasks** — and authorize committing (
 6. **Turn gpg signing back on** — `git config commit.gpgsign true` — leaving the committed config as I keep it.
 7. **Ask me to merge** the branch into whatever branch I was working on, and **stop**. I do the merge and the push; you never do (per "Git: I commit, you don't").
 
+**I may merge partway through.** In a long batch I often merge and push a branch as soon as its work
+commit is in, then delete the branch. So **check `git branch --show-current` before every commit**:
+if the task's branch has been merged and I've switched back to `master`, put the remaining commits (the
+done-record, the archive) on a **new** branch off the updated `master` (`archive-<slug>` is a fine name)
+and ask me to merge that one; never commit them onto `master`. If you do commit onto `master` by
+mistake, move them without a hard reset: `git switch -c <new-branch>` then
+`git branch -f master origin/master`. To verify my merges once the branch names are gone, test the
+commits: `git merge-base --is-ancestor <sha> master`. (2026-11-08: the done-record and archive commits
+landed on spimulator's `master` after I had merged its branch; moved as above.)
+
 Each commit gets a clear, specific message — they are the play-by-play I read. The done-record *rewrite* of the docs (step 3) happens every batch, at archive time, regardless of whether a squash follows; the squash itself (collapsing the quick-saves to one-commit-per-task) stays a step I ask for explicitly. The stage-only default still governs — this whole workflow runs only for a batch I've explicitly told you to commit.

@@ -95,3 +95,21 @@ against the existing image** (`podman images` lists it read-only), e.g.
 `podman run --cgroups=disabled --rm -v $PWD:/<proj>:Z --entrypoint /bin/bash localhost/<image> /<proj>/<gate>.sh`,
 or only accept the rebuild when the image genuinely changed. Check `ps` for a `podman build` before
 assuming a slow gate is the gate.
+
+## Concurrent nested builds share one storage lock — time builds alone (William Emerison Six <billsix@gmail.com>, 2026-11-08)
+
+Several `podman build`s can run at once in the sandbox, but committing a layer takes the store's lock, and
+under `fuse-overlayfs` a big layer (a TeX install, a large `COPY`) holds it for minutes. Two things
+follow:
+
+- **A build that copies a huge context into a layer stalls every other build.** A probe
+  `COPY . /ctx` of geometricalgebra's 7.5 GB tree left two unrelated image builds idle for 8 minutes;
+  they resumed seconds after the probe was stopped. Copy only what you need to measure (the same paths
+  the real `Dockerfile` copies).
+- **Never time a build while another runs.** A fully cached hanoi build measured 99 s while a
+  spimulator build was committing layers, then 2.6 s after a change while spimulator was compiling, which
+  looked like a 38x win for a `.dockerignore`. Alone it was 2.0 s either way. Measure with `ps` showing no
+  other `podman build`, and repeat each timing.
+
+Running independent builds in parallel is still fine for throughput; only the timings are unreliable.
+

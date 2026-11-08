@@ -38,6 +38,16 @@ for `bash -c` specifically when the line contains a glob, a character class, a p
 inside an argument, or bash-only syntax. (This is about the *interactive login shell
 the tool wraps*, which is host-configurable; don't assume it's bash on any machine.)
 
+Two more traps seen 2026-11-08:
+
+- **zsh expands a word that starts with `=`** (`=cmd` becomes the path of `cmd`), so `echo == heading`
+  fails with `(eval):1: = not found` and aborts the rest of a `&&` chain. Quote it (`echo '=='`) or use
+  `bash -c`.
+- **`pkill -f <pattern>` kills the shell that runs it** when the pattern appears in that shell's own
+  command line, which it always does when the tool wraps your command in one. The tool reports exit 144
+  and nothing after `pkill` runs. Stop a background job by its task id, or `kill` a PID found with
+  `ps … | grep -v grep`.
+
 **Gotcha: a single quote inside the `bash -c '…'` body ends the quoting early.** An
 apostrophe in an embedded script (`"Sheet 2's answer"` in a Python heredoc) closes the
 outer quote, and zsh then parses the rest: `(eval):N: unmatched "` or `parse error near`
