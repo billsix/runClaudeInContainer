@@ -280,7 +280,7 @@ and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
   whole store left points at host rootless state (`podman unshare true`), a 555 parent still blocking
   calls for `chmod -R u+rwX` inside the same `unshare`, and leftover subuid-owned files point at
   `/etc/subuid` vs `podman unshare cat /proc/self/uid_map`. Investigation record:
-  `tasks/nested-store-cleanup-permission-denied.md`.
+  `tasks/archive/2026/11/08/nested-store-cleanup-permission-denied.md`.
 - **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
   sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*
   work is pointing the inner store at the host's overlay graphroot directly.
