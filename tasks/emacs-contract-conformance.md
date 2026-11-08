@@ -34,7 +34,10 @@ is empty (or each remaining item is recorded as a deliberate variant), each chan
    (matching the shared `preferences.el`) and drop `init.el`'s `remove-hook`. Check that Python buffers
    still get exactly one client.
 4. spimulator's `preferences.el`: add the shared eglot-for-emacs-lisp block.
-5. Decide `byte-recompile-directory` (open question 2) and apply it everywhere.
+5. Add `(byte-recompile-directory package-user-dir 0)` after `(package-initialize)` in every `init.el`
+   that lacks it (31 configs; decided 2026-11-08, see Decisions). Craft is covered by its own task,
+   github.com/billsix/Craft `tasks/emacs-packages-not-built-in-dockerfile.md`, which also removes its
+   build-time MELPA install.
 6. Re-run the hash check (`md5sum */.emacs.d/{helm,preferences}.el`) and update the snapshot section.
 
 ## Open questions
@@ -42,6 +45,12 @@ is empty (or each remaining item is recorded as a deliberate variant), each chan
 1. **Theme:** is the active theme a per-project choice (`material` in the Python projects,
    `modus-vivendi` in the C ones), or should one be the standard? *Recommend: per-project choice, recorded
    as a variant.*
-2. **`(byte-recompile-directory package-user-dir 0)` at startup** (3 configs have it, 31 don't): keep it
-   in all, or drop it from the three? It writes `.elc` into the bind-mounted `elpa/` (gitignored) on
-   first start. *Recommend: drop it, matching the 31.*
+
+## Decisions
+
+- **Run-time byte-compile is the standard** (William Emerison Six <billsix@gmail.com>, 2026-11-08):
+  packages are never installed or compiled in a `Dockerfile`; `init.el`'s
+  `(byte-recompile-directory package-user-dir 0)` compiles them into the bind-mounted `elpa/` on Emacs's
+  first start in `make shell`, as geometricalgebra and modelviewprojection do. This answered the former
+  open question 2 (the recommendation there had been to drop it). Recorded in
+  `tasks/reference/emacs-container-contract.md`.
