@@ -16,5 +16,5 @@
 #                                 open network namespace"). See
 #                                 tasks/reference/nested-run-and-gates.md.
 
-#make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_PODMAN_FLAGS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_PODMAN_FLAGS="-v /home/wsix/opt/:/foo/opt/:z -v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
+#make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
