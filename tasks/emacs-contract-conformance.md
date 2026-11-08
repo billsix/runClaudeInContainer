@@ -24,9 +24,10 @@ is empty (or each remaining item is recorded as a deliberate variant), each chan
 
 ## Work (from the snapshot)
 
-1. **Install via a `0N-install-emacs.sh` group script** where emacs is still in the base list or
-   installed some other way: Craft, gltron, apue, billsEmacsConfigs (20 folders), smalltalk. Check each
-   project's actual install path first.
+1. **Drop the build-time MELPA install and install Emacs via a `0N-install-emacs.sh` group script**:
+   apue, gltron, smalltalk, spimulator, texExpToPng, billsEmacsConfigs (20 folders). Check each
+   project's actual install path first. Craft is done and is the C worked example
+   (github.com/billsix/Craft `tasks/archive/2026/11/08/emacs-packages-not-built-in-dockerfile.md`).
 2. **`ELPA_MOUNT` + `update-emacs-packages`** for smalltalk; for runClaudeInContainer, document why the
    sandbox differs (`USE_EMACS_CONFIG`) in the contract instead, if it is deliberate.
 3. **One statement of the one-client rule:** in geometricalgebra, modelviewprojection,
