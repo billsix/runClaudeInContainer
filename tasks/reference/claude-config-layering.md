@@ -64,11 +64,15 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    two names. See
    the root `CLAUDE.md` "personal overlay" note, `FORKING.md`,
    `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`, and
-   `tasks/separate-general-and-personal-conventions.md`. (Harvested verbatim from the
+   `tasks/archive/2026/11/08/separate-general-and-personal-conventions.md`. (Harvested verbatim from the
    root `CLAUDE.md` during the 2026-09-13 trim:) The mounted `CLAUDE.md`'s opening
    section (**"This is the SHARED layer…"**) instructs the agent to route any
    maintainer-specific content to this overlay, never to the shared file, so the
-   separation stays self-maintaining.
+   separation stays self-maintaining. **Worked examples** stamped with one of the maintainer's
+   projects stay in the shared file with the lesson generalized; one moves to the overlay only when
+   its lesson cannot be stated without that repo (decided 2026-08-14, when the split was made). Dated
+   decision stamps (`Name <email>, date`) are not personal content: the stamp convention requires them
+   in the shared file too.
 
 Auth and sessions never live in git; conventions never live only in a container; personal
 specifics never live in the tracked repo. That split is the whole design.
