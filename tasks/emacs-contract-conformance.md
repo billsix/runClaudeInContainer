@@ -63,6 +63,18 @@ is empty (or each remaining item is recorded as a deliberate variant), each chan
    whose `use-package clang-format` bound into `c-mode-base-map` without `:after cc-mode` (gltron,
    smalltalk, spimulator, texExpToPng, billsEmacsConfigs `c/` and `cpp/`) now have it, matching Craft.
 
+## Ad-hoc scripts
+
+This task's scripts live in `tasks/adhoc/emacs-no-build-time-compile/` (named for the 2026-11-08 batch;
+not renamed to this task's slug because five other repos' archived task docs cite that path). What to do
+with each when this task archives:
+
+- `verify-configs.sh` and `emacs-start-check.sh`: reusable checks of a vendored Emacs config (two
+  offline starts, `.elc` count, error lines). Promote to `tools/` and point to them from
+  `tasks/reference/emacs-container-contract.md` "Checking a config".
+- `discover.sh` + `hits.txt`, `codemod-package-recompile.py` + `configs.txt`,
+  `verify-2026-11-08.txt`: one-shot; `git rm` in the archive commit.
+
 ## Open questions
 
 1. **Theme:** is the active theme a per-project choice (`material` in the Python projects,
