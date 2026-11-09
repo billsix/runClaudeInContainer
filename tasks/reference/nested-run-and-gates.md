@@ -96,6 +96,16 @@ against the existing image** (`podman images` lists it read-only), e.g.
 or only accept the rebuild when the image genuinely changed. Check `ps` for a `podman build` before
 assuming a slow gate is the gate.
 
+**The same holds for run targets, not only gates** (William Emerison Six <billsix@gmail.com>, 2026-11-09): never invoke a `: image` target
+just to see a guard message or test a recipe. In geometricalgebra, `make spyder` (to check its
+`USE_SPYDER` guard) started a full nested rebuild, Lean and TeX layers included, that ran for well
+over an hour. Use `make -n <target>` to see the recipe, or run the guard line by hand.
+
+**Watching a long build:** a `podman build` log is full of carriage-return progress bars, so
+`tail` on it can dump tens of KB into context. Ask for the step instead:
+`grep -a -o "STEP [0-9]*/[0-9]*: [A-Z]*" <log> | tail -1`, plus the log's mtime to see whether it
+is still moving.
+
 ## Concurrent nested builds share one storage lock — time builds alone (William Emerison Six <billsix@gmail.com>, 2026-11-08)
 
 Several `podman build`s can run at once in the sandbox, but committing a layer takes the store's lock, and

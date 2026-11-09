@@ -97,6 +97,10 @@ surprised?* If yes, it is breaking — flag it as such.
   catches an unlogged *release*, not an unlogged change — the reconciliation does that. **On release**, rename
   `[Unreleased]` to `## [version] — date` and open a fresh empty `[Unreleased]`. The version
   bump, the changelog promotion, and the tag belong to the **same** release commit.
+  **Never promote ahead of the release.** A promoted heading with no tag or registry release
+  is a version that never shipped; undoing it means folding the section back into
+  `[Unreleased]` and setting the version back to the last one actually released, so the
+  version↔changelog check still passes (gacalc's unreleased `0.1.0`, folded back (William Emerison Six <billsix@gmail.com>, 2026-11-09)).
 - **Retro-filling a project that never had one:** create the file, document *at least* the
   recent releases a consumer would actually hit (verify which version each change shipped in
   against the tags — don't guess), and say plainly that history before some cutoff predates the

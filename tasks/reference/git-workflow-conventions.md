@@ -68,4 +68,10 @@ mistake, move them without a hard reset: `git switch -c <new-branch>` then
 commits: `git merge-base --is-ancestor <sha> master`. (2026-11-08: the done-record and archive commits
 landed on spimulator's `master` after I had merged its branch; moved as above.)
 
+**When the gate is slow (an image rebuild, a long Lean build), defer it** (William Emerison Six <billsix@gmail.com>, 2026-11-09): quick-save
+each task's work by path with "gate pending" in the message, keep the tasks' files separate so each
+commit stays one unit, run every gate once, fix what fails, and only then write each task's
+done-record (stating its gate result) and archive it. The per-task commit boundaries survive; only
+the gate runs once instead of per task.
+
 Each commit gets a clear, specific message — they are the play-by-play I read. The done-record *rewrite* of the docs (step 3) happens every batch, at archive time, regardless of whether a squash follows; the squash itself (collapsing the quick-saves to one-commit-per-task) stays a step I ask for explicitly. The stage-only default still governs — this whole workflow runs only for a batch I've explicitly told you to commit.
