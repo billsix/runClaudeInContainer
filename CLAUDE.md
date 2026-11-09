@@ -54,7 +54,9 @@ Besides docs, `tasks/reference/` also holds a few **SHARED, VENDORED tool script
 (the source-dep re-vendor helper; pattern in `tasks/reference/vendoring-third-party-source-deps.md`).
 Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
-(runCrush mirrors both byte-identically).
+(runCrush mirrors both byte-identically). `review_status.py` is a third shared tool, but it is
+**run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
+`/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too.
 
 **Auth persistence needs TWO host mounts**, because Claude Code splits its auth state:
 `~/.claude/.credentials.json` (OAuth tokens, covered by the `~/.claude` mount,
