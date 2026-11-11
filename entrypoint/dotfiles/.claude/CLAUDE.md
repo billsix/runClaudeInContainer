@@ -541,6 +541,13 @@ archive: **one-shot → `git rm`** (in the archive commit, after the work commit
 deletion); **reusable → promote to `tools/`** (light cleanup + docstring, note it in a reference
 doc, propose but don't auto-wire a gate). Put a `.keep` in every convention dir.
 
+**An ad-hoc script is held to its language's coding standard — read that standard BEFORE writing
+it.** "Throwaway" says where the script lives, not how it is written: a Python one follows
+`~/.claude/reference/python-coding-standard.md` (annotate every binding, parameterized generics,
+Google docstrings, `match` + `case _`), and C/C++/Rust/JS/shell scripts follow theirs (the docs in
+"Reference docs" below; shell: `shell-and-gate-scripts.md`). (Incident 2026-11-11: two spimulator
+`tasks/adhoc/` scans written without opening the Python standard, so most bindings were unannotated.)
+
 **Bulk op (find-many → fix-each)? Discover with a shell tool, don't tree-walk in Python** — one
 `rg -n` / `git grep -n` returns just the matches instead of the model reading every file
 front-to-back. Log them to `tasks/adhoc/<slug>/data/` (a committed *snapshot* worklog, `git rm`'d
@@ -555,7 +562,8 @@ Full detail + incidents: `~/.claude/reference/task-doc-conventions.md`; bulk-op 
 
 ## Choosing a script's language — shell for glue, Python for logic
 
-When you write an ad-hoc script or a `tools/` tool, **default to shell when the job is to DRIVE
+When you write an ad-hoc script or a `tools/` tool (then read the chosen language's coding
+standard before writing it — see "Ad-hoc scripts"), **default to shell when the job is to DRIVE
 programs** (spawn/pipe/redirect, sequence `git`/`make`/`podman`/compiler calls, move files,
 env+`exec`); **reach for Python the moment it does DATA/CONTROL logic shell expresses awkwardly** —
 the test is the work, not the length. Tells it should be Python (any one): `declare -A` maps/sets;
@@ -882,7 +890,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 
 - **`~/.claude/reference/llm-overused-phrases.md`** — read for the ~15 alternatives / the rationale on
   a specific offender. (The distilled list is inline in "Words and phrases you overuse".)
-- **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python, for
+- **`~/.claude/reference/python-coding-standard.md`** — read **before** writing/reviewing Python
+  (including a throwaway `tasks/adhoc/` script or a `tools/` tool), for
   the ruff tiers and the naming/idiom judgment calls ruff can't check (incl. the Google/napoleon
   docstring standard).
 - **`~/.claude/reference/cpp-coding-standard.md`** — read **before** writing/reviewing C++, for the

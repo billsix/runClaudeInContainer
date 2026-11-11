@@ -18,6 +18,11 @@ Python the moment the script's job is *data or control logic that shell expresse
 awkwardly*. The test is not length — a 200-line pipeline of real tools is fine shell; a
 40-line script doing graph traversal is not.
 
+Once the language is chosen, **read its coding standard before writing the script** — an
+ad-hoc or `tools/` script is held to the same standard as product code
+(`python-coding-standard.md` for Python, `shell-and-gate-scripts.md` for shell; the rationale and
+the 2026-11-11 incident are in `task-doc-conventions.md`, "Ad-hoc scripts").
+
 ### Tells that a script should be Python (any ONE is enough)
 
 - **Associative arrays / `declare -A`** used as maps or sets.
