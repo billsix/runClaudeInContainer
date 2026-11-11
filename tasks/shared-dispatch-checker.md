@@ -1,51 +1,52 @@
 # A shared, vendored checker for the C standard's dispatch rules
 
-**Status:** in progress (branch `shared-dispatch-checker`, stacked on `c-dispatch-rules`)
-**Priority:** 4
-**Difficulty:** 3
 **Created:** 2026-11-11 (William Emerison Six <billsix@gmail.com>)
+**Completed:** 2026-11-11
+**Branch:** `shared-dispatch-checker`, stacked on `c-dispatch-rules`
 
-## BLUF
+## Outcome
 
-Add `tasks/reference/c_dispatch_check.py`, a SHARED, VENDORED tool (like `check_local_annotations.py`)
-that reads clang's JSON AST and lists the C sites the `c-coding-standard.md` "Dispatch" rules flag.
-Those are a one-value chain that should be a `switch`, a chain with no final `else`, a run of
-early-exit `if`s, and a `switch` with no `default`. It must work in any C project, not just
-spimulator. Done means:
-- the tool is in this repo with its banner, mirrored byte-identically in runCrushInContainer;
-- it reproduces spimulator's results;
-- it runs on a second C project;
-- the docs that list the shared tools name it.
+`tasks/reference/c_dispatch_check.py` is a SHARED, VENDORED tool, mirrored byte-identically in
+runCrushInContainer `tasks/reference/`. It reads clang's JSON AST through a build's
+`compile_commands.json` and lists the sites that `c-coding-standard.md`'s "Dispatch" rules flag:
+`switch-chain`, `no-else`, `guard-run` and `no-default`. Run it from a project's root as
+`python3 tools/c_dispatch_check.py BUILDDIR [SOURCE ...] [--noreturn NAME ...] [--out OUTDIR]`.
+A `dispatch-check: ok` comment, with the reason, accepts a site. The exit status is 0 when clean,
+1 when something is flagged, and 2 on a parse failure or when no source matches.
 
-## Context
+The C standard's Dispatch section and both repos' `CLAUDE.md` shared-tools paragraphs name it.
 
-- **Where it comes from:** github.com/billsix/spimulator `tools/dispatch_candidates.py`, written for
-  that repo's `tasks/archive/2026/11/11/c-switch-and-else-if-chains.md`. It hardcodes `src/*.c` and
-  the repository layout, and has no way to accept a site.
-- **What changes for the shared version:**
-  - The sources are an argument, as directories or files relative to the working directory, which
-    is the project root.
-  - A site can be accepted in the source: a `dispatch-check: ok` comment, with the reason, on the
-    line of the flagged `if`/`switch` or the line before. A clean project then runs it as a gate.
-  - The exit status is 1 if anything is flagged.
-  - More no-return functions can be named on the command line, for a project whose fatal-error
-    function isn't marked `[[noreturn]]`.
-- **The tricky part is clang's JSON locations.** A location omits its `file` and `line` when they
-  equal the previous one printed, so the tool must follow them in printing order. Paths are
-  relative to the compile command's directory.
-- **Mirrors:** runCrushInContainer `tasks/reference/c_dispatch_check.py`. The baked Crush client set
-  carries only docs and `review_status.py`, which runs in place; vendored tools are copied into
-  projects, so the client set doesn't need this one.
-- Read first: `tasks/reference/c-coding-standard.md` ("Dispatch"), `tasks/reference/python-coding-standard.md`
-  (the tool is Python), and `tasks/reference/check_local_annotations.py` (the banner and shape).
+## How it differs from its source
 
-## Plan
+It was generalized from github.com/billsix/spimulator `tools/dispatch_candidates.py`, which
+hardcodes `src/*.c`. The shared version:
+- takes the sources as arguments, relative to the working directory, and errors when they match
+  nothing;
+- honours the accept marker;
+- takes `--noreturn` for unmarked fatal functions;
+- accepts compile entries in `command` or `arguments` form, with joined or split
+  `-I`/`-D`/`-U`/`-isystem`/`-iquote`/`-include`;
+- reports a file clang can't parse and goes on.
 
-1. Write the tool from the spimulator one with the changes above. Check it with ruff, ty and the
-   annotation checker.
-2. Verify against spimulator: on its current branch, it should flag only `run_spim`'s fetch chain.
-   On a master checkout from before the dispatch work, its counts should match the spimulator
-   tool's. Then test the accept marker on a scratch copy.
-3. Run it on a second C project, to prove nothing spimulator-specific remains.
-4. Docs: this repo's `CLAUDE.md` shared-tools paragraph, and the C standard's Dispatch section.
-5. Mirror into runCrushInContainer (its own task doc), done-record, archive.
+The Crush client's baked reference set doesn't get it: vendored tools are copied into projects,
+not read in place.
+
+## Verification
+
+- ruff, ty and `check_local_annotations.py` are clean.
+- **spimulator:** at `7e2eb03`, before its dispatch work, the two tools agree on all 88 flagged
+  sites (10 switch-chain, 37 no-else, 20 guard-run, 21 no-default). At master both report the single
+  accepted-by-design site. With a `dispatch-check: ok` comment added to a scratch copy, that site
+  shows as accepted and the exit status is 0. A single-file source filter checks one unit.
+- **A synthetic compile database** exercises the `arguments` form with split flags, the `command`
+  form, a file that doesn't parse (exit 2, with the others still checked), and an empty match
+  (exit 2).
+- **github.com/billsix/Craft `src/`** (configured into a scratch build; its tree untouched): all 13
+  translation units parse, and 18 sites are flagged. Both spot-checked findings, a guard run in
+  `client_send` and an open chain in `map_set`, are real.
+
+## Follow-ups
+
+- spimulator still runs its own `tools/dispatch_candidates.py`. To switch it to the shared tool,
+  vendor `c_dispatch_check.py` into its `tools/`, add the accept marker to `run_spim`'s fetch chain,
+  and point its `CLAUDE.md` at the new command. That is a spimulator change, so it isn't done here.
