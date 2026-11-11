@@ -904,7 +904,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/c-coding-standard.md`** — read **before** writing/reviewing C, for the
   clang-format/clang-tidy/warning+sanitizer tiers and the judgment calls they can't check
   (fixed-width types, manual ownership / free-once, `snprintf`-not-`strncpy` buffers, undefined
-  behavior / strict aliasing, language-over-macro, the C23 `nullptr`/attributes/`_Generic` set).
+  behavior / strict aliasing, language-over-macro, the C23 `nullptr`/attributes/`_Generic` set,
+  dispatch: a `switch` with a `default` plus `-Wswitch-enum`, one `else if` chain per decision).
 - **`~/.claude/reference/rust-coding-standard.md`** — read **before** writing/reviewing Rust, for the
   rustfmt/clippy/compiler-lint tiers and the judgment calls they can't check (the std method/getter
   vocabulary, derives + standard traits, `#[non_exhaustive]`/`#[must_use]`, generics-over-`dyn` and
