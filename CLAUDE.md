@@ -50,11 +50,12 @@ conventions/commands in `entrypoint/dotfiles/.claude/` and reference docs in
 `tasks/reference/` — both flow back to git.
 
 Besides docs, `tasks/reference/` also holds a few **SHARED, VENDORED tool scripts** — currently
-`check_local_annotations.py` (the Python annotate-every-binding gate) and `update_dep_common.sh`
-(the source-dep re-vendor helper; pattern in `tasks/reference/vendoring-third-party-source-deps.md`).
+`check_local_annotations.py` (the Python annotate-every-binding gate), `c_dispatch_check.py` (the C
+dispatch-rules checker, `c-coding-standard.md` "Dispatch") and `update_dep_common.sh` (the source-dep
+re-vendor helper; pattern in `tasks/reference/vendoring-third-party-source-deps.md`).
 Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
-(runCrush mirrors both byte-identically). `review_status.py` is a third shared tool, but it is
+(runCrush mirrors all three byte-identically). `review_status.py` is another shared tool, but it is
 **run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
 `/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too.
 
