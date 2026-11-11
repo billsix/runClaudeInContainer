@@ -150,6 +150,7 @@ dnf install -y \
     gtk4-devel \
     gzip \
     heaptrack \
+    hlint \
     htop \
     httpie \
     hyperfine \
@@ -293,6 +294,7 @@ dnf install -y \
     openssl-devel \
     opus-devel \
     opusfile-devel \
+    ormolu \
     p7zip \
     PackageKit-gtk3-module \
     pandoc \
