@@ -239,8 +239,12 @@ checker / type system / default lints settle at compile time what are style deba
 tier (b) is mostly API shape and which tool to reach for: the std method/getter vocabulary,
 derive-and-implement-the-standard-trait, `#[non_exhaustive]`/`#[must_use]`, borrow-over-clone and the
 `Option`/`Result`/`panic!` split, `unsafe` isolation with `// SAFETY:`, and the `thiserror`(lib) /
-`anyhow`(app) error strategy (sourced from Google's Rust style guide). The
-language-agnostic conventions in this file apply to all four languages too; a project keeps only its
+`anyhow`(app) error strategy (sourced from Google's Rust style guide). For **Haskell** there is
+**`~/.claude/reference/haskell-coding-standard.md`** — `-Wall -Werror` (+ `hlint`/`ormolu`) as tier (a),
+and as tier (b) the annotate-every-binding rule in Haskell's forms (do-binds, `let`/`where`, the exempt
+pattern variables, `forall` for outer type variables, concrete-over-polymorphic locals), totality, ADTs
+for options, explicit/qualified imports and strictness. The
+language-agnostic conventions in this file apply to all five languages too; a project keeps only its
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
@@ -908,6 +912,11 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   isolation, the `thiserror`/`anyhow` error strategy). Primarily from Google's Rust style guide — and it
   records where the **house style deliberately OVERRIDES** that guide (e.g. "annotate every binding",
   stronger than Google's inference default), so a reviewer sees the deviations, not just the baseline.
+- **`~/.claude/reference/haskell-coding-standard.md`** — read **before** writing/reviewing Haskell
+  (including a throwaway `tasks/adhoc/` program or a `tools/` tool), for the `-Wall -Werror`/`hlint`/`ormolu`
+  tier and the judgment calls: a type on every do-bind and `let`/`where` binding (pattern variables
+  exempt), `forall` for outer type variables, concrete types for single-use locals, totality, ADTs over
+  strings, and how to enforce the typing with a `.hie`-file checker.
 - **`~/.claude/reference/javascript-coding-standard.md`** — read **before** writing/reviewing vanilla
   JavaScript, for JSDoc type annotations on **every binding** (the Python-style "annotate everything" rule
   via JSDoc), the `checkJs` strict type-gate, and the `make type-check` target. **Deno is the default gate**
