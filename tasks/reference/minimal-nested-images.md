@@ -13,7 +13,7 @@ Six <billsix@gmail.com> asked for the standard).
 > things changed that: (1) `NESTED_PODMAN` overloaded one variable with two unrelated jobs — run-time
 > nested capability *and* build-time image content — which caused a real bug (the runCrush client
 > silently built minimal; reverted 2026-09-12); and (2) the nested inner store moved to disk
-> (`tasks/dir-backed-nested-podman-storage.md`, 2026-09-27), so a full image now fits nested and lean
+> (`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`, 2026-09-27), so a full image now fits nested and lean
 > is no longer a necessity there. So image content keys off a dedicated **`MINIMAL_IMAGE`** flag, which
 > the sandbox does **not** auto-export: a nested `make image` builds FULL unless the user passes
 > `MINIMAL_IMAGE=1` (for a small export/airgap image). `NESTED_PODMAN` keeps ONLY its
@@ -34,7 +34,7 @@ When this was written the nested podman store was RAM (`NESTED_PODMAN_TMPFS_SIZE
 batteries-included downstream image (a TeX distribution plus Emacs plus Jupyter) could not be built
 nested at all — image-level verification of a project's build-file changes needed a real-machine visit.
 The original standard therefore built lean *automatically* when nested. Since 2026-09-27 the inner store
-defaults to an on-disk dir (`tasks/dir-backed-nested-podman-storage.md`), removing that size ceiling: a
+defaults to an on-disk dir (`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`), removing that size ceiling: a
 full image builds nested fine. So the reason to build lean is no longer "it won't fit nested" but
 **export size / airgap** — a smaller image to `make image-export` or ship. That is a deliberate choice,
 so it is an opt-in flag (`MINIMAL_IMAGE=1`), not inferred from being nested. (History: the

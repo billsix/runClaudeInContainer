@@ -44,10 +44,10 @@ containers from inside that sandbox. The disk-dir + reuse machinery is **only** 
 2. `RUN --mount=type=cache …; dnf upgrade -y` — the dnf cache is a **build-time cache mount**,
    discarded after the build (it is *not* a layer, not in the image).
 3. `COPY entrypoint/dotfiles/ /root/` — dotfiles, incl. `.config/containers/storage.conf`.
-4. `COPY entrypoint/dotfiles/.config/containers/storage.conf /etc/containers/storage.conf` — the
-   *same* store config, delivered to the rootful path the **nested** podman reads (see Level 2 and
-   `tasks/dir-backed-nested-podman-storage.md`; this line was added 2026-09-27 and needs a rebuild
-   to take effect).
+4. `COPY entrypoint/dotfiles/.config/containers/storage.conf` to `/etc/containers/storage.conf` and
+   again to `/etc/containers/storage.conf.d/50-runclaude-nested.conf`. This is the *same* store
+   config: the drop-in copy is the one that survives containers-common's vendor drop-in (see
+   Level 2 (b)).
 5. `RUN /usr/local/bin/01-install-base.sh` — the ~430-package toolchain (a host-runnable script
    the Dockerfile sources, not an inline `dnf install`).
 6. `RUN curl …/install.sh | bash` + `claude update` — install Claude Code.
@@ -94,7 +94,7 @@ top of that is **overlay-on-overlay under a nested user namespace, which the ker
 tmpfs is a *real* (non-overlay) filesystem, which is the historical reason the store was a tmpfs. A
 **host directory on the real disk fs (ext4/xfs/btrfs), bind-mounted in, is equally a real fs** — so
 it sidesteps the overlay-on-overlay problem exactly like tmpfs did, but with no RAM ceiling. That
-is the whole point of the 2026-09-27 change (`tasks/dir-backed-nested-podman-storage.md`): big
+is the whole point of the 2026-09-27 change (`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`): big
 inner builds used to OOM/`no space left` in the RAM tmpfs at layer-commit.
 
 Opt back into the RAM store with `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs` (sized by
@@ -111,13 +111,14 @@ host's already-built images (e.g. a `fedora:44` base, or `claudecontainer` itsel
 lower layers**, without copying them. The writable container/layer still goes to the temp dir in
 (a). This is why "base image from the host, own layers elsewhere" is the accurate description.
 
-**Rootful gotcha (fixed 2026-09-27, needs a rebuild):** the inner podman runs **rootful** (uid 0
-inside the userns), so it reads `/etc/containers/storage.conf`, **not** the rootless
-`~/.config/containers/storage.conf`. Delivering `storage.conf` only to the rootless path left
-`additionalimagestores` silently ignored (empty `podman images`, effective store fell back to the
-default `/usr/lib/containers/storage`). The Dockerfile now also `COPY`s it to `/etc/containers/` —
-this takes effect after the next `make image`. Detail + verification log:
-`tasks/dir-backed-nested-podman-storage.md`.
+**Gotcha: a vendor drop-in overrides the main file.** containers-common's
+`/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` sets `additionalimagestores`.
+Drop-ins load after the main `storage.conf`, so the vendor file silently replaces our setting: an
+empty `podman images`, with the effective store back at `/usr/lib/containers/storage`. The
+Dockerfile therefore also installs our file as the drop-in
+`/etc/containers/storage.conf.d/50-runclaude-nested.conf`, which sorts after the vendor's.
+`entrypoint/shell.sh` warns when the store is mounted but unused. Detail:
+`tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
 
 ### (c) A tmpfs over the host runtime dir's `libpod` state
 
@@ -137,7 +138,7 @@ This is runtime state, not image storage.
 
 ## See also
 
-- `tasks/dir-backed-nested-podman-storage.md` — the disk-store change, the rootful-config fix, and
+- `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md` — the disk-store change, the rootful-config fix, and
   the host/in-session verification.
 - `tasks/reference/nested-podman-design.md` — every nested flag and why it exists (fuse-overlayfs,
   `--cgroups=disabled`, netavark/`net_admin`, the `libpod` tmpfs), plus the store-backend section.

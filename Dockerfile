@@ -7,14 +7,18 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 
 COPY entrypoint/dotfiles/ /root/
 
-# The nested podman runs ROOTFUL (uid 0 inside a userns), so it reads the store config from
-# /etc/containers/storage.conf, NOT the rootless ~/.config/containers/ path the dotfiles COPY
-# above delivers. Ship the same storage.conf there too, or additionalimagestores (host image
-# reuse) and mount_program=fuse-overlayfs are silently ignored. Verified 2026-09-27: with the
-# file only at the rootless path, `podman images` was empty and the effective additional store
-# was the default /usr/lib/containers/storage; with it here, host-built images are reused R/O.
-# See runClaudeInContainer tasks/dir-backed-nested-podman-storage.md.
+# Store config for the nested podman (fuse-overlayfs, plus the read-only host image store at
+# /var/lib/shared-images). podman loads ONE main storage.conf, the highest-precedence one that
+# exists (~/.config, then /etc, then /usr/share), and then every storage.conf.d/ and
+# storage.rootful.conf.d/ drop-in, sorted by file name, each overriding what came before.
+# containers-common ships /usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf,
+# which sets additionalimagestores to /usr/lib/containers/storage, so a main file alone loses
+# the host store. The same file is therefore also installed as a drop-in whose name sorts after
+# the vendor's. The /etc main-file copy serves an older podman without the vendor drop-in.
+# Detail: tasks/reference/nested-podman-design.md ("Which storage config the nested podman reads").
 COPY entrypoint/dotfiles/.config/containers/storage.conf /etc/containers/storage.conf
+COPY entrypoint/dotfiles/.config/containers/storage.conf \
+     /etc/containers/storage.conf.d/50-runclaude-nested.conf
 
 # The vendored ~/.emacs.d/ tree is the maintainer's personal Emacs setup. Opt-out:
 # ARG defaults 0 (a bare `podman build` is a clean box), and `make image` passes 1.

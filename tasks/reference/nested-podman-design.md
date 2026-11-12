@@ -223,7 +223,7 @@ convention:
 
 ## Store backend: disk directory is now the default (2026-09-27, verified in-session)
 
-`tasks/dir-backed-nested-podman-storage.md` swapped the RAM tmpfs for an **ephemeral on-disk
+`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md` swapped the RAM tmpfs for an **ephemeral on-disk
 directory** as the default inner store (`NESTED_PODMAN_STORE=dir`), plus a read-only
 `additionalimagestores` mount of the host image store for reuse — motivated by large inner images
 overflowing the RAM store (a ~6 GB TeX Live image overflowing a 16g tmpfs; a 22.3 GB client image
@@ -235,17 +235,55 @@ below now describe the **opt-in** `NESTED_PODMAN_STORE=tmpfs` mode.
 below — host-built images are reused read-only and a `FROM localhost/smc:latest` build committed a
 layer without pulling.
 
-**The nested podman is ROOTFUL, so store config must live at `/etc/containers/storage.conf`.**
-`podman info` reports `rootless=false` with graphroot `/var/lib/containers/storage`; rootful podman
-reads `/etc/containers/storage.conf`, **not** the rootless `~/.config/containers/storage.conf`. The
-dotfiles delivered `storage.conf` only to the rootless path, so `additionalimagestores` (and
-`mount_program=fuse-overlayfs`) were silently ignored — `podman images` was empty and the effective
-additional store was the default `/usr/lib/containers/storage`. **Fix:** each Dockerfile now
-`COPY`s `entrypoint/dotfiles/.config/containers/storage.conf` to `/etc/containers/storage.conf`.
-(This is the general rule for rootful-in-userns nested podman: rootless config paths do not apply.)
+**Which storage config the nested podman reads.** The nested podman is rootful (`podman info`
+reports `rootless=false`, graphroot `/var/lib/containers/storage`). Its storage config loads as
+containers-config(5) describes
+(github.com/containers/container-libs `common/docs/containers-config.5.md`, "Load Order"):
 
-**Confirmed live after the rebuild (2026-09-27, `runClaudeInContainer`).** The maintainer rebuilt
-and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
+1. **One main file**, the highest-precedence `storage.conf` that exists: `~/.config/containers/`, then
+   `/etc/containers/`, then `/usr/share/containers/`. "Only one main file … will be loaded."
+2. **Then every drop-in** from the `storage.conf.d/` and `storage.rootful.conf.d/` directories under
+   `/usr/share/containers/` and `/etc/containers/` (and `~/.config/containers/storage.conf.d/`), sorted by
+   **file name**, each file overriding settings from earlier ones.
+
+containers-common 0.69 (Fedora 45, with podman 6.1.3) ships
+`/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf`, which sets
+`additionalimagestores = ["/usr/lib/containers/storage"]` (and `overlay.mountopt`). Because drop-ins
+apply after the main file, that vendor drop-in **replaces** the `additionalimagestores` our main
+file sets, and the host store at `/var/lib/shared-images` is silently ignored. `podman images` then
+shows only images built inside the sandbox, and every nested build starts from scratch. The
+`mount_program` setting survives, since the vendor file doesn't set it.
+
+**Fix (2026-11-12):** each Dockerfile installs the same `storage.conf` a second time, as a drop-in
+named to sort after the vendor's: `/etc/containers/storage.conf.d/50-runclaude-nested.conf` here,
+`50-crush-nested.conf` in the runCrushInContainer client. The `/etc/containers/storage.conf` copy
+stays for an older podman without the vendor drop-in. `entrypoint/shell.sh` warns at interactive start
+when `/var/lib/shared-images` is mounted but missing from
+`podman info --format '{{json .Store.GraphOptions.additionalImageStores}}'`, so the next silent
+override is visible.
+
+**The host store also serves as build cache (verified 2026-11-12).** A nested `make image` of a
+project the host already built reuses the host's layers: github.com/billsix/spimulator hit the cache
+on 42 of 43 steps. That holds only when `FROM` resolves to the same base image the host used. A newer
+base pulled into the inner store (for example `fedora:45`, which then appears twice in
+`podman images`, once with R/O false) shadows the host's and misses every step; untag the inner copy
+to restore the hits.
+
+Diagnosis, 2026-11-12. `strace -e trace=openat podman info` showed the files podman opened:
+`/root/.config/containers/storage.conf` as the main file (it shadows `/etc`'s copy), then the
+`/usr/share` vendor drop-ins. Installing the drop-in by hand restored the store: 85 read-only host
+images were listed, and a `FROM localhost/claudecontainer:latest` build used `/var/lib/shared-images`
+layers as its lower dirs, with no pull. `CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf` also
+restores it, by bypassing the search. It was rejected as the fix because it replaces the whole
+config search and has to reach every subprocess.
+
+**History.** Before 2026-09-27 the file was delivered only to the rootless path. At the time that
+looked like the cause of the empty `podman images`, and copying it to `/etc/containers/storage.conf`
+fixed it. Under containers-common 0.69 the vendor drop-in breaks it again whichever main file is
+used.
+
+**Confirmed live after the rebuild (2026-09-27, `runClaudeInContainer`, before containers-common
+0.69).** The maintainer rebuilt and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
 `overlay.additionalImageStores` and `overlay.imagestore` both resolve to `/var/lib/shared-images`,
 `mount_program` is `fuse-overlayfs`, and `podman images` lists the host-built images (`smc`,
 `claudecontainer`, `crushcontainer`, `gacalc`, osbooks bundles, …) as **read-only** — a

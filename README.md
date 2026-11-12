@@ -229,6 +229,26 @@ podman run --rm -it --network=host --cgroups=disabled -v "$(pwd)":/workspace:Z u
 For a deeper smoke test you can even build this repo's own image from within the
 sandbox: `podman build -t selftest .`.
 
+#### Reusing images built on the host
+
+A `NESTED_PODMAN=1` launch mounts your host's podman image store read-only, so a nested
+`make image` reuses images you already built on the host instead of pulling or rebuilding them.
+
+```sh
+# [HOST] the default store; point it elsewhere, or set it empty to turn reuse off
+make shell NESTED_PODMAN=1 NESTED_PODMAN_HOST_IMAGESTORE=$HOME/.local/share/containers/storage
+# [CONTAINER] host images are listed with R/O true
+podman images --format '{{.Repository}}:{{.Tag}} R/O {{.ReadOnly}}'
+```
+
+> A nested build reuses the host's layers as cache only when its `FROM` resolves to the same base
+> image the host used. If `podman images` lists a base such as `fedora:45` twice, the copy with
+> R/O false was pulled inside and shadows the host's: `podman untag` it.
+>
+> If the shell prints a `[nested podman]` warning at start, the store is mounted but
+> podman is not using it. Rebuild the image (`make image`); the cause and fix are in
+> `tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
+
 > **Note:** you must launch with `NESTED_PODMAN=1`. A plain `make shell` won't have
 > `/dev/fuse` or the capabilities, and `podman run` will fail. The `NESTED_PODMAN=1`
 > flag set is also what shadows the host's bind-mounted `$XDG_RUNTIME_DIR/libpod`;

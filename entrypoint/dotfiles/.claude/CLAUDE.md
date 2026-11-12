@@ -797,9 +797,11 @@ gate passed** (`make image`/`test`/`dist` — whatever its CLAUDE.md names), not
 build. **Flag coverage is part of the gate:** trimming a feature flag to speed it up is legitimate
 only when the diff can't affect the trimmed paths — if the change touches an input a flag-gated
 feature consumes, that flag must be ON. **Before ending a session, run one gate with the repo's
-default flags** (or say which flag-gated paths went unexercised). **Gotcha (2026-10-04): a gate target
-declared `: image` re-runs the whole `podman build` when nested** (the host image is only a read-only
-base, not build cache) — run the gate's own `podman run` line against the existing image instead.
+default flags** (or say which flag-gated paths went unexercised). **Gotcha (2026-10-04; cause revised 2026-11-12): a gate
+target declared `: image` can re-run the whole `podman build` when nested.** Host-built layers do serve
+as build cache through the read-only host store, but only while that store is in use and the `FROM`
+resolves to the same base image the host built from; a newer base pulled inside the sandbox shadows
+it and misses every step. Run the gate's own `podman run` line against the existing image instead.
 Incident + detail: `~/.claude/reference/nested-run-and-gates.md`.
 
 ## A multi-step check script must propagate every step's failure

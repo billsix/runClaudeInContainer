@@ -131,12 +131,16 @@ label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a tmpfs
 > relocatable per launch, e.g. to an HDD to spare an SSD — and `rm`'d on exit via an
 > `EXIT INT TERM HUP` trap) with the host image store mounted read-only for reuse
 > (`additionalimagestores`). The RAM tmpfs below is now **opt-in** via `NESTED_PODMAN_STORE=tmpfs`.
-> **The nested podman runs rootful, so `storage.conf` must live at `/etc/containers/storage.conf`**
-> (the Dockerfile now `COPY`s it there) — delivering it only to the rootless `~/.config/containers/`
-> path left `additionalimagestores` silently ignored. After a `make image` rebuild + relaunch, the
+> **The store config must be installed as a drop-in, not only as a main `storage.conf`.**
+> podman loads one main file, then every drop-in, and containers-common's
+> `/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` resets
+> `additionalimagestores`. The Dockerfile therefore also installs our file as
+> `/etc/containers/storage.conf.d/50-runclaude-nested.conf`, and `entrypoint/shell.sh` warns when the
+> mounted host store is not in use. Detail: `tasks/reference/nested-podman-design.md` ("Which storage
+> config the nested podman reads"). After a `make image` rebuild + relaunch, the
 > whole chain was confirmed from inside: store is btrfs-on-disk, host-built images list read-only,
 > and a `FROM` a host image builds without pulling. Details + verification log:
-> `tasks/dir-backed-nested-podman-storage.md`. **runCrush ships the identical design and was verified
+> `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`. **runCrush ships the identical design and was verified
 > in-session 2026-09-27 too** (ext4 disk store, images reused read-only, a `FROM` host-image build
 > with no pull, and a forced ~20 GB layer committed with no `no space left on device`). The paragraph
 > below still describes the tmpfs mode.

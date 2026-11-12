@@ -22,6 +22,24 @@ if [ "$#" -eq 0 ] && [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_API_K
     printf '  `make shell` passes it through automatically. See README.md ("Auth").\n\n'
 fi
 
+# Nested podman: warn when the host image store is mounted (NESTED_PODMAN=1 and
+# NESTED_PODMAN_HOST_IMAGESTORE) but podman does not list it as an additional image store.
+# Then nested builds silently rebuild from scratch instead of reusing host images; the
+# usual cause is a vendor storage drop-in overriding ours (~/.claude/reference/nested-podman-design.md,
+# "Which storage config the nested podman reads"). Interactive only, and bounded by a timeout
+# so a held store lock can't stall the shell.
+if [ "$#" -eq 0 ] && [ -d /var/lib/shared-images/overlay-images ] && command -v podman >/dev/null; then
+    stores=$(timeout 10 podman info --format '{{json .Store.GraphOptions.additionalImageStores}}' 2>/dev/null || true)
+    case "$stores" in
+        *'"/var/lib/shared-images"'*) ;;
+        *)
+            printf '\n\033[33m[nested podman]\033[0m The host image store is mounted at /var/lib/shared-images,\n'
+            printf '  but podman is not using it (additional stores: %s).\n' "${stores:-unknown}"
+            printf '  Nested builds will not reuse host images. See ~/.claude/reference/nested-podman-design.md.\n\n'
+            ;;
+    esac
+fi
+
 # No args -> interactive shell (identical to before). Args (a `-c '...'` payload
 # from `make shell-exec`) -> run them after setup, in a fresh bash not under -e.
 exec bash "$@"

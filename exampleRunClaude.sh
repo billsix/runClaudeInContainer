@@ -5,6 +5,12 @@
 # replace them with its own (see FORKING.md). Everything else is generic:
 #   NESTED_PODMAN=1            run podman inside the sandbox (see README)
 #   NESTED_PODMAN_TMPFS_SIZE   RAM-backed inner image store size
+#   NESTED_PODMAN_STORE_BASE   disk directory for the throwaway inner image store
+#   NESTED_PODMAN_HOST_IMAGESTORE
+#                              the host's podman image store, mounted read-only so nested
+#                              builds reuse images already built on the host (no re-pull, no
+#                              rebuild). The value below is the default, shown so a fork sees
+#                              the knob; set it empty to turn reuse off.
 #   USE_CONTROLLER=1           pass host gamepads through
 #
 # EXTRA_PODMAN_FLAGS is passed straight into `podman run`: host:container bind mounts
@@ -17,4 +23,4 @@
 #                                 tasks/reference/nested-run-and-gates.md.
 
 #make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage NESTED_PODMAN_HOST_IMAGESTORE="$HOME/.local/share/containers/storage" EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
