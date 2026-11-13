@@ -89,9 +89,21 @@ the imps harness (`tasks/reference/imps/headless-gui-port-testing.md` there has 
 ## A gate target that depends on `image` rebuilds the image when run nested (2026-10-04)
 
 Observed in geometricalgebra: `make lean` is declared `lean: image`, so a nested `make lean` ran the whole
-`podman build` (a 16 GB Mathlib image) for 19 minutes before I noticed — the host-built image is offered to
-the inner podman only as a read-only base/additional store, not as build cache, so `podman build` starts
-over. On the host the same prerequisite is a no-op. **Nested, run the gate's own `podman run` line directly
+`podman build` (a 16 GB Mathlib image) for 19 minutes before I noticed. On the host the same prerequisite is a
+no-op.
+
+**Cause, revised 2026-11-12.** The host store's layers *do* serve as build cache. A nested `make image`
+of github.com/billsix/spimulator, whose image the host had built the day before, hit the cache on
+42 of 43 steps and finished in seconds. Two things defeat that cache:
+- **The store being ignored.** containers-common 0.69's vendor drop-in did this (see
+  `tasks/reference/nested-podman-design.md`, "Which storage config the nested podman reads"); the
+  `entrypoint/shell.sh` warning now flags it.
+- **A shadowing base image.** If the sandbox's own store holds a newer `fedora:45` (pulled by an
+  earlier nested build), `FROM registry.fedoraproject.org/fedora:45` resolves to it, not to the
+  host's, so every step misses. `podman images` shows the name twice, once with R/O false. Untagging
+  the inner copy (`podman untag <inner-id> registry.fedoraproject.org/fedora:45`) restores the hits.
+
+So the advice below still holds whenever either condition might apply. **Nested, run the gate's own `podman run` line directly
 against the existing image** (`podman images` lists it read-only), e.g.
 `podman run --cgroups=disabled --rm -v $PWD:/<proj>:Z --entrypoint /bin/bash localhost/<image> /<proj>/<gate>.sh`,
 or only accept the rebuild when the image genuinely changed. Check `ps` for a `podman build` before

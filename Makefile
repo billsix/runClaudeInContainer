@@ -40,7 +40,7 @@ NESTED_PODMAN ?= 0
 # Why a *dir* works where the sandbox's own rootfs does not: overlay-on-overlay under a
 # nested userns is kernel-rejected, but a dir on the host's real fs (like the tmpfs) is
 # not overlay, so fuse-overlayfs runs on it. One sandbox per store dir at a time.
-# Design + host-verification checklist: tasks/dir-backed-nested-podman-storage.md.
+# Design + host-verification checklist: tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md.
 NESTED_PODMAN_STORE ?= dir
 NESTED_PODMAN_STORE_BASE ?= $(HOME)/.cache
 NESTED_PODMAN_TMPFS_SIZE ?= 8g
