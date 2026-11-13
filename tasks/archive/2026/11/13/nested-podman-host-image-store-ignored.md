@@ -35,6 +35,44 @@ it the Lean/Mathlib layer.
   were updated. The last now names the two real causes of a missed host build cache: the store being
   ignored, and an inner base image (such as `fedora:45`) shadowing the host's copy.
 
+## History
+
+All on 2026-11-12, except the last entry.
+
+1. **Symptom found** (task scaffolded, `0cb39f4`). Nested mvp and gacalc image builds reused no
+   host layer. The host store was mounted read-only at `/var/lib/shared-images` and readable (its
+   `images.json` listed 878 images). `/etc/containers/storage.conf` named it, but `podman info`
+   reported only the built-in `/usr/lib/containers/storage`. Two workarounds each listed 85 host
+   images: `CONTAINERS_STORAGE_CONF=/etc/containers/storage.conf`, and a hand-made drop-in in
+   `/etc/containers/storage.conf.d/`. The first hypothesis was that podman 6 skipped
+   `/etc/containers/storage.conf` once `/usr/share/containers/storage.conf.d/00-vendor.conf` existed.
+   It was left unconfirmed until it could be checked.
+2. **Launcher vs image decided** (`9cbba23`). The open question was whether `exampleRunClaude.sh`
+   should carry the fix (`-e CONTAINERS_STORAGE_CONF=…`) or only show the knob. The maintainer chose
+   the `Dockerfile`. The reasons are in "Outcome" above. `CONTAINERS_STORAGE_CONF` stayed as a
+   fallback, in case the drop-in proved unreliable. It was never needed.
+3. **Cause confirmed, fix implemented** (`eccac33`). `strace` and containers-config(5) disproved the
+   first hypothesis. `/etc/containers/storage.conf` still loads as the main file, but the
+   *rootful* vendor drop-in `00-vendor-rootful.conf` loads after it and resets
+   `additionalimagestores`. Changes made:
+   - `Dockerfile`: the drop-in `COPY`, with its comment rewritten to describe the load order.
+   - `entrypoint/shell.sh`: the warning, interactive-only and bounded by `timeout 10` so a held
+     store lock cannot stall the shell.
+   - `README.md` and `exampleRunClaude.sh`: the knob is documented. The launcher passes
+     `NESTED_PODMAN_HOST_IMAGESTORE` explicitly, and its header lists that knob and
+     `NESTED_PODMAN_STORE_BASE`.
+   - Reference docs: the load order and both causes of a cache miss are recorded.
+   - The shared `CLAUDE.md` gotcha "host image is not build cache" was corrected. In the hand-test,
+     host layers did serve as build cache once an inner `fedora:45` that shadowed the host's base was
+     untagged.
+   - Stale `tasks/dir-backed-nested-podman-storage.md` pointers in the `Makefile` and
+     `tasks/reference/minimal-nested-images.md` were repointed to the archived path.
+   - Side observation: the `FROM localhost/claudecontainer` hand-test took about 9 minutes over 14
+     fuse-overlayfs layers. Reuse works, but large images are slow to mount through fuse-overlayfs.
+4. **Handoff** (`3606c06`). The remaining check was written up for the maintainer: rebuild the image
+   on the host, relaunch, then verify from inside.
+5. **Verified** (2026-11-13; done-record `1319adb`). See below.
+
 ## Verification
 
 - **2026-11-12, drop-in installed by hand in a running sandbox:**
