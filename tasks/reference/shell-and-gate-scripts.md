@@ -8,6 +8,11 @@ and "The Bash tool runs commands through the user's login shell (here: zsh)". Re
 when writing/reviewing a gate or format script, editing a committed script, or a Bash tool
 command fails with zsh-flavoured errors. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
 
+github.com/billsix/runCrushInContainer bakes a copy of the portable sections (multi-step
+failure, executable bit, run-anywhere format scripts, batch `-it`) at
+`client/entrypoint/dotfiles/.config/crush/reference/shell-and-gate-scripts.md`; edit them here and
+re-copy them there.
+
 ## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
 
 **In this sandbox my Bash tool executes each command through the user's interactive
