@@ -829,8 +829,18 @@ repo root. Avoid the two things that make it container-only: **(1)** an unguarde
 /venv/bin/activate` (guard it: `[ -f /venv/bin/activate ] && source …`); **(2)** absolute container
 tool paths (use RELATIVE paths and let the caller `cd` to the root) — or **(3)** guard a
 hardcoded self-`cd` so it no-ops on the host (`[ -d /<proj> ] && cd /<proj>`, not `cd /<proj> || exit
-1`). The host run still needs the package importable for the type-checker step. Rules + the
-cross-repo sweep: `~/.claude/reference/shell-and-gate-scripts.md`.
+1`). The host run still needs the package importable for the type-checker step. **A shell-exit hook
+that runs the script `cd`s to the repo root itself** (`cd /<proj>`, never a subdirectory), since the
+user types `exit` from anywhere. Rules + the cross-repo sweep:
+`~/.claude/reference/shell-and-gate-scripts.md`.
+
+## Batch container runs don't take `-it`
+
+`podman run -it` belongs only on runs a person is attached to: a shell, a GUI app, a server stopped
+with Ctrl-C, a tool that prompts. Format, lint, type-check, test, build and docs runs omit it: with
+no terminal (CI, an agent's nested `make`) `-t` fails (`the input device is not a TTY`), and the pty
+merges stderr into stdout and rewrites line endings. Keep it on a batch target only for one named
+interactive tool, with a comment saying which. Detail: `~/.claude/reference/shell-and-gate-scripts.md`.
 
 ## Instrumentation-driven debugging (make the tools tell you what to do)
 
@@ -1008,8 +1018,8 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/sandbox-capability-map.md`** — read **before** concluding "the sandbox can't
   do X," or when you need to know what tools/services/languages the image ships.
 - **`~/.claude/reference/shell-and-gate-scripts.md`** — read when writing/reviewing a gate or format
-  script, editing a committed script, doing a bulk find-and-fix across many files, or a Bash tool
-  command fails with zsh-flavoured errors.
+  script, writing a Makefile `podman run` target, editing a committed script, doing a bulk
+  find-and-fix across many files, or a Bash tool command fails with zsh-flavoured errors.
 - **`~/.claude/reference/script-language-choice.md`** — read when writing a new ad-hoc script or
   `tools/` tool and choosing Bash vs Python, converting a logic-heavy shell script to Python, or
   deciding whether a helper inside a tool earns promotion to a shared module (the everyday rule is

@@ -136,7 +136,10 @@ both:
    runs identically from `cd /<proj> && format.sh` (in-container) and `cd <repo> && format.sh`
    (host). **Trap the mvp exit hook hit:** a per-subdir `cd /<proj>/src && format.sh` makes the
    script's own relative `ruff check src` resolve to `src/src` and fail — the shell-exit hook
-   must be a SINGLE `cd /<proj>/ && format.sh` from the root, not one call per subdir.
+   must be a SINGLE `cd /<proj>/ && format.sh` from the root, not one call per subdir. **The hook
+   does that `cd` itself, every time:** the user types `exit` from whatever directory they are in,
+   so a hook that relies on the shell's current directory formats the wrong tree (or none) as soon
+   as they have `cd`'d away. gacalc's hook had the same bug (`cd /gacalc/src/`), fixed 2026-11-13.
 3. **A hardcoded `cd /<proj>` INSIDE the script** — some scripts self-`cd` (needed in-container,
    e.g. a C/C++ `find . … | xargs clang-format` that must run from the repo root). **Guard it** so
    it no-ops on the host: `[ -d /<proj> ] && cd /<proj>` — replacing `cd /<proj> || exit 1` (which
@@ -154,6 +157,19 @@ three rules: mvp `entrypoint/format.sh` (guarded venv + all-relative `ty check` 
 check src/tests/tools`); **hanoi / multivariate-math / spimulator / texExpToPng** got rule 3 (`[ -d
 /<proj> ] && cd /<proj>`), and mvm also needed the venv guard. Pairs with the exit-status rule
 above: a good gate script both propagates every step's failure AND runs anywhere from the root.
+
+## Batch container runs don't take `-it`; only interactive ones do
+
+`podman run -it` (or `docker run -it`) allocates a pseudo-terminal and keeps stdin open. Use it
+only where a person is at the other end: an interactive shell, a GUI app, a server stopped with
+Ctrl-C (the signal reaches the process through the pty), or a tool that prompts (a password, a
+token, an interactive spell check). **A batch run — format, lint, type-check, test, build, docs,
+any `shell-exec`-style payload — omits it.** With `-t` and no terminal on the caller's side (CI,
+cron, an agent's nested `make`), docker refuses with `the input device is not a TTY`; and where it
+does run, the pty merges stderr into stdout and turns `\n` into `\r\n`, so logs, pipes and
+`grep` see mangled output. If one tool inside an otherwise batch target is interactive, keep `-it`
+on that target and say why in a comment next to it. (William Emerison Six <billsix@gmail.com>,
+2026-11-13.)
 
 ## Bulk find → log → iterate → fix (a discovery command, a worklog, then edits)
 
