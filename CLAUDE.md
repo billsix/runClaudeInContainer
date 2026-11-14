@@ -51,8 +51,10 @@ conventions/commands in `entrypoint/dotfiles/.claude/` and reference docs in
 
 Besides docs, `tasks/reference/` also holds a few **SHARED, VENDORED tool scripts** — currently
 `check_local_annotations.py` (the Python annotate-every-binding gate), `c_dispatch_check.py` (the C
-dispatch-rules checker, `c-coding-standard.md` "Dispatch") and `update_dep_common.sh` (the source-dep
-re-vendor helper; pattern in `tasks/reference/vendoring-third-party-source-deps.md`).
+dispatch-rules checker, `c-coding-standard.md` "Dispatch"), `c_designated_init_check.py` (the C
+positional-struct-initializer checker, "Structs, constants, and the preprocessor") and
+`update_dep_common.sh` (the source-dep re-vendor helper; pattern in
+`tasks/reference/vendoring-third-party-source-deps.md`).
 Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
 (runCrush mirrors all three byte-identically). `review_status.py` is another shared tool, but it is
