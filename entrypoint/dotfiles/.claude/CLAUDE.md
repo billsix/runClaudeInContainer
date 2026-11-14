@@ -974,6 +974,11 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
   through an *existing*/legacy C tree, for the preservation hazards (where the idioms must NOT be
   applied — setjmp/longjmp locals, loop-carried accumulators, deliberate teaching bugs, wire-format
   `strncpy` zero-fill) and the sweep's verification + mechanics.
+- **`~/.claude/reference/spelled-out-names-sweep.md`** — read **before** planning or running a sweep
+  that spells out abbreviated names (`gpr` → `general_purpose_registers`), and when `/spell-out-names
+  [scope]` runs (it writes the task docs and stops): the repo checks that come first (upstream merges,
+  consumers, generators, mirrors, unbuilt code, what must not change), the policy questions, and the
+  per-language rename and proof mechanics.
 - **`~/.claude/reference/sphinx-book-conventions.md`** — read when setting up or debugging a Sphinx
   book's autodoc rendering / lualatex PDF (autodoc typehints, `api.rst` coverage, missing-glyph font
   fallbacks, reading real build warnings).
