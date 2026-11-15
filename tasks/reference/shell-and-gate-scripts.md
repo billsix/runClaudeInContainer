@@ -6,7 +6,7 @@ script must propagate every step's failure", "Rewriting a script's contents drop
 executable bit", "Write format/check scripts to run BOTH in the container AND on the host",
 and "The Bash tool runs commands through the user's login shell (here: zsh)". Read on demand
 when writing/reviewing a gate or format script, editing a committed script, or a Bash tool
-command fails with zsh-flavoured errors. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+command fails with zsh-flavoured errors.
 
 github.com/billsix/runCrushInContainer bakes a copy of the portable sections (multi-step
 failure, executable bit, run-anywhere format scripts, batch `-it`) at
@@ -18,7 +18,7 @@ re-copy them there.
 **In this sandbox my Bash tool executes each command through the user's interactive
 login shell, which is `zsh`, not `bash`** — a wrong assumption I keep making, then
 watching commands fail with `zsh`-flavoured errors (`parse error near 'head'`,
-`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (Bill flagged it
+`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (the maintainer flagged it
 2026-08-14: "why do you keep running zsh instead of bash?"):
 
 - **Unquoted globs error instead of passing through.** `ls *.md` with no match is a
@@ -129,7 +129,7 @@ breaks, often several commits later.
 
 **A `format.sh` (or `lint.sh` / any `make format` gate script) should be PORTABLE — runnable
 inside the container *and* on the host from the repo root — so I can format without spinning a
-container (Bill, 2026-08-14).** Exactly two things make a format script container-only; avoid
+container (William Emerison Six <billsix@gmail.com>, 2026-08-14).** Exactly two things make a format script container-only; avoid
 both:
 
 1. **An unguarded `source /venv/bin/activate`.** On the host there is no `/venv`, so the bare

@@ -218,7 +218,7 @@ The offenders, grouped:
   elegant variation (in technical prose, repeat the exact term — synonym-cycling
   creates ambiguity).
 
-## Python, C++, and C: the shared coding standards live in reference docs
+## The shared coding standards live in reference docs (Python, C++, C, Rust, Haskell, JavaScript)
 
 For **Python** specifically, the full coding standard — the ruff-enforced tiers plus the judgment
 calls ruff can't check (naming grammar, expression / mutate-vs-return, reduce-with-`sum`, annotate every
@@ -244,7 +244,7 @@ derive-and-implement-the-standard-trait, `#[non_exhaustive]`/`#[must_use]`, borr
 and as tier (b) the annotate-every-binding rule in Haskell's forms (do-binds, `let`/`where`, the exempt
 pattern variables, `forall` for outer type variables, concrete-over-polymorphic locals), totality, ADTs
 for options, explicit/qualified imports and strictness. The
-language-agnostic conventions in this file apply to all five languages too; a project keeps only its
+language-agnostic conventions in this file apply to all of these languages too; a project keeps only its
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
@@ -428,7 +428,7 @@ break/surprise a consumer, prefer a one-line entry linking the *why*. **Write th
 make the change** (it's a finished unit's doc delta) and **reconcile at the three look-back
 moments** (pre-squash harvest, session-end sweep, release): diff the public surface since the last
 tag against `[Unreleased]`. Promoting `[Unreleased]` → `## [version] — date` is part of the version
-bump (same commit as the tag). Full detail incl. `tools/check_changelog.py` and retro-fill:
+bump (same commit as the tag). Full detail incl. github.com/billsix/geometricalgebra's `tools/check_changelog.py` and retro-fill:
 `~/.claude/reference/versioning-and-changelogs.md`.
 
 ## Git: I commit, you don't — but you DO stage
@@ -477,10 +477,10 @@ and the say-so doesn't carry to the next session. Full choreography:
 `~/.claude/reference/git-workflow-conventions.md`.
 
 **Build every image yourself during a batch, nested, however large.** I'm not around to run
-`make image` on the host, so don't ask me to: the "ask me to build it on the host" rule under
-"Running projects in a nested container" does not apply here. Accept the slow nested layer commits,
-note the build in the task doc, and check `pgrep -fa "podman build"` before retrying a build that
-seems stuck (it may be one long commit, and a leftover build holds the storage lock).
+`make image` on the host, so don't ask me to, even when the shell warns of no native overlay diff
+(then accept the slow commits). Note the build in the task doc, and check `pgrep -fa "podman build"`
+before retrying a build that seems stuck (it may be one long commit, and a leftover build holds the
+storage lock).
 
 ## Task documents
 
@@ -525,26 +525,16 @@ over-scaffold** — a two-step job is one task with a phase list. Detail:
 `~/.claude/reference/task-doc-conventions.md`.
 
 Archiving: when complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md`.
-**Archiving is yours to do proactively at the moment of completion — no go/no-go question**
-(harvest durable knowledge to reference docs, **rewrite the task doc into a lean done-record**, fix
-inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never present a done task as an archive
-*candidate*. **The done-record rewrite is NOT contingent on a squash:** the moment a task is done,
-normalize it into one past-tense voice and drop the forward-looking scaffolding (the plan-shaped BLUF,
-"Context (read first)", Plan, Open questions) and the stale `Status:` line — so a scaffolded doc can
-never reach the archive. (A squash, when it happens, reuses this same rewrite; it is not the only
-trigger.) **BUT the archive is its OWN commit AFTER the work
-commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts + the done-record
-rewrite of the task doc, (3) archive-move + one-shot `git rm` (so the doc is already a clean
-done-record when it is renamed into the archive). **Stage the work and STOP — do NOT move to archive yet.** Once the work commit
-exists (I make it by default), **then** `git mv` the task into `tasks/archive/…` (+ `git rm` one-shot
-scripts) and stop again — the rename sits staged for its OWN commit (commit 3, *after* the work's
-commit 2); never move the archive *before* the work commit. **And always `git mv`, never a plain
-`mv`** — a plain `mv` leaves the old path tracked-deleted and the new path untracked, so a
-`git add -u`/`git commit -a` orphans the archived doc into HEAD nowhere (incident: gacalc 2026-10-08).
-The archive is an **owed, tracked** action (record it in the task's `Status`/the stack), done after the
-work commit and never bundled into it. When you're authorized to commit this session, you make both
-commits in order — work, then archive — never one combined "work + archive". At session start, scan `tasks/` (not
-`tasks/archive/`) for in-flight work, list easy-wins-first, and list `blocked` tasks separately.
+**Archiving is yours to do proactively at the moment of completion — no go/no-go question**; never
+present a done task as an archive *candidate*. **The moment a task is done, rewrite it into a lean
+done-record** (one past-tense voice; drop the plan-shaped BLUF, "Context (read first)", Plan, Open
+questions and the stale `Status:`), whether or not a squash follows, and harvest durable knowledge
+into reference docs. **Three commits:** (1) task-add, (2) work + adhoc scripts + the done-record
+rewrite, (3) the archive move (`git mv`, **never a plain `mv`**) + one-shot `git rm`. **Stage the
+work and STOP**; move to the archive only once the work commit exists (I make it by default), and
+record the move as owed until then. When authorized to commit, make both commits in order, never one
+combined "work + archive". At session start, scan `tasks/` (not `tasks/archive/`) for in-flight
+work, list easy-wins-first, and list `blocked` tasks separately.
 Full lifecycle + incidents: `~/.claude/reference/task-doc-conventions.md`.
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
@@ -626,7 +616,7 @@ line number — they rot). Generate **deepest-first, then compress upward** (~ha
 level), and **compare each doc to a baseline the reader knows**. Rules + naming:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
+### Authoring a reference set for a codebase you don't know (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 Fan out **one reader per subsystem in parallel** (each returns a structured, `file:line`-anchored
 report), synthesize yourself, and **verify any claim a durable doc will be trusted on** —
@@ -635,7 +625,7 @@ found nothing" is not proof of absence). **Distinguish live from dead code expli
 history for *why/when/who*, current code for *what-is-true-now*. Full method:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
+### Reference docs for a versioned dependency — pin, banner, re-sync (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 When a reference set describes a **dependency pinned by submodule/SHA**, the docs rot when the pin
 moves: **pin the docs to the exact commit the consumer builds** (banner the SHA + `git describe`),
@@ -644,7 +634,7 @@ refactor, not line drift). Name the doc by what's present at the pinned version;
 cites the dependency's own pinned docs, never drifting line numbers. Full method:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
+### Ending a session — sweep the always-read docs (William Emerison Six <billsix@gmail.com>, 2026-07-21)
 
 When I signal end-of-session, reconcile each touched project's always-read docs (`CLAUDE.md`, every
 `tasks/reference/*`, `README.md`) against what changed — flag stale/missing/misplaced, then **apply
@@ -654,33 +644,13 @@ already shipped its doc deltas at staging time, so expect to find nothing from p
 units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
 remind me of any `blocked` tasks (don't run their network re-checks yourself).
 
-**Trim the diversion stack (`~/.claude/stack.md`) back to pointers — it is `@`-imported every
-session, so a bloated stack is paid every turn and will make the agent complain at startup.** The
-stack is a depth gauge + cross-session handoff, **never a task log**: harvest any durable detail
-into the relevant `tasks/`/`tasks/reference/` doc (push it there if it isn't already), then **delete
-all completed-work narration** (DONE/ARCHIVED/MERGED — that record lives in git history +
-`tasks/archive/`). What stays is only: the active diversion chain (if any), cross-session git-state
-handoffs not captured as a task doc (owed branch merges, blame-ignore additions), and passive
-maintainer-waits. Everything else — open/proposed/blocked/paused/deferred work — is a task doc
-found by scanning each repo's `tasks/`, so it does not belong in the stack. A tremendous reduction
-here is normal and expected (474 → ~30 lines, 2026-11-06); if in doubt, trim harder and back up the
-prior contents first.
-
-**Also review the session for generalizable token waste.** If the session burned tokens in a way that
-would recur — an unneeded fork or parallel fan-out (each re-ingests the whole conversation + this
-instruction set), reading files that only get compiled or vendored/generated trees, a bloated
-always-loaded doc — capture the lesson where it belongs: a project-specific pattern in that repo's own
-`CLAUDE.md`, a general one in this cross-project file (kept terse — it's paid every turn) or
-`~/.claude/reference/token-and-context-economy.md`. Say "nothing to add" if the session was lean.
-
-**Then run each touched project's format + type-check gate** (whatever its `CLAUDE.md`/`README`
-names — e.g. `make format` / `make type-check` / `make lint`), and fix what it reports, **before I
-commit** — I commit and push at session end, so a green local gate is what keeps CI green.
-**A project's *test* gate often does NOT run the type-checker or linter** (e.g. a `make test` that is
-pytest-only while `ty`/ruff run under `make format`) — and `ty`/type errors slip through tests
-silently — so run the actual **format/type-check/lint** gate CI runs, not just the tests. Match CI:
-run the same `make` targets `.github/workflows/*` invoke. Full checklist:
-`~/.claude/reference/reference-doc-conventions.md`.
+**Trim the diversion stack (`~/.claude/stack.md`) back to pointers** — it is `@`-imported every
+session. Harvest durable detail into a task or reference doc, then delete completed-work narration;
+keep only the active chain, owed git-state handoffs, and passive maintainer-waits. **Review the
+session for token waste that would recur** and record the lesson where it belongs (or say "nothing
+to add"). **Then run each touched project's format + type-check + lint gate — the `make` targets
+`.github/workflows/*` run, not just the tests** (a test gate often skips `ty`/ruff) — and fix what it
+reports before I commit. Full checklist: `~/.claude/reference/reference-doc-conventions.md`.
 
 ## A project's README is commands-forward; prose belongs in reference docs
 
@@ -787,14 +757,13 @@ Xvfb/screenshot recipe, PYTHONPATH escape hatch, `:Z`-poisons-repos, RAM store m
 networking — in `~/.claude/reference/nested-run-and-gates.md`; flag design/lore in
 `~/.claude/reference/nested-podman-design.md`.
 
-**Before building a large image nested, ask me to build it on the host instead.** Nested layer
-commits are slow: `fuse-overlayfs` has no native overlay diff, so each commit walks the whole image
-(on a TeX-sized image, 4 minutes for a one-line step and once over 40; 2026-11-15). Name the project
-and the command (`[HOST] make image` in that repo), then wait; the sandbox reuses the host-built
-image read-only. **Exception: when I've told you to work in the background or that I'm away
-(including any batch run under "The authorized-batch workflow"), don't ask: build it yourself,
-nested, and accept the wait.** A small image, or one whose steps will all hit the cache, just build.
-Detail: `~/.claude/reference/nested-run-and-gates.md` ("Build big images on the host").
+**Build images nested; a host-built image is reused, not required.** The nested podman uses
+native kernel overlay, so a layer commit costs about what it does on the host (13 s against 62 s
+under the old fuse-overlayfs, 2026-11-15), and the sandbox reuses host-built images read-only. If
+the shell prints the `[nested podman] … no native overlay diff` warning, the sandbox image predates
+that switch: every nested commit walks the whole image again, so ask me to rebuild it on the host
+(`[HOST] make image` in the sandbox repo) before a large nested build. Detail:
+`~/.claude/reference/nested-run-and-gates.md` ("Storage speed").
 
 ## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
 
@@ -1000,6 +969,14 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/emacs-container-contract.md`** — read **before** creating or changing a
   project's vendored `.emacs.d` (or conforming a new project): the `init.el` order and LSP-root pin, the
   byte-identical `helm.el`/`preferences.el`, the package-list tiers, and the known drift.
+- **`~/.claude/reference/makefile-feature-flag-guards.md`** — read **before** adding or changing a run
+  target whose tool exists only when a build-time feature flag was on (`make docs`/`jupyter`/`lean`):
+  the preflight guard, flag-echo vs capability probe, and the autoconf comparison.
+- **`~/.claude/reference/shell-exec-and-container-template.md`** — read when adding or conforming a
+  project's `shell-exec` target, or standardizing a project's container template: the design and the
+  per-project variations the fleet rollout found.
+- **`~/.claude/reference/lean-proof-methodology.md`** — read **before** starting or extending a Lean 4 /
+  Mathlib formalization: coordinates first, then leaf constructs, and the other transferable lessons.
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, deciding whether a local earns its name or a helper should be nested, or choosing total dispatch (the "use your discretion" 80-column worked

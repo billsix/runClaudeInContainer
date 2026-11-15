@@ -1,7 +1,9 @@
 # A derived status view for review records: `review_status.py`, `/review-status`, and the deep audit's "Carried over"
 
+**Status:** complete
 **Created:** 2026-11-09
-**Completed:** 2026-11-09 (archive owed after the maintainer's work commit)
+**Completed:** 2026-11-09
+
 **Decisions** (William Emerison Six <billsix@gmail.com>, 2026-11-09):
 
 1. Status is *derived*, not hand-maintained, and the review record stays frozen.
@@ -11,7 +13,7 @@
 ## What was built
 
 A `tasks/review/…` record is frozen, so on its own it could not say which findings had been dealt
-with. Tasks made from it cite it in a `**Source:**` line. `tasks/reference/review_status.py` now
+with. Tasks made from it cite it in a `**Source:**` line. `tasks/reference/review_status.py`
 reads those lines and prints each section and follow-up of a record as **done** (every citing task
 archived), **open** (a citing task in `tasks/`) or **untracked**.
 
@@ -22,14 +24,14 @@ archived), **open** (a citing task in `tasks/`) or **untracked**.
   ruff, ty and `check_local_annotations.py`.
 - **Follow-up IDs.** Matching by section alone over-reports "done": a section holds several
   findings, and an archived task citing it does not prove that *this* bullet is done. The
-  conventions now number follow-up bullets `[F1]`, `[F2]`, … across the record, and a task's
+  conventions number follow-up bullets `[F1]`, `[F2]`, … across the record, and a task's
   `**Source:**` line carries the IDs it covers (`… repo-review.md §5.1 F7`). A bullet with an ID is
   matched only by ID. A bullet without one, as in records written before this convention, is
   matched by section and its status is marked "(by §)" as a lead to check.
 - **Section rows** count their subsections' citations, so `§5` is open while a task citing `§5.2`
   is. Tasks that cite the record with neither a § nor an ID are listed separately.
 - **The conventions** (`tasks/reference/repo-review-conventions.md`): the record layout requires IDs
-  and §s on follow-ups, and "Lifecycle" now covers the `**Source:**` line format, the derived status,
+  and §s on follow-ups, and "Lifecycle" covers the `**Source:**` line format, the derived status,
   and seeding "Carried over" with `--carried-over`, then re-checking each row against the tree.
 - **The commands:**
   - a new `entrypoint/dotfiles/.claude/commands/review-status.md`;
@@ -53,7 +55,7 @@ archived), **open** (a citing task in `tasks/`) or **untracked**.
 - **On github.com/billsix/geometricalgebra** `tasks/review/2026/11/08/repo-review.md` (no IDs, written
   before the convention): 38 follow-ups, 31 done, 0 open, 7 untracked, all 31 marked as matched by
   section only; 24 task citations, all archived.
-  - The untracked seven are §5.2 check_annotations (handled in
+  - The untracked seven are §5.2 check_annotations (handled in geometricalgebra's
     `tasks/annotation-auditor-floor-drift.md`, whose `**Source:**` does not cite the record), §8.3,
     §10.x, §3.6 and §6.4.
   - The by-§ "done" rows include items only adjacent to the work, such as §8.1 "pin the image's

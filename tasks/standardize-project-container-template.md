@@ -5,7 +5,11 @@
 **Priority:** 5
 **Difficulty:** 5
 
-## Why
+## BLUF
+
+Encode one standard for the project container template (repo mounts, `shell.sh` delivery, the `shell-exec` shape, flag-variable names) in the contract, then migrate the projects that drift. Done means the contract states each item and the "Still open" list below is migrated or explicitly declined.
+
+## Context
 
 Adding `make shell-exec` across ~45 projects exposed how much the "one container-per-project template"
 has **drifted** in ways that are accidental, not deliberate. Each divergence made the fan-out a
@@ -56,7 +60,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 
 ## Plan
 
-- [ ] Get Bill's decision on each numbered item (esp. #3 whole-vs-selective and #7 prereq policy).
+- [ ] Get the maintainer's decision on each numbered item (esp. #3 whole-vs-selective and #7 prereq policy).
 - [ ] Encode the agreed standard in the **template contract** (personal-overlay Makefile/entrypoint
       contract + the meta-repos' CLAUDE.md), with a short "conformance checklist" line per item.
 - [ ] (Optional, separate) a conformance checker under `tools/` that flags a project diverging from the
@@ -64,7 +68,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 - [ ] Migrate the divergent projects to the standard (a follow-on; the fan-out already normalized the
       `shell`/`shell-exec` pair — this is the remaining mount/path/prereq normalization).
 
-## Decisions (Bill, 2026-08-29) — 3 of the items settled; already applied where noted
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-08-29) — 3 of the items settled; already applied where noted
 
 1. **#3 whole-repo mount = the default** (selective mount is a documented per-project exception). ✅ decided.
 2. **#7 `shell-exec` prereq: `image`, never `format`** — a runner must not reformat source. ✅ decided AND
@@ -82,7 +86,7 @@ The `shell`/`shell-exec` PAIR is now normalized everywhere. The remaining drift 
 the baked-vs-bind-mount of the *setup*, not the launcher) is a separate migration:
 - one `shell.sh` mount path (`/usr/local/bin/shell.sh`) — a cosmetic unification of the remaining
   `/shell.sh` projects (low value; the paths already work). **Baked launchers: runCrush client is now
-  bind-mounted (done 2026-08-29); regardingBritt stays baked — it's a dead project.**
+  bind-mounted (done 2026-08-29); regardingBritt has since been deleted.**
 - one X11 flag var name (`$(X_FLAGS_FOR_CONTAINER)`; rename `$(USE_X)` in mvp/apue);
 - encode the whole standard + a conformance checklist in the contract doc (the personal overlay already
   got the `shell-exec`/`shell.sh` half, 2026-08-29).

@@ -1,49 +1,34 @@
 # Fix rollout.py: derive the fleet root instead of hardcoding /foo/opt
 
-**Status:** applied 2026-09-18 — awaiting maintainer review (may be reverted)
-**Priority:** 4
-**Difficulty:** 2
-Created 2026-09-18 (William Emerison Six <billsix@gmail.com>).
+**Status:** complete
+**Completed:** 2026-09-18
+**Created:** 2026-09-18 (William Emerison Six <billsix@gmail.com>)
 
-## BLUF
+## What this did
 
-`tasks/adhoc/container-cmd-podman-docker-fallback/rollout.py:46` hard-codes `/foo/opt` in its
-`find -L … -name Makefile` fleet scan — an ephemeral mount path, exactly what the ad-hoc-script
-convention forbids. This task removes the hardcode: the fleet root is now taken from an optional
-CLI arg, else `$FLEET_ROOT`, else derived from the script's own location. Applied 2026-09-18 so
-the maintainer can see the diff; may be reverted. Part of the broader audit in
-`tasks/adhoc-scripts-repo-relative-paths.md`.
+`tasks/adhoc/container-cmd-podman-docker-fallback/rollout.py`, the one-shot codemod that rolled
+the `CONTAINER_CMD` podman/docker auto-detect across every project, hard-coded `/foo/opt` in its
+`find -L … -name Makefile` fleet scan: an ephemeral mount path, which the ad-hoc-script
+convention forbids. This task removed the hardcode. Part of the broader audit in
+`tasks/archive/2026/11/15/adhoc-scripts-repo-relative-paths.md`.
 
-## Context (cold-start)
+The script is deliberately fleet-wide, so the usual repo-root idiom (`parents[3]`) was the wrong
+fix; the right root is the directory that holds all the projects.
 
-`rollout.py` is an archived one-shot codemod that rolled the `CONTAINER_CMD` podman/docker
-auto-detect across every project. It is **deliberately fleet-wide** — it scans *all* projects,
-not just this repo — so the plain repo-root idiom (`parents[3]`) is the wrong fix: rooting it in
-this repo would break its purpose. The fleet root is the directory that *holds* all the projects
-(this session mounted it at `/foo/opt`; another launch/machine/user mounts it elsewhere).
+## What changed
 
-Convention being enforced: runtime `CLAUDE.md` "Ad-hoc scripts" section (also
-`tasks/reference/task-doc-conventions.md:108`) — never encode a container-absolute mount path.
-
-## What was done
-
-Edited `tasks/adhoc/container-cmd-podman-docker-fallback/rollout.py`:
-- Added a `fleet_root()` helper: `sys.argv[1]` → `$FLEET_ROOT` → `Path(__file__).resolve().parents[4]`
-  (this repo sits directly under the fleet root; the script is at
-  `<fleet>/<repo>/tasks/adhoc/<slug>/rollout.py`, so `parents[4]` is the fleet root).
-- `find_makefiles()` now scans `str(fleet_root())` instead of the literal `/foo/opt`.
-- Updated the module docstring's "Run from anywhere" line to document the arg/env/default.
-- `import sys` added. Edited in place (Edit, not Write) so the `+x` mode is preserved.
+- A `fleet_root()` helper: `sys.argv[1]`, else `$FLEET_ROOT`, else
+  `Path(__file__).resolve().parents[4]` (the script sits at
+  `<fleet>/<repo>/tasks/adhoc/<slug>/rollout.py`). That precedence followed the recommendation in
+  the audit task's open question 1.
+- `find_makefiles()` scanned `str(fleet_root())`; the docstring's "Run from anywhere" line
+  documented the arg/env/default; `import sys` added; the `+x` mode preserved.
 
 ## Verification
 
-- Non-destructive: confirmed `fleet_root()` with no arg/env resolves to `/foo/opt` in this
-  session — i.e. the new default equals the old hardcoded value, so behavior is unchanged here.
-- **Did NOT re-run the codemod across the fleet.** Running it would mutate Makefiles in ~all
-  projects; the rollout already happened and is archived, and a fleet-wide re-run is out of scope
-  for a path fix. The derivation-equals-prior-value check above is the proof that matters.
+`fleet_root()` with no arg or env resolved to `/foo/opt` in that session, so the default equalled
+the old hardcoded value. The codemod was not re-run across the fleet: the rollout had already
+happened, and a re-run would have mutated Makefiles in nearly every project.
 
-## Open questions
-
-None. (The fleet-root-supply decision — arg > env > derived default — was taken here per the
-recommendation in `tasks/adhoc-scripts-repo-relative-paths.md` open question 1.)
+The change was applied for the maintainer's review and was kept (committed in `dcd16c0`). The
+one-shot `rollout.py` itself was later removed, 2026-11-15 (`9e27488`).

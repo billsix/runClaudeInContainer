@@ -23,17 +23,15 @@ files Claude Code keeps its auth in, so a fresh browser login is needed only rar
 monthly, or after `/logout`) — not every run:
 
 1. **`~/.claude/` — your credentials & sessions.** Holds `.credentials.json` (the OAuth
-   tokens, which auto-refresh), your sessions, and agent memory. Persisting it is the fix from
-   `tasks/archive/2026/07/09/persist-claude-login-across-containers.md` (before it, the mount
-   silently no-op'd and you re-signed-in every time).
+   tokens, which auto-refresh), your sessions, and agent memory (design:
+   `tasks/reference/claude-config-layering.md`).
 
 2. **`~/.claude.json` — your onboarding state.** Holds `hasCompletedOnboarding` and your
-   account info. It's a **sibling** of `~/.claude`, so the mount above doesn't cover it; left
-   unmounted it died with each `--rm` container, and Claude — seeing no onboarding record —
-   showed the **"Select login method"** menu on *every* launch, even with valid credentials
-   mounted. `make shell` now bind-mounts it too (seeding an empty `{}` on the host the first
-   time), so onboarding persists. **This, not token expiry, was the real "log in every
-   session" cause.** Both files are created for you on first `make shell`.
+   account info. It's a **sibling** of `~/.claude`, so the mount above doesn't cover it, and
+   `make shell` mounts it separately (seeding an empty `{}` on the host the first time).
+   Without it Claude finds no onboarding record and shows the **"Select login method"** menu
+   on every launch, even with valid credentials. Both files are created for you on first
+   `make shell`.
 
 Both mounts are automatic — sign in once and you're done.
 
@@ -55,7 +53,7 @@ read from your host environment and **never stored in this repo**. `make shell` 
 `-e` passthrough when the variable is actually set, so leaving it unset changes nothing.
 *(Forks that bill per-token instead of a subscription can export `ANTHROPIC_API_KEY` instead —
 also passed through — but that uses the metered Console API, not a subscription.)* Until a
-token is set, `make shell` prints a one-line reminder at startup. A token crosses to the
+token is set, `make shell` prints a short reminder at startup. A token crosses to the
 container only if it's **exported** (`declare -p CLAUDE_CODE_OAUTH_TOKEN` shows `declare -x`,
 not `--`) and only a **fresh** sandbox picks up a new export.
 
@@ -93,26 +91,30 @@ conventions in `~/.ai-coding-conventions.personal.md` (copy the template from
 The build (`Dockerfile`):
 
 1. `FROM registry.fedoraproject.org/fedora:45`, then `dnf upgrade`.
-2. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the
-   tracked `.claude/` conventions).
-3. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
-   (~430 packages). The package list lives in that script — host-runnable on its
+2. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
+   (~460 packages). The package list lives in that script — host-runnable on its
    own (`sudo ./entrypoint/01-install-base.sh` on a bare Fedora box), not just at
    build time — while the dnf cache mounts (which keep rebuilds fast) stay in the
    `Dockerfile`.
-4. Installs Claude Code via `curl -fsSL https://claude.ai/install.sh | bash`.
-5. `ENTRYPOINT` is `/entrypoint.sh` (which just `exec bash`).
+3. Runs `entrypoint/01b-install-binary-tools.sh` (shfmt and procs, which Fedora 45 does
+   not package).
+4. Installs Claude Code via `curl -fsSL https://claude.ai/install.sh | bash`, then Lean via
+   `entrypoint/install-lean.sh`.
+5. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the tracked
+   `.claude/` conventions) and the nested podman's storage and containers config. These change
+   most often, so they come last and an edit rebuilds only these layers.
+6. `ENTRYPOINT` is `/entrypoint.sh` (which just `exec bash`).
 
 The run (`make shell`) mounts, on top of the image:
 
 - The current working directory at `/<project-dir-name>` (`:Z` SELinux relabel).
-- Host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, and `~/.claude` — **only if they
-  exist** on the host.
+- Host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg` and `~/.vimrc` — **only if they exist** on
+  the host — and always `~/.claude` and `~/.claude.json` (created on the host if missing).
 - The repo-tracked `CLAUDE.md` and `commands/` from
   `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
   this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
-  `CLAUDE.md` cites **read-on-demand** at task triggers — the overused-words catalog plus the
-  nested-podman, sandbox-capability-map, config-layering, and print-debugging docs). This keeps your
+  `CLAUDE.md` cites **read-on-demand** at task triggers: the coding standards, the conventions'
+  topic docs, the nested-podman docs, and the shared checker scripts). This keeps your
   conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
@@ -151,14 +153,14 @@ use; see `FORKING.md`.
 ### Building containers inside the sandbox (nested Podman)
 
 `podman` is installed in the image, but running it *inside* the sandbox needs a few
-extra flags (overlay-on-overlay under nested user namespaces requires
-`fuse-overlayfs`). These are opt-in:
+extra flags, and an inner image store on a real filesystem (the kernel refuses an overlay on
+the sandbox's own overlay root). These are opt-in:
 
 ```sh
 make shell NESTED_PODMAN=1
 ```
 
-This adds `--device /dev/fuse` (overlay storage), `--device /dev/net/tun` (rootless
+This adds `--device /dev/fuse` (kept for fuse-based tools), `--device /dev/net/tun` (rootless
 networking via pasta), `--security-opt label=disable`, `--security-opt unmask=ALL` (so the
 inner netavark can write the per-interface sysctls that bridged networking needs — the
 sandbox's `/proc/sys` is otherwise read-only), `--cap-add=sys_admin,mknod,net_admin`, an
@@ -177,7 +179,7 @@ that is removed on exit, so it needs no cleanup (a hard-killed session may leak 
 `podman unshare rm -rf ~/.cache/runclaude-nested.*` — the `unshare` matters, a bare `rm` cannot
 delete the image layers' read-only dirs; each exit also appends what the cleanup did to
 `~/.cache/runclaude-nested-cleanup.log`); it is disk-backed by default (`NESTED_PODMAN_STORE=tmpfs`
-for the old RAM store) and reuses the host images read-only. The full build-and-storage
+for a RAM store, see below) and reuses the host images read-only. The full build-and-storage
 pipeline — the two podman levels, and where every layer lands — is in
 `tasks/reference/image-build-and-storage-pipeline.md`.
 
@@ -185,24 +187,36 @@ pipeline — the two podman levels, and where every layer lands — is in
 `~/.cache`) — e.g. to keep the build write-churn off an SSD by pointing it at an HDD:
 
 ```sh
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/path/to/hdd/containerStorage
 ```
 
 The base is created if missing, and the per-session store under it (`runclaude-nested.XXXXXX`)
 is still deleted on exit — a hard kill would leak it there instead
-(`podman unshare rm -rf /mnt/sda1/tmpContainerStorage/runclaude-nested.*`; the cleanup log moves
+(`podman unshare rm -rf /path/to/hdd/containerStorage/runclaude-nested.*`; the cleanup log moves
 with it, to `<base>/runclaude-nested-cleanup.log`). The base must be a **real
 filesystem that supports overlay xattrs** — ext4/xfs are ideal; btrfs works but has had
 overlay quirks — and an HDD trades build speed for fewer SSD writes. `export
 NESTED_PODMAN_STORE_BASE=…` in your shell to make it the default. (Only used in the default
 `dir` mode; ignored under `NESTED_PODMAN_STORE=tmpfs`, which is RAM.)
 
+**Keep the inner store in RAM instead (`NESTED_PODMAN_STORE=tmpfs`).** The default store is a disk
+directory; a RAM tmpfs is the alternative. It is bounded by RAM (`NESTED_PODMAN_TMPFS_SIZE`, default
+`8g`; a full-toolchain image needs far more) and vanishes at exit like the disk store. Builds run at
+native speed on either.
+
+```sh
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs NESTED_PODMAN_TMPFS_SIZE=16g   # RAM store
+make shell NESTED_PODMAN=1                                                          # disk store (default)
+```
+
+`exampleRunClaude.sh` carries both lines, the RAM one commented out.
+
 **Test it — run Podman inside the container:**
 
 ```sh
-podman info --format '{{.Store.GraphDriverName}}'   # -> overlay (driven by fuse-overlayfs)
+podman info --format '{{.Store.GraphDriverName}} native-diff={{index .Store.GraphStatus "Native Overlay Diff"}}'   # -> overlay native-diff=true
 
-# full path — pull (networking) + unpack (fuse-overlayfs) + run, with a bind mount:
+# full path — pull (networking) + unpack (native overlay) + run, with a bind mount:
 podman run --rm -it --cgroups=disabled -v "$(pwd)":/workspace:Z ubuntu:latest bash
 ```
 
@@ -249,13 +263,11 @@ podman images --format '{{.Repository}}:{{.Tag}} R/O {{.ReadOnly}}'
 > podman is not using it. Rebuild the image (`make image`); the cause and fix are in
 > `tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
 
-> **Build large images on the host first.** Inside the sandbox every layer commit is slow: the inner
-> podman stores layers with `fuse-overlayfs`, which has no native overlay diff, so each commit walks
-> the whole image. On a big image (TeX Live, toolchains) a one-line `RUN` step took 4 minutes to
-> commit, and one commit ran over 40 minutes and looked like a hang. On the host a commit takes
-> seconds. So run
-> `make image` for the project on the host, then launch the sandbox; it reuses that image read-only.
-> No launch flag avoids this. Detail: `tasks/reference/nested-run-and-gates.md` ("Build big images on the host").
+> **Nested builds commit layers at native speed.** The inner podman uses the kernel's own overlay,
+> so a layer commit costs what it does on the host (13 s against 62 s under the old fuse-overlayfs
+> setup). If the shell prints `[nested podman] … no native overlay diff` at start, your sandbox
+> image predates that: rebuild it (`[HOST] make image`) and relaunch. Detail:
+> `tasks/reference/nested-run-and-gates.md` ("Storage speed").
 
 > **Note:** you must launch with `NESTED_PODMAN=1`. A plain `make shell` won't have
 > `/dev/fuse` or the capabilities, and `podman run` will fail. The `NESTED_PODMAN=1`
@@ -270,14 +282,19 @@ podman images --format '{{.Repository}}:{{.Tag}} R/O {{.ReadOnly}}'
 | `Dockerfile` | Image definition (Fedora base + toolchain + Claude Code) |
 | `Makefile` | `make image` / `make shell` / `make shell-exec` (shared `SHELL_RUN_FLAGS`); host-mount detection; X11/Wayland passthrough |
 | `exampleRunClaude.sh` | Saved `make shell` invocation with extra mounts |
-| `entrypoint/01-install-base.sh` | The ~430-package `dnf install`, host-runnable; the Dockerfile sources it |
+| `entrypoint/01-install-base.sh` | The ~460-package `dnf install`, host-runnable; the Dockerfile sources it |
+| `entrypoint/01b-install-binary-tools.sh` | Upstream binaries Fedora does not package (shfmt, procs) |
+| `entrypoint/install-lean.sh` | The Lean toolchain (elan) |
+| `entrypoint/format.sh` | The repo's formatter (shfmt over the entrypoint scripts) |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
 | `entrypoint/shell.sh` | `make shell` / `make shell-exec` launcher (`set -e` setup, then `exec bash "$@"`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.vimrc` (baked vim defaults; a host `~/.vimrc` mounts over it), `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
+| `entrypoint/dotfiles/.config/containers/` | The nested podman's `storage.conf` and `containers.conf` (also installed as drop-ins) |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` | Blank personal-overlay default (`@`-imported; your host file mounts over it) |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md` | Template for your `~/.ai-coding-conventions.personal.md` |
 | `tasks/reference/` | Reference docs, mounted at `~/.claude/reference/` for the conventions to cite |
+| `tools/` | Repo tools, not in the image (`check_helm_file_at_point.{sh,el}`) |
 | `FORKING.md` | What to change when adopting this sandbox for your own use |
 
 ## License

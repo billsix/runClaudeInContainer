@@ -47,11 +47,11 @@ All on 2026-11-12, except the last entry.
    `/etc/containers/storage.conf.d/`. The first hypothesis was that podman 6 skipped
    `/etc/containers/storage.conf` once `/usr/share/containers/storage.conf.d/00-vendor.conf` existed.
    It was left unconfirmed until it could be checked.
-2. **Launcher vs image decided** (`9cbba23`). The open question was whether `exampleRunClaude.sh`
-   should carry the fix (`-e CONTAINERS_STORAGE_CONF=…`) or only show the knob. The maintainer chose
-   the `Dockerfile`. The reasons are in "Outcome" above. `CONTAINERS_STORAGE_CONF` stayed as a
+2. **Launcher vs image decided** (steps 2 to 4 were squashed into `05a7ce0`). The open question
+   was whether `exampleRunClaude.sh` should carry the fix (`-e CONTAINERS_STORAGE_CONF=…`) or only
+   show the knob. The maintainer chose the `Dockerfile`. The reasons are in "Outcome" above. `CONTAINERS_STORAGE_CONF` stayed as a
    fallback, in case the drop-in proved unreliable. It was never needed.
-3. **Cause confirmed, fix implemented** (`eccac33`). `strace` and containers-config(5) disproved the
+3. **Cause confirmed, fix implemented**. `strace` and containers-config(5) disproved the
    first hypothesis. `/etc/containers/storage.conf` still loads as the main file, but the
    *rootful* vendor drop-in `00-vendor-rootful.conf` loads after it and resets
    `additionalimagestores`. Changes made:
@@ -69,9 +69,10 @@ All on 2026-11-12, except the last entry.
      `tasks/reference/minimal-nested-images.md` were repointed to the archived path.
    - Side observation: the `FROM localhost/claudecontainer` hand-test took about 9 minutes over 14
      fuse-overlayfs layers. Reuse works, but large images are slow to mount through fuse-overlayfs.
-4. **Handoff** (`3606c06`). The remaining check was written up for the maintainer: rebuild the image
+     Superseded: the nested podman switched to native kernel overlay 2026-11-15.
+4. **Handoff.** The remaining check was written up for the maintainer: rebuild the image
    on the host, relaunch, then verify from inside.
-5. **Verified** (2026-11-13; done-record `1319adb`). See below.
+5. **Verified** (2026-11-13; done-record in `6f1bed1`). See below.
 
 ## Verification
 

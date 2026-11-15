@@ -3,7 +3,7 @@
 # below starts a FRESH bash not under -e, so interactive/script behaviour is
 # unchanged. `set -e` only, not `set -u` (the auth hint reads possibly-unset vars).
 # (This repo's shell.sh has no heavy setup; the convention matters in projects whose
-# shell.sh does venv/editable-install/codegen -- see tasks/add-shell-exec-target.md.)
+# shell.sh does venv/editable-install/codegen -- see tasks/archive/2026/08/29/add-shell-exec-target.md.)
 set -e
 
 cd /
@@ -31,13 +31,31 @@ fi
 if [ "$#" -eq 0 ] && [ -d /var/lib/shared-images/overlay-images ] && command -v podman >/dev/null; then
     stores=$(timeout 10 podman info --format '{{json .Store.GraphOptions.additionalImageStores}}' 2>/dev/null || true)
     case "$stores" in
-        *'"/var/lib/shared-images"'*) ;;
-        *)
-            printf '\n\033[33m[nested podman]\033[0m The host image store is mounted at /var/lib/shared-images,\n'
-            printf '  but podman is not using it (additional stores: %s).\n' "${stores:-unknown}"
-            printf '  Nested builds will not reuse host images. See ~/.claude/reference/nested-podman-design.md.\n\n'
-            ;;
+    *'"/var/lib/shared-images"'*) ;;
+    *)
+        printf '\n\033[33m[nested podman]\033[0m The host image store is mounted at /var/lib/shared-images,\n'
+        printf '  but podman is not using it (additional stores: %s).\n' "${stores:-unknown}"
+        printf '  Nested builds will not reuse host images. See ~/.claude/reference/nested-podman-design.md.\n\n'
+        ;;
     esac
+fi
+
+# Nested podman: buildah keeps its temp files (each build's context mount) in
+# /var/lib/containers/tmp, on the store volume, because the kernel refuses a native overlay
+# on this container's own overlay root (containers.conf.d/50-runclaude-nested.conf). Create
+# it for interactive and batch runs alike. Then, interactively, warn when podman does not
+# report a native overlay diff: an image built before the switch from fuse-overlayfs walks
+# the whole image on every layer commit. Rebuild it (`make image` on the host).
+if [ "${NESTED_PODMAN:-0}" = 1 ]; then
+    mkdir -p /var/lib/containers/tmp
+    if [ "$#" -eq 0 ] && command -v podman >/dev/null; then
+        native=$(timeout 10 podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}' 2>/dev/null || true)
+        if [ "$native" != true ]; then
+            printf '\n\033[33m[nested podman]\033[0m podman reports no native overlay diff (%s), so every\n' "${native:-unknown}"
+            printf '  nested layer commit walks the whole image. Rebuild the image on the host\n'
+            printf '  (`make image`). See ~/.claude/reference/nested-podman-design.md ("Storage driver").\n\n'
+        fi
+    fi
 fi
 
 # No args -> interactive shell (identical to before). Args (a `-c '...'` payload

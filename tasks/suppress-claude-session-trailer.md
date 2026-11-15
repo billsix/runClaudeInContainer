@@ -4,6 +4,7 @@
 **Priority:** 4
 **Difficulty:** 3
 **Started:** 2026-09-08
+**See also:** `tasks/default-allow-file-rw-in-sandbox.md` needs the same layering decision (where a tracked `settings.json` sits relative to the host `~/.claude` mount) and waits on this task's answer.
 
 ## BLUF
 

@@ -2,7 +2,7 @@
 
 **Reference document** — the full rationale and worked examples behind several
 language-agnostic code-style rules kept terse in the cross-project `CLAUDE.md`. Read on demand
-when the matching trigger fires. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.) For the
+when the matching trigger fires. For the
 Python-specific standard (ruff tiers + naming/idiom judgment calls) see
 `~/.claude/reference/python-coding-standard.md`.
 

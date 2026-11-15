@@ -4,14 +4,14 @@
 rules in the cross-project `CLAUDE.md` ("Git: I commit, you don't — but you DO stage" and
 "Quick-save commits, then squash"). Read on demand when staging finished work, or when the
 user has authorized committing for a long unattended task and you need the quick-save/squash
-rhythm. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+rhythm.
 
 ## Git: I commit, you don't — but you DO stage
 
 Committing is **my** job and I do it **outside** the container, on my own schedule, as I see fit. This is my normal workflow — don't read an absence of commits as work being lost or incomplete. **Staging is your half of that handoff, and it is the default, not an option.**
 
 - **Stage finished work automatically — don't wait to be asked.** When a coherent piece of work is done, `git add` the files it touched and say so in your summary. A finished change left unstaged is a change I might not notice and might overwrite. By the end of any work chunk, `git status` should read as a handoff: staged = "this is the work," unstaged = "this is still in flight or isn't mine to give you."
-- **A finished unit's DOC DELTAS ship in that same staging (Bill, 2026-08-31).** "Finished" includes the always-read docs the unit conceptually touches: update the project's `CLAUDE.md` (module layout, counts, API/operator lists), its `README`, the pertinent `tasks/reference/` doc, **and — in a repo that has a `CHANGELOG.md` — its `[Unreleased]` entry for anything a pin-bumping consumer would notice** (2026-09-06: gacalc 0.0.19 shipped with an empty `[Unreleased]` because the entry had been left to mid-task memory) *alongside the code*, and stage them together — so staged = complete handoff, docs included. Scope it to the docs the unit implies, **not** a full always-read re-read (that stays the session-end sweep's job — see "Ending a session", now a verification pass expected to find nothing from properly finished units). A unit redesigned later in the session gets its docs rewritten — the same cost the code pays; the trigger is deliberately "verified + staged", not "every edit". (Origin: a 2026-08-31 gacalc session whose end-of-session sweep applied CLAUDE.md/README/reference updates knowable the moment the feature passed its gate — see runClaudeInContainer `tasks/archive/2026/08/31/doc-deltas-ship-with-staged-work.md`.)
+- **A finished unit's DOC DELTAS ship in that same staging (William Emerison Six <billsix@gmail.com>, 2026-08-31).** "Finished" includes the always-read docs the unit conceptually touches: update the project's `CLAUDE.md` (module layout, counts, API/operator lists), its `README`, the pertinent `tasks/reference/` doc, **and — in a repo that has a `CHANGELOG.md` — its `[Unreleased]` entry for anything a pin-bumping consumer would notice** (2026-09-06: gacalc 0.0.19 shipped with an empty `[Unreleased]` because the entry had been left to mid-task memory) *alongside the code*, and stage them together — so staged = complete handoff, docs included. Scope it to the docs the unit implies, **not** a full always-read re-read (that stays the session-end sweep's job — see "Ending a session", now a verification pass expected to find nothing from properly finished units). A unit redesigned later in the session gets its docs rewritten — the same cost the code pays; the trigger is deliberately "verified + staged", not "every edit". (Origin: a 2026-08-31 gacalc session whose end-of-session sweep applied CLAUDE.md/README/reference updates knowable the moment the feature passed its gate — see runClaudeInContainer `tasks/archive/2026/08/31/doc-deltas-ship-with-staged-work.md`.)
 - **Why staging specifically: `git add` writes the content into `.git/objects`, so it survives.** An unstaged edit is only bytes on disk — a later overwrite, a bad `checkout`, or a botched `sed` loses it with no recovery. Staged content can always be recovered (`git fsck --lost-found`) even if the working tree is clobbered. It is the cheapest possible backup and it costs nothing, so err toward staging early and often rather than once at the end.
 - **Stage the files your work touched, by path** (`git add <paths>`), **never `git add -A`.** A blanket add sweeps in build artifacts, scratch files, and anything I was editing myself — that makes the handoff *less* useful, not more. If something is generated or gitignored, leave it out and mention it.
 - **Stage, then stop.** Never `git commit`, and never `git push`, unless I ask in that moment. Turning staged work into commits is mine.
@@ -75,10 +75,10 @@ done-record (stating its gate result) and archive it. The per-task commit bounda
 the gate runs once instead of per task.
 
 **Build every image yourself during a batch, nested, however large** (William Emerison Six
-<billsix@gmail.com>, 2026-11-15). Outside a batch, the agent asks the maintainer to run `make image`
-on the host for a large image, because nested layer commits are slow (`nested-run-and-gates.md`,
-"Build big images on the host"). In a batch nobody is there to answer, so the agent builds the image
-nested, accepts the wait, notes the build in the task doc, and checks `pgrep -fa "podman build"`
-before retrying a build that seems stuck.
+<billsix@gmail.com>, 2026-11-15). Outside a batch, the agent asks the maintainer to rebuild the
+sandbox image on the host only when the shell warns of no native overlay diff, because nested layer
+commits are then slow (`nested-run-and-gates.md`, "Storage speed"). In a batch nobody is there to
+answer, so the agent builds nested regardless, notes the build in the task doc, and checks
+`pgrep -fa "podman build"` before retrying a build that seems stuck.
 
 Each commit gets a clear, specific message — they are the play-by-play I read. The done-record *rewrite* of the docs (step 3) happens every batch, at archive time, regardless of whether a squash follows; the squash itself (collapsing the quick-saves to one-commit-per-task) stays a step I ask for explicitly. The stage-only default still governs — this whole workflow runs only for a batch I've explicitly told you to commit.

@@ -19,7 +19,7 @@ store plus read-only reuse of the host store.
 ```
 [LEVEL 1 — HOST]  make image                          [LEVEL 2 — INSIDE THE SANDBOX]  podman build (nested)
   host rootless podman                                  inner rootful-in-userns podman
-  FROM fedora:44 → dnf → COPY → install                 FROM <base> → RUN … → COMMIT
+  FROM fedora:45 → dnf → install → COPY                 FROM <base> → RUN … → COMMIT
         │                                                     │  writable layers ↓        base images ↑ (read-only)
         ▼                                                     ▼                           │
   ~/.local/share/containers/storage   ◄────reused read-only────┐                          │
@@ -40,17 +40,19 @@ containers from inside that sandbox. The disk-dir + reuse machinery is **only** 
 `make image` (Makefile target `image`) runs `podman build -t claudecontainer` with the host's
 **rootless** podman. Pipeline (see the `Dockerfile`):
 
-1. `FROM registry.fedoraproject.org/fedora:44`.
+1. `FROM registry.fedoraproject.org/fedora:45`.
 2. `RUN --mount=type=cache …; dnf upgrade -y` — the dnf cache is a **build-time cache mount**,
    discarded after the build (it is *not* a layer, not in the image).
-3. `COPY entrypoint/dotfiles/ /root/` — dotfiles, incl. `.config/containers/storage.conf`.
-4. `COPY entrypoint/dotfiles/.config/containers/storage.conf` to `/etc/containers/storage.conf` and
-   again to `/etc/containers/storage.conf.d/50-runclaude-nested.conf`. This is the *same* store
-   config: the drop-in copy is the one that survives containers-common's vendor drop-in (see
-   Level 2 (b)).
-5. `RUN /usr/local/bin/01-install-base.sh` — the ~430-package toolchain (a host-runnable script
+3. `RUN /usr/local/bin/01-install-base.sh` — the ~460-package toolchain (a host-runnable script
    the Dockerfile sources, not an inline `dnf install`).
-6. `RUN curl …/install.sh | bash` + `claude update` — install Claude Code.
+4. `RUN /usr/local/bin/01b-install-binary-tools.sh` — shfmt and procs from upstream binaries.
+5. `RUN curl …/install.sh | bash` + `claude update` — install Claude Code; then
+   `RUN /usr/local/bin/install-lean.sh` — Lean via elan.
+6. `COPY entrypoint/dotfiles/ /root/` — dotfiles, incl. `.config/containers/storage.conf` (the main
+   store config); then `storage.conf` again as `/etc/containers/storage.conf.d/50-runclaude-nested.conf`
+   (the copy that survives containers-common's vendor drop-in, see Level 2 (b)) and `containers.conf`
+   as `/etc/containers/containers.conf.d/50-runclaude-nested.conf`; then the `USE_EMACS_CONFIG`
+   opt-out. These come last because they change most often.
 7. `ENTRYPOINT ["/entrypoint.sh"]` (which just `exec bash`).
 
 **Where the layers go:** the finished image and all its layers are committed to the host's rootless
@@ -79,26 +81,25 @@ default `NESTED_PODMAN_STORE=dir` mode, do:
 ```
 mkdir -p ~/.cache
 STORE=$(mktemp -d ~/.cache/runclaude-nested.XXXXXX)   # a fresh dir on the host's real disk fs
-trap 'rm -rf "$STORE"' EXIT INT TERM                  # removed when the run exits
+trap 'podman unshare rm -rf "$STORE"' EXIT INT TERM HUP   # removed when the run exits (logged)
 podman run … -v "$STORE":/var/lib/containers:Z …
 ```
 
 So every nested layer the inner podman **writes** lands in that per-session temp dir under
 `~/.cache/`, and it is deleted on exit. It is **not** `~/.local/share/containers/storage` (the host
 store), and it is **not** a tmpfs. A hard-killed session can leak the dir — sweep with
-`rm -rf ~/.cache/runclaude-nested.*`.
+`podman unshare rm -rf ~/.cache/runclaude-nested.*` (a bare `rm` cannot delete the layers' read-only dirs).
 
 **Why a dedicated real-fs dir instead of just using a normal directory?** The sandbox's own
-rootfs is an **overlay** mount (the image layers). Layering the inner podman's `fuse-overlayfs` on
-top of that is **overlay-on-overlay under a nested user namespace, which the kernel rejects**. A
+rootfs is an **overlay** mount (the image layers). An inner overlay whose upper dir sits on top of
+that is **overlay-on-overlay, which the kernel rejects**. A
 tmpfs is a *real* (non-overlay) filesystem, which is the historical reason the store was a tmpfs. A
 **host directory on the real disk fs (ext4/xfs/btrfs), bind-mounted in, is equally a real fs** — so
 it sidesteps the overlay-on-overlay problem exactly like tmpfs did, but with no RAM ceiling. That
 is the whole point of the 2026-09-27 change (`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`): big
-inner builds used to OOM/`no space left` in the RAM tmpfs at layer-commit. Either store still
-commits slowly: `fuse-overlayfs` has no native overlay diff, so each nested commit walks the whole
-image. Build large images on the host (`tasks/reference/nested-run-and-gates.md`, "Build big images
-on the host").
+inner builds used to OOM/`no space left` in the RAM tmpfs at layer-commit. On either store the
+inner podman uses native kernel overlay, so a nested commit costs what a host commit does
+(`tasks/reference/nested-run-and-gates.md`, "Storage speed").
 
 Opt back into the RAM store with `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs` (sized by
 `NESTED_PODMAN_TMPFS_SIZE`, default 8g) — then the recipe adds `--tmpfs /var/lib/containers` instead
@@ -110,7 +111,7 @@ and creates no temp dir.
 (`NESTED_PODMAN_HOST_IMAGESTORE`, default `~/.local/share/containers/storage`) **read-only** at
 `/var/lib/shared-images` (emitted only if that path exists). The inner `storage.conf`'s
 `additionalimagestores = [ "/var/lib/shared-images" ]` then lets the inner podman **read** the
-host's already-built images (e.g. a `fedora:44` base, or `claudecontainer` itself) as **read-only
+host's already-built images (e.g. a `fedora:45` base, or `claudecontainer` itself) as **read-only
 lower layers**, without copying them. The writable container/layer still goes to the temp dir in
 (a). This is why "base image from the host, own layers elsewhere" is the accurate description.
 
@@ -135,7 +136,7 @@ This is runtime state, not image storage.
 | Place | What's there | Lifetime | Reclaim it with |
 |---|---|---|---|
 | `~/.local/share/containers/storage` (host) | `claudecontainer` + anything you build/pull on the host | Persistent | `podman rmi` / `podman system prune -a` / delete the dir |
-| `~/.cache/runclaude-nested.XXXXXX` | the nested session's *writable* layers | Ephemeral (rm'd on exit) | auto; leaked dirs → `rm -rf ~/.cache/runclaude-nested.*` |
+| `~/.cache/runclaude-nested.XXXXXX` | the nested session's *writable* layers | Ephemeral (rm'd on exit) | auto; leaked dirs → `podman unshare rm -rf ~/.cache/runclaude-nested.*` |
 | `/var/lib/shared-images` (in-sandbox) | a read-only *view* of the host store | Mount only (writes nothing) | n/a — it's the host store above, read-only |
 | `claudecontainer-*.tar` (repo root) | `make image-export` archives | Persistent, gitignored | delete the tar |
 
@@ -143,6 +144,6 @@ This is runtime state, not image storage.
 
 - `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md` — the disk-store change, the rootful-config fix, and
   the host/in-session verification.
-- `tasks/reference/nested-podman-design.md` — every nested flag and why it exists (fuse-overlayfs,
+- `tasks/reference/nested-podman-design.md` — every nested flag and why it exists (the storage driver,
   `--cgroups=disabled`, netavark/`net_admin`, the `libpod` tmpfs), plus the store-backend section.
 - `README.md` → "Building containers inside the sandbox" and "Where images are stored".

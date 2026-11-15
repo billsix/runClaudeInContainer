@@ -4,8 +4,9 @@
 # The -v paths in EXTRA_PODMAN_FLAGS below are the maintainer's host directories; a fork must
 # replace them with its own (see FORKING.md). Everything else is generic:
 #   NESTED_PODMAN=1            run podman inside the sandbox (see README)
-#   NESTED_PODMAN_TMPFS_SIZE   RAM-backed inner image store size
-#   NESTED_PODMAN_STORE_BASE   disk directory for the throwaway inner image store
+#   NESTED_PODMAN_STORE        inner image store: dir (default, on disk) or tmpfs (RAM)
+#   NESTED_PODMAN_TMPFS_SIZE   the RAM store's size (only with NESTED_PODMAN_STORE=tmpfs)
+#   NESTED_PODMAN_STORE_BASE   disk directory for the throwaway inner image store (dir mode)
 #   NESTED_PODMAN_HOST_IMAGESTORE
 #                              the host's podman image store, mounted read-only so nested
 #                              builds reuse images already built on the host (no re-pull, no
@@ -22,5 +23,7 @@
 #                                 open network namespace"). See
 #                                 tasks/reference/nested-run-and-gates.md.
 
-#make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z" USE_CONTROLLER=1
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage NESTED_PODMAN_HOST_IMAGESTORE="$HOME/.local/share/containers/storage" EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
+# RAM store instead of the disk store: comment out the last line and use this one.
+#make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs NESTED_PODMAN_TMPFS_SIZE=16g NESTED_PODMAN_HOST_IMAGESTORE="$HOME/.local/share/containers/storage" EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1
+# Disk store (the default; NESTED_PODMAN_STORE=dir keeps RAM off).
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=dir NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage NESTED_PODMAN_HOST_IMAGESTORE="$HOME/.local/share/containers/storage" EXTRA_PODMAN_FLAGS="-v /mnt/sda1/:/mnt/sda1/:z -e BUILDAH_ISOLATION=chroot" USE_CONTROLLER=1

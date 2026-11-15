@@ -47,7 +47,7 @@ The discipline:
 
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
-**What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
+**What this is FOR (William Emerison Six <billsix@gmail.com>, 2026-07-19): seeing how far down the rabbit hole we are, so we
 don't get so lost in the weeds that we forget our purpose and make bad decisions.** It is
 **not** a to-do queue and **not** a priority list. It is a breadcrumb trail of diversions.
 
@@ -74,7 +74,7 @@ duplicates one.
 - **`/stack-push <what we're diverting to>`** — before chasing the new thing, push the
   current one. Records repo, task doc, **a concrete `resume with` action**, and **every
   unanswered question, verbatim**.
-- **`/stack`** — read-only. Shows the stack top-first, verifies each entry still matches
+- **`/stack`** — read-only. Shows the trail root first (a descent), verifies each entry still matches
   reality, and says what the top item means we should be doing *now*.
 - **`/stack-pop`** — finished. Verifies it really is finished, archives the task doc, then
   **properly resumes** the entry underneath — restating its next action and **re-asking its
@@ -90,7 +90,7 @@ are always in your context — you are never relying on *remembering* to open it
 keeping it current non-optional: the stack is right in front of you, so a stale stack is a
 visible failure, not a hidden one.
 
-**I do NOT manage this stack — you do. That is the whole point (Bill, 2026-07-19: "I
+**I do NOT manage this stack — you do. That is the whole point (William Emerison Six <billsix@gmail.com>, 2026-07-19: "I
 don't want to have to remember those as commands").** The slash commands exist as manual
 overrides for when I explicitly want to poke the stack, but the default is that **you keep
 it current on your own, without being told**, as a normal part of how you work. Treat the
@@ -110,8 +110,8 @@ four operations below as things you *do*, not commands you wait for me to type:
 - **Surface it yourself, and reconcile at session start.** The auto-imported stack is in
   your context from the first message, so **at session start, check it against reality and
   reconcile it before doing other work** — if the "live thread" it names is not what we're
-  actually doing (a prior session's thread, say), fix it (push the real current thread, move
-  the stale one to a paused/deferred section) and say so briefly. Likewise, whenever the
+  actually doing (a prior session's thread, say), fix it (push the real current thread; park the
+  stale one in a task doc, since paused or deferred work lives in `tasks/`, not the stack) and say so briefly. Likewise, whenever the
   conversation has **drifted off the top item**, **say so unprompted** — "note: the top of the
   stack is X, but we've been on Y for a while." Catching that drift is your job, not mine; the
   stack is useless if I have to remember to ask.

@@ -18,7 +18,7 @@ into both sandboxes' conventions files. Done = the three copies are byte-identic
 ## Context
 
 - Model: `tasks/reference/python-coding-standard.md` (the shape, the three-copies banner, the
-  (a)/(b) split) and `tasks/split-python-standard-project-specifics.md` (why the shared doc names
+  (a)/(b) split) and `tasks/archive/2026/10/12/split-python-standard-project-specifics.md` (why the shared doc names
   no project's files).
 - Inputs: the maintainer's own `auto` guidelines (supplied 2026-10-15 in-session: `auto` is not
   overrated but is easily overused; use it freely when the type is obvious/redundant/long, spell

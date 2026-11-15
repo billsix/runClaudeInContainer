@@ -12,17 +12,19 @@ overlay). See `README.md` for the user-facing overview.
 
 ## What the pieces do
 
-- **`Dockerfile`** — Fedora 45 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
-  into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~430-package
-  toolchain — a host-runnable script the Dockerfile sources, not an inline
-  `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is
-  `/entrypoint.sh`.
+- **`Dockerfile`** — least-volatile layers first: Fedora 45 base and `dnf upgrade`;
+  **`entrypoint/01-install-base.sh`** (the ~460-package toolchain — a host-runnable script
+  the Dockerfile sources, not an inline `dnf install`); `entrypoint/01b-install-binary-tools.sh`
+  (shfmt, procs); Claude Code via the official `install.sh`; Lean via
+  `entrypoint/install-lean.sh`; then the often-edited part: `entrypoint/dotfiles/` into `/root/`,
+  the nested podman's `storage.conf` / `containers.conf` drop-ins, and the `USE_EMACS_CONFIG`
+  opt-out. Entrypoint is `/entrypoint.sh`.
 - **`Makefile`** — the control surface. `make image` builds; `make shell` runs an
   ephemeral (`--rm`) container; **`make shell-exec SCRIPT=… | CMD=…`** is its batch
   twin (runs a script/command in the same env, no TTY). `shell` and `shell-exec`
   share one **`SHELL_RUN_FLAGS`** variable so they can't drift. It conditionally
-  mounts host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, `~/.vimrc`, and `~/.claude` (each only
-  if it exists), mounts the CWD at `/<project-dir>`, and sets up X11 + Wayland
+  mounts host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg` and `~/.vimrc` (each only if it
+  exists) and always `~/.claude` and `~/.claude.json` (created if missing), mounts the CWD at `/<project-dir>`, and sets up X11 + Wayland
   passthrough.
 - **`entrypoint/entrypoint.sh`** — image entrypoint; just `exec bash`.
 - **`entrypoint/shell.sh`** — what `make shell` / `make shell-exec` run; `set -e`,
@@ -57,7 +59,7 @@ positional-struct-initializer checker, "Structs, constants, and the preprocessor
 `tasks/reference/vendoring-third-party-source-deps.md`).
 Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
-(runCrush mirrors all three byte-identically). `review_status.py` is another shared tool, but it is
+(runCrush mirrors all four byte-identically). `review_status.py` is another shared tool, but it is
 **run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
 `/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too.
 
@@ -77,6 +79,19 @@ mounts and stacking order, the ephemeral-`~/.claude.json` root-cause (diagnosed 
 not token expiry), the onboarding-vs-token distinction, the personal-overlay routing, the
 `@`-import history, the `mkdir -p` rationale, and the rejected alternatives — is in
 `tasks/reference/claude-config-layering.md`. See also `README.md` ("Auth").
+
+## Reviews
+
+Latest deep review: `tasks/review/2026/11/15/repo-review.md` (first review; includes the nested-storage
+research). Records are frozen; act on them through tasks.
+
+**A task here may span three repos** (William Emerison Six <billsix@gmail.com>, 2026-11-15):
+github.com/billsix/runCrushInContainer is the open-source-tools sibling of this sandbox, and the
+maintainer mirrors this repo's changes into it as far as is reasonable. The personal overlay
+(github.com/billsix/dotfiles `.ai-coding-conventions.personal.md`) is loaded by both. So a task made
+from a review finding here (or any convention change) may also edit runCrush and that overlay, and
+should say which of the three it touches. runCrush keeps its own review records in its own
+`tasks/review/`.
 
 ## Host shell vs container shell
 
@@ -113,7 +128,9 @@ sandbox it launches.
 - **Keep host mounts conditional.** New host-file mounts in the `Makefile` should
   follow the existing `readlink -f` + existence-test pattern so the build/run still
   works on machines that lack the file.
-- **Use `:Z`** on bind mounts for SELinux relabeling, matching the existing mounts.
+- **Never `:Z` on a host tree.** The sandbox runs `--security-opt label=disable`, so `:Z` gains
+  nothing and relabels the host directory with this container's private category, locking other
+  confined containers out of it. Use `:z` or no label (README, "Mounting extra directories").
 - After changing the `Makefile`, sanity-check with `make help` and a dry run; after
   changing the `Dockerfile`, a `make image` is the real test (it is slow — full
   toolchain install).
@@ -122,43 +139,36 @@ sandbox it launches.
 
 `make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
 sandbox: it appends the capability/device flags (`--device /dev/fuse`, `--security-opt
-label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a tmpfs
+label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, the inner image store at
 `/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod`) to the `shell` target's
-`podman run`, and the inner podman uses `fuse-overlayfs` (configured by
-`entrypoint/dotfiles/.config/containers/storage.conf`).
+`podman run`. The inner podman uses **native kernel overlay** (`entrypoint/dotfiles/.config/containers/storage.conf`,
+no `mount_program`), with buildah's temp dir on the store volume
+(`entrypoint/dotfiles/.config/containers/containers.conf`); a layer commit costs what it does on the
+host. `entrypoint/shell.sh` warns at start when podman reports no native overlay diff (an image
+built before the switch). Detail: `tasks/reference/nested-run-and-gates.md` ("Storage speed").
 
-> **Store backend changed 2026-09-27 (disk store + reuse VERIFIED live).**
-> The inner `/var/lib/containers` store now defaults to an **ephemeral on-disk directory**
-> (`NESTED_PODMAN_STORE=dir`; created under `NESTED_PODMAN_STORE_BASE` — default `~/.cache`,
-> relocatable per launch, e.g. to an HDD to spare an SSD — and `rm`'d on exit via an
-> `EXIT INT TERM HUP` trap) with the host image store mounted read-only for reuse
-> (`additionalimagestores`). The RAM tmpfs below is now **opt-in** via `NESTED_PODMAN_STORE=tmpfs`.
-> **The store config must be installed as a drop-in, not only as a main `storage.conf`.**
-> podman loads one main file, then every drop-in, and containers-common's
-> `/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` resets
-> `additionalimagestores`. The Dockerfile therefore also installs our file as
-> `/etc/containers/storage.conf.d/50-runclaude-nested.conf`, and `entrypoint/shell.sh` warns when the
-> mounted host store is not in use. Detail: `tasks/reference/nested-podman-design.md` ("Which storage
-> config the nested podman reads"). After a `make image` rebuild + relaunch, the
-> whole chain was confirmed from inside: store is btrfs-on-disk, host-built images list read-only,
-> and a `FROM` a host image builds without pulling. Details + verification log:
-> `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`. **runCrush ships the identical design and was verified
-> in-session 2026-09-27 too** (ext4 disk store, images reused read-only, a `FROM` host-image build
-> with no pull, and a forced ~20 GB layer committed with no `no space left on device`). The paragraph
-> below still describes the tmpfs mode.
+**The inner store has two backends, toggled by `NESTED_PODMAN_STORE`:**
+- `dir` (default): an ephemeral directory on the host disk, created under
+  `NESTED_PODMAN_STORE_BASE` (default `~/.cache`; point it at another disk to spare an SSD) and
+  removed on exit by an `EXIT INT TERM HUP` trap (`podman unshare rm -rf`).
+- `tmpfs`: a RAM store sized by `NESTED_PODMAN_TMPFS_SIZE` (default `8g`), e.g.
+  `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs NESTED_PODMAN_TMPFS_SIZE=16g`. Bounded by
+  RAM; a full-toolchain image needs well over 8g. `exampleRunClaude.sh` carries this as a
+  commented-out alternative to the disk-store line.
 
-The `/var/lib/containers` tmpfs is **RAM-backed**, defaults to **8g**, and is sized by
-`NESTED_PODMAN_TMPFS_SIZE` (e.g. `make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`
-for a large inner build). A `NESTED_PODMAN=1` launch also exports `NESTED_PODMAN=1` into the
-session, so converted project Makefiles auto-apply `--cgroups=disabled` via their
-`PODMAN_RUN_FLAGS` variable — the agent runs plain `make image`/`make test` nested and
-**never passes `NESTED_PODMAN=1` on a downstream command** (it belongs only on the outermost
-host launch).
+Either way the host image store is mounted read-only at `/var/lib/shared-images`
+(`additionalimagestores`), so nested builds reuse host-built images. **The store config is
+installed as a drop-in too, not only as a main `storage.conf`:** containers-common's
+`/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` resets
+`additionalimagestores` and turns on `metacopy` (which native overlay rejects in a user namespace),
+so the Dockerfile installs our file as `/etc/containers/storage.conf.d/50-runclaude-nested.conf`,
+and `entrypoint/shell.sh` warns when the mounted host store is not in use. Detail:
+`tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
 
-**Nested layer commits are slow** (`fuse-overlayfs` has no native overlay diff, so each commit
-walks the whole image; minutes per step on a large image, once over 40), so build big images on the
-host and let the sandbox reuse them read-only. Detail: `tasks/reference/nested-run-and-gates.md`
-("Build big images on the host").
+A `NESTED_PODMAN=1` launch also exports `NESTED_PODMAN=1` into the session, so converted project
+Makefiles auto-apply `--cgroups=disabled` via their `PODMAN_RUN_FLAGS` variable — the agent runs
+plain `make image`/`make test` nested and **never passes `NESTED_PODMAN=1` on a downstream
+command** (it belongs only on the outermost host launch).
 
 For the **whole build-and-storage pipeline** — the two podman levels (host `make image` vs
 nested podman inside the sandbox) and where every image layer is written / how to reclaim

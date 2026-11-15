@@ -16,7 +16,7 @@ layer.
 
 ## Context
 Raised by William Emerison Six <billsix@gmail.com>, 2026-11-06, during the F45
-upgrade (`tasks/archive/.../upgrade-to-fedora-45.md`). The base list is
+upgrade (`tasks/archive/2026/11/06/upgrade-to-fedora-45.md`). The base list is
 "batteries-included" on purpose (don't prune for cleanliness), so this is a
 judgement call, not an obvious cut.
 

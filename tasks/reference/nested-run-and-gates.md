@@ -31,7 +31,7 @@ build-file additions a task needs). Absent such a grant, the default holds: prop
 edit and wait for the go-ahead, per point 2 above.
 
 **Other specifics:**
-- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (Bill, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
+- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `entrypoint/01-install-base.sh`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (William Emerison Six <billsix@gmail.com>, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
   ```sh
   Xvfb :99 -screen 0 1280x800x24 &
   podman run --rm --cgroups=disabled -e DISPLAY=:99 \
@@ -47,18 +47,18 @@ edit and wait for the go-ahead, per point 2 above.
   1.45.1):** the sandbox is a rootless container on the host (`/proc/self/uid_map` maps uid 0 to the host
   user), so the inner podman runs rootful with netavark for `podman run`, but buildah's `RUN` steps see the
   user namespace and take the rootless pasta path, which cannot open a network namespace there. The
-  Fedora 44 sandbox's older podman/buildah did not hit this. Tested on a one-line `RUN getent hosts
+  Fedora 44-based sandbox's older podman/buildah did not hit this. Tested on a one-line `RUN getent hosts
   github.com`: the default and `--network=bridge` fail; `--network=host`, `--isolation=chroot` and the
   environment variable `BUILDAH_ISOLATION=chroot` all work. **Fix:** launch the sandbox with
   `-e BUILDAH_ISOLATION=chroot` (the example launcher `exampleRunClaude.sh` passes it through
   `EXTRA_PODMAN_FLAGS`, which goes straight into `podman run`); then every nested `podman build` works unchanged.
   Without it, add `--network=host` to the one `podman build` command (run the `make -n image` line by
   hand rather than editing the Makefile).
-- **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.
+- **Inside the sandbox an inner run's `:Z` is fine** (it relabels the sandbox's own view, under `label=disable`); on the host, never `:Z` a host tree (see the `:Z` note above).
 - **Inner image store is ephemeral** — pulled/built images don't survive the session; expect re-pulls. (Disk-backed dir by default since 2026-09-27; RAM tmpfs is opt-in via `NESTED_PODMAN_STORE=tmpfs`.)
 - **Manage inner images by RAM pressure only in the opt-in tmpfs mode.** With the default on-disk store this juggling is mostly moot (disk is plentiful). In `NESTED_PODMAN_STORE=tmpfs` mode the store is a small **RAM-backed** tmpfs (`/var/lib/containers`, sized by `NESTED_PODMAN_TMPFS_SIZE`, **default 8g**), so every pulled/built image costs real memory. **Don't** `rmi` an image the moment you're done with it — keeping it avoids an expensive rebuild if you need it again this session. Instead, **before building or pulling a new image**, estimate its size (a Fedora/full-toolchain image is multiple GB; a slim base is hundreds of MB) and check headroom with `df -h /var/lib/containers`. Only if there isn't enough room, **evict** — `podman rmi` an existing image that seems unlikely to be needed again soon (and `podman image prune -f` for dangling layers) to make space. (`--rm` removes the *container*; the *image* persists until you `rmi` it.) The goal is fewest rebuilds within the RAM budget, not a clean store. Also: when validating in a throwaway image, install the baseline tools your check depends on first — a minimal base (e.g. `ubuntu:24.04`) ships no `python3`, which can make a check *silently pass*.
-- **Storage is fuse-overlayfs**; `podman info --format '{{.Store.GraphDriverName}}'` reports `overlay` driven by it.
-- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.
+- **Storage is native kernel overlay**; `podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}'` reports `true` (see "Storage speed").
+- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/2026/06/07/nested-podman.md`.
 
 ## Verification gates in nested containers
 
@@ -119,45 +119,37 @@ over an hour. Use `make -n <target>` to see the recipe, or run the guard line by
 `grep -a -o "STEP [0-9]*/[0-9]*: [A-Z]*" <log> | tail -1`, plus the log's mtime to see whether it
 is still moving.
 
-## Build big images on the host; nested layer commits are slow (William Emerison Six <billsix@gmail.com>, 2026-11-15)
+## Storage speed: native overlay, and the warning that says when you don't have it (William Emerison Six <billsix@gmail.com>, 2026-11-15)
 
-**Every layer a nested `podman build` commits is diffed the slow way.** The inner podman stores
-layers with `fuse-overlayfs` (the kernel rejects overlay-on-overlay in nested user namespaces; see
-`entrypoint/dotfiles/.config/containers/storage.conf`), and `podman info` reports
-`Native Overlay Diff: false`. So each commit runs storage's `NaiveDiffDriver`, which finds the
-changes by walking the whole merged tree of the new layer and of its parent, one `Lstat` per file
-through FUSE. The cost grows with the size of the whole image, not with what the step changed. On a
-large image even a one-line `RUN` can take many minutes; on the host, kernel overlay diffs natively
-and the same commit takes seconds.
+**The nested podman uses the kernel's native overlay, so a layer commit tars only the new layer.**
+`podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}'` prints `true`. This works
+because the inner store, `/var/lib/containers`, is a real filesystem (the host disk dir, or the
+tmpfs), never the sandbox's own overlay root; buildah's temp files sit on the same volume
+(`image_copy_tmp_dir`), because a build-context overlay mount on `/var/tmp` fails. Measured
+2026-11-15 on the 3.1 GB spimulator image: a two-step build (`RUN echo`, `RUN dnf install cowsay`)
+took 13 s native, 9 s native on tmpfs, and 62 s under the fuse-overlayfs setup it replaced.
 
-**What it looks like:** the log stops after a `STEP n: RUN …` line, `ps` shows no process running
-that step (it already finished; finished `exe` children may linger as zombies), and `podman build`
-sits in `futex` wait. It looks like a hang, or a network stall if the step downloads something, but
-it is neither. To confirm, `kill -QUIT <podman build pid>`: the Go stack dump, written to the build's
-stderr, shows `NaiveDiffDriver.Diff` → `ChangesDirs` under `CommitResults`. (SIGQUIT ends the build;
-SIGTERM may not stop a `podman build` at all, and a surviving one holds the storage lock, so a
-retry then waits behind it. Check `pgrep -fa "podman build"` before rebuilding.)
+**Without native diff, every commit walks the whole image.** fuse-overlayfs has no native diff, so
+containers/storage's `NaiveDiffDriver` finds each layer's changes by walking the merged tree of the
+layer and its parent, one `Lstat` per file through FUSE. The cost grows with the whole image, not
+with what the step changed: on a TeX-sized image a one-line `RUN` took 4 minutes to commit, and one
+commit ran over 40 minutes and looked like a hang (the log stops after a `STEP n: RUN …` line, `ps`
+shows nothing running the step, and `podman build` sits in `futex` wait). A sandbox image built
+before the switch still has `mount_program = /usr/bin/fuse-overlayfs`; `entrypoint/shell.sh` then
+prints a `[nested podman] … no native overlay diff` warning at start. Rebuild that image on the host
+(`[HOST] make image`) and relaunch before a large nested build.
 
-Seen 2026-11-15: rebuilding github.com/billsix/modelviewprojection's image (TeX Live, Emacs,
-Jupyter, ePiX) nested after a one-package `requirements.txt` change, the commit of a small `RUN`
-step ran for over 40 minutes before it was stopped; it was first misread as a network hang. Two
-retries then waited behind it on the storage lock (the first build had survived SIGTERM), which
-`--network=host` could not fix. A probe measured the floor: one `RUN echo hi > /opt/x` on top of the
-host-built mvp image took 256 s to commit nested. Why that one commit took ten times longer is not
-known.
-
-**So build large images on the host first.** `[HOST] make image` in the project, then launch the
-sandbox with `NESTED_PODMAN_HOST_IMAGESTORE` (the default store) so the sandbox reads the result
-read-only; running, testing and small builds nested are fine. When a change needs a big image
-rebuilt mid-session, ask the maintainer to run `make image` on the host rather than building it
-nested. No `make shell` option avoids the naive diff: `NESTED_PODMAN_STORE=tmpfs` uses the same
-driver.
+**Requirements, if the setup is ever moved:** the store on a non-overlay filesystem; `CAP_SYS_ADMIN`
+in the sandbox's user namespace (`--cap-add=sys_admin`); no `metacopy` in `mountopt` (the kernel
+rejects it in a user namespace, and containers-common's vendor drop-in turns it on, so ours
+overrides it); a fresh store (an old one's `.has-mount-program` flag pins fuse until reset; the
+per-session store is always fresh).
 
 ## Concurrent nested builds share one storage lock — time builds alone (William Emerison Six <billsix@gmail.com>, 2026-11-08)
 
 Several `podman build`s can run at once in the sandbox, but committing a layer takes the store's lock, and
-under `fuse-overlayfs` a big layer (a TeX install, a large `COPY`) holds it for minutes. Two things
-follow:
+a big layer (a TeX install, a large `COPY`) holds it for as long as the commit takes (minutes under the
+old fuse-overlayfs setup). Two things follow:
 
 - **A build that copies a huge context into a layer stalls every other build.** A probe
   `COPY . /ctx` of geometricalgebra's 7.5 GB tree left two unrelated image builds idle for 8 minutes;

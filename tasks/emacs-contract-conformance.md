@@ -6,6 +6,7 @@ not started (scaffolded 2026-11-07 from the survey that produced
 **Priority:** 6
 **Difficulty:** 4
 Created 2026-11-07 (William Emerison Six <billsix@gmail.com>).
+**See also:** `tasks/emacs-config-elpa.md` fixes this sandbox's own config (empty `elpa/`, wrong LSP root).
 
 ## BLUF
 

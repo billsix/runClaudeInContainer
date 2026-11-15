@@ -20,7 +20,7 @@ folded into `tasks/reference/nested-podman-design.md`.
 **Priority:** 3 (raised from 5 when the maintainer asked for it). **Difficulty:** 6.
 **Created:** 2026-07-06; reconsidered, decided, implemented and verified 2026-09-27.
 **See also:** `tasks/reference/nested-podman-design.md` ("Store backend"); the naming half of this
-reconsideration, `tasks/decouple-minimal-image-from-nested-podman.md` (renamed `NESTED_PODMAN`'s
+reconsideration, `tasks/archive/2026/09/27/decouple-minimal-image-from-nested-podman.md` (renamed `NESTED_PODMAN`'s
 image-content meaning to an opt-in `MINIMAL_IMAGE` — a disk store made the lean image optional rather
 than a nested necessity), which was done immediately after this and is likewise archived under
 `tasks/archive/2026/09/27/`.

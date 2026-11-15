@@ -1,0 +1,9 @@
+# The Dockerfile copies only entrypoint/ paths; keep everything else out of the build
+# context (history, task docs, image tars, caches).
+.git
+tasks/
+tools/
+**/__pycache__/
+**/*.py[cod]
+.ruff_cache/
+*.tar

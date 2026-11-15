@@ -2,7 +2,9 @@
 
 **Status:** proposed — design settled (all open questions resolved by the maintainer 2026-10-26);
 ready to implement on go-ahead.
-**Priority:** 4 **Difficulty:** 2
+**Priority:** 4
+**Difficulty:** 2
+**Depends on:** `tasks/suppress-claude-session-trailer.md` decides where a tracked `settings.json` sits in the mount layering; this task uses that answer.
 **Created:** 2026-10-26 (William Emerison Six <billsix@gmail.com>). From the maintainer: "why does
 claude, as in runClaudeInContainer, keep asking me for permissions to read and write files and
 folders? I run it all in a container, I expect that anything in the container can be read or written
@@ -39,12 +41,13 @@ documented + version-controlled in this repo.
   committed `.claude` layer lives at `entrypoint/dotfiles/.claude/` (`CLAUDE.md`, the personal
   overlay, `commands/`, reference docs). The host's real `~/.claude` is **mounted** over parts of it
   so interactive login + edits persist back (see the `Makefile` `~/.claude` / `~/.claude.json` mount
-  comments around lines 136–177, and `entrypoint/shell.sh`). **There is no `settings.json` today**
-  (`find . -name 'settings*.json'` is empty) — so this is a net-new file, with the one real question
+  comments around lines 136–177, and `entrypoint/shell.sh`). **The repo has no `settings.json`**
+  (`find . -name 'settings*.json'` is empty), but the host's `~/.claude/settings.json` comes in
+  through `CLAUDE_CONFIG_MOUNT`, so a baked file would shadow it wholesale — a tracked file is new, with the one real question
   being *where it sits in the mount/bake layering* so it takes effect and doesn't get shadowed by the
   host mount (resolve against `claude-config-layering.md`).
 - **Claude Code's permission model (verify current semantics with the `update-config` skill / docs
-  before implementing — this is the 2026-01 understanding):**
+  before implementing — this is the understanding as of 2026-10-26):**
   - `settings.json` has a `permissions` block: `allow` / `ask` / `deny` **rule lists** (e.g.
     `"Read"`, `"Edit"`, `"Write"`, or tool-scoped like `"Read(//**)"`), plus `additionalDirectories`
     (extra roots that don't prompt on Read) and `defaultMode`.

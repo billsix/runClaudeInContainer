@@ -3,7 +3,7 @@
 **Reference document** — the convention that a containerized project can build a *lean* image on
 demand by passing **`MINIMAL_IMAGE=1`**, while its default (host or nested) is the *full* image; the
 idiom; the rules for what may and may not be trimmed; and the 2026-09-10 survey of every project under
-the sandbox's `/foo/opt` mount with a `CLAUDE.md`. Work: `tasks/minimal-image-for-nested-podman-standard.md`
+the sandbox's project mounts with a `CLAUDE.md`. Work: `tasks/archive/2026/11/15/minimal-image-for-nested-podman-standard.md`
 (umbrella) + one `tasks/minimal-nested-image.md` per project. Sibling of `nested-podman-design.md`
 ("The `PODMAN_RUN_FLAGS` convention"), which it does not repeat. Written 2026-09-10 (William Emerison
 Six <billsix@gmail.com> asked for the standard).
@@ -18,7 +18,7 @@ Six <billsix@gmail.com> asked for the standard).
 > the sandbox does **not** auto-export: a nested `make image` builds FULL unless the user passes
 > `MINIMAL_IMAGE=1` (for a small export/airgap image). `NESTED_PODMAN` keeps ONLY its
 > `PODMAN_RUN_FLAGS` run-capability role. Decision + rollout:
-> `tasks/decouple-minimal-image-from-nested-podman.md`.
+> `tasks/archive/2026/09/27/decouple-minimal-image-from-nested-podman.md`.
 
 > **Scope (2026-09-12): this applies to DOWNSTREAM container-per-project repos only — NEVER to
 > runClaudeInContainer or the runCrushInContainer client themselves.** Those two are built on the host
@@ -86,7 +86,7 @@ every optional flag. The template spec lives in the maintainer's personal overla
 The tracked cross-project `CLAUDE.md` documents `MINIMAL_IMAGE` as an option under "Running projects in
 a nested container".
 
-## 3. The survey (2026-09-10) — every `/foo/opt` project with a `CLAUDE.md`
+## 3. The survey (2026-09-10) — every mounted project with a `CLAUDE.md`
 
 Read from each Dockerfile, Makefile and `entrypoint/*install*.sh` in the sandbox; sizes are to be
 measured at implementation (none of these images were built for the survey). Per-project detail and
@@ -107,7 +107,7 @@ plan: that project's `tasks/minimal-nested-image.md`.
 | texExpToPng | `USE_EMACS` 1 (plain `=`) | TeX (product) | `USE_EMACS` flips | template for billsEmacsConfigs |
 | billsEmacsConfigs ×20 | `USE_EMACS` 1 (plain `=`) | TeX + each toolchain | `USE_EMACS` flips (judgement call: Emacs is their point) | one codemod |
 | modelviewprojection | `BUILD_DOCS`, `USE_EMACS`, `USE_JUPYTER`, `USE_X_WINDOWS` 1; `USE_SPYDER` 0 | — | `USE_EMACS`, `USE_JUPYTER` flip; **`BUILD_DOCS` (book gate) and `USE_X_WINDOWS` (headless Mesa) stay** | `morePorts` checkout has no `PODMAN_RUN_FLAGS` — verify master |
-| runClaudeInContainer (sandbox image) | `USE_EMACS_CONFIG` 1 | `01-install-base.sh` ~430 pkgs | **N/A — excluded** (built on host, launched nested) | proposal dropped 2026-09-12 (`tasks/minimal-sandbox-image.md`) |
+| runClaudeInContainer (sandbox image) | `USE_EMACS_CONFIG` 1 | `01-install-base.sh` ~460 pkgs | **N/A — excluded** (built on host, launched nested) | proposal dropped 2026-09-12 (`tasks/minimal-sandbox-image.md`) |
 | imps/n64 ×4 | — | Ubuntu 22.04/24.04 mirrors of upstream CI | **N/A** — fidelity to CI is the design | |
 | impo/openstax ×16 | hardcoded `PODMAN_RUN_FLAGS = --cgroups=disabled` | TeX schemes/collections (product) | **N/A** — nothing to cut | still want the `?=` PODMAN_RUN_FLAGS form |
 | Craft, imps, impo | — | no container | **N/A** | |
@@ -123,7 +123,7 @@ pgu as converted — re-check on `master` before assuming the record is wrong.
 
 ## 4. Re-sync check
 
-`grep -ln 'MINIMAL_IMAGE)),0,1)' /foo/opt/*/Makefile /foo/opt/*/*/Makefile /foo/opt/*/client/Makefile`
+`grep -ln 'MINIMAL_IMAGE)),0,1)' <mount>/*/Makefile <mount>/*/*/Makefile <mount>/*/client/Makefile` (`<mount>` = where the sandbox mounts your projects)
 from the sandbox lists the projects that expose the lean option; a project in §3's "lean variant"
 column that is missing from that list has not been done yet (or drifted back). As of 2026-09-27 only
 geometricalgebra and hanoi expose it; the rest of §3's table is still a plan, not converted code.

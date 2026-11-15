@@ -2,7 +2,7 @@
 
 **Reference document** — the durable rationale and the gacalc A/B/C study behind the
 "Generating source code" rule in the cross-project `CLAUDE.md`. Read on demand when you are
-writing or reviewing a **code generator**. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+writing or reviewing a **code generator**.
 
 These are the durable, language-agnostic lessons — distilled from gacalc's
 `tools/gen_specialized.py`, (`github.com/billsix/geometricalgebra`), which moved from string

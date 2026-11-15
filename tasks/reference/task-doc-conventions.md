@@ -3,7 +3,7 @@
 **Reference document** — the full detail behind the terse "Task documents", "Priority &
 difficulty", "Blocked tasks", "Step tasks", and "Ad-hoc scripts" rules in the cross-project
 `CLAUDE.md`. Read on demand when creating/archiving a task, scaffolding a step-task tree, or
-saving/promoting an ad-hoc script. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+saving/promoting an ad-hoc script.
 Companion: `~/.claude/reference/reference-doc-conventions.md` (reference docs, harvesting, the
 session-end sweep) and `~/.claude/reference/git-workflow-conventions.md` (the commit
 boundaries the archive lifecycle rides on).
@@ -58,7 +58,7 @@ For a **multi-step initiative** too big for one task doc — a refactor that run
 
 When a task is complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md` (zero-padded, based on the archive date) rather than deleting it. The date-bucketed layout keeps any one directory from accumulating too many entries. The history is useful.
 
-**Archiving is yours to do, proactively, at the moment of completion — no go/no-go question (Bill,
+**Archiving is yours to do, proactively, at the moment of completion — no go/no-go question (William Emerison Six <billsix@gmail.com>,
 2026-08-31; timing corrected 2026-09-07).** The instant a task's done-state is met and its gates are
 green, the archive is *owed*: harvest durable knowledge to reference docs, **rewrite the task doc into a
 lean done-record** (see "The done-record rewrite" below), fix inbound pointers, `git mv` the task into
@@ -69,7 +69,7 @@ this rule exists to stop (origin: two verifiably-done gacalc tasks presented wit
 itself is genuinely ambiguous.
 
 **BUT the archive is its own commit, AFTER the work commit — never bundled into the work's staged
-handoff (Bill, 2026-09-07).** The maintainer's lifecycle is **three commits**: (1) task-add, ideally
+handoff (William Emerison Six <billsix@gmail.com>, 2026-09-07).** The maintainer's lifecycle is **three commits**: (1) task-add, ideally
 standalone; (2) work + adhoc scripts, together; (3) archive-move + the one-shot adhoc `git rm`,
 together, in a *separate* commit after the work commit — so `git log` shows "work + its scripts" and
 "archive + script deletion" as two related, self-contained points. **Stage the work and STOP — do NOT

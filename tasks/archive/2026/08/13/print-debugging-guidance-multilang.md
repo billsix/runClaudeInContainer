@@ -88,5 +88,5 @@ None — ready to implement on go-ahead. (Language set decided above: the nine l
 
 - Cross-project `CLAUDE.md` → "Instrumentation-driven debugging (make the tools tell you
   what to do)" — the section this extends.
-- `tasks/sphinx-human-readable-reference-docs.md` — decides the format any new reference
+- `tasks/archive/2026/08/13/sphinx-human-readable-reference-docs.md` — decides the format any new reference
   doc is written in.
