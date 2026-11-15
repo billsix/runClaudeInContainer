@@ -5,7 +5,11 @@
 **Difficulty:** 2
 **Created:** 2026-08-25 (William Emerison Six <billsix@gmail.com>)
 
-## Context / why this exists
+## BLUF
+
+Decide whether runClaudeInContainer relicenses from GPL-2.0 to Apache-2.0, matching runCrushInContainer, or stays GPL-2.0. Done means the decision is recorded here and, if relicensing, the mechanical work below is done.
+
+## Context
 
 `runCrushInContainer` (`github.com/billsix/runCrushInContainer`) was relicensed **Apache-2.0** on
 2026-08-25 — its model (Muse Glimmer) is Apache-2.0 and it's a fork-friendly template. **This** repo,

@@ -1,27 +1,27 @@
-# Clean up the open-task backlog the review found stale
+# Cleaned up the open-task backlog the review found stale
 
-**Status:** proposed — in the 2026-11-15 audit batch
+**Status:** complete
+**Completed:** 2026-11-15
 **Priority:** 3
 **Difficulty:** 2
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/15/repo-review.md §9.1, §9.2, §9.3, §9.4, §9.5 F7
 
-## BLUF
+## What this did
 
-Several open tasks are done, dropped, overlapping or built on an overturned premise. Done means each is archived, rewritten or cross-linked so the backlog reads true.
-
-## Context
-
-- `tasks/minimal-image-for-nested-podman-standard.md` rolls out the old `NESTED_PODMAN`-keyed idiom (now `MINIMAL_IMAGE`).
-- `tasks/container-cmd-podman-docker-fallback.md`: rollout done 2026-09-03; leftovers are the personal overlay's `CONTAINER_CMD = podman` invariant and new-project scaffolding.
-- `tasks/minimal-sandbox-image.md` (dropped) and `tasks/adhoc-scripts-repo-relative-paths.md` (resolved) should be archived.
-- `tasks/default-allow-file-rw-in-sandbox.md` and `tasks/suppress-claude-session-trailer.md` share the settings-placement question; `tasks/emacs-contract-conformance.md` and `tasks/verify-emacs-config-build-flag.md` should cross-link.
-- §9.5: missing BLUF/Context in three tasks, a bare "Bill" stamp, the deleted regardingBritt, an odd date, an elided archive path, no `.keep` under `tasks/`.
-
-## Plan
-
-1. Rewrite `minimal-image-for-nested-podman-standard` around `MINIMAL_IMAGE` (or close it if nothing is left).
-2. `container-cmd-podman-docker-fallback`: fix the Status, update the overlay contract line (dotfiles), and archive what is done.
-3. Archive `minimal-sandbox-image` and `adhoc-scripts-repo-relative-paths`.
-4. Make the settings task depend on the trailer task's layering decision; cross-link the emacs tasks.
-5. The §9.5 header fixes and `.keep` files.
+- Closed four tasks with done-records and archived them: `minimal-image-for-nested-podman-standard`
+  (superseded by `MINIMAL_IMAGE`; a fleet sweep found no project on the old idiom),
+  `container-cmd-podman-docker-fallback` (rollout done 2026-09-03; the personal overlay's contract
+  now states the line, in github.com/billsix/dotfiles; its one-shot codemod `git rm`'d),
+  `minimal-sandbox-image` (dropped 2026-09-12) and `adhoc-scripts-repo-relative-paths` (resolved;
+  re-grep clean).
+- `default-allow-file-rw-in-sandbox.md` depends on `suppress-claude-session-trailer.md` for the
+  settings-layering decision, and its "no `settings.json`" claim now accounts for the host file
+  that `CLAUDE_CONFIG_MOUNT` brings in. `emacs-contract-conformance.md` and
+  `verify-emacs-config-build-flag.md` link `emacs-config-elpa.md`.
+- Headers: BLUF and Context in `license-family-alignment.md`, `standardize-project-container-template.md`
+  and `verify-emacs-config-build-flag.md` (which also got a Created stamp and lost its stale
+  "RAM-backed nested store" text); Priority and Difficulty on separate lines; the deleted
+  regardingBritt noted; the odd "2026-01" date fixed; the elided archive path in
+  `consider-dropping-shfmt-procs.md` spelled out.
+- `.keep` files in `tasks/adhoc/`, `tasks/reference/` and `tasks/archive/`.

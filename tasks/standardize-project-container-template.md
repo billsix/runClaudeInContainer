@@ -5,7 +5,11 @@
 **Priority:** 5
 **Difficulty:** 5
 
-## Why
+## BLUF
+
+Encode one standard for the project container template (repo mounts, `shell.sh` delivery, the `shell-exec` shape, flag-variable names) in the contract, then migrate the projects that drift. Done means the contract states each item and the "Still open" list below is migrated or explicitly declined.
+
+## Context
 
 Adding `make shell-exec` across ~45 projects exposed how much the "one container-per-project template"
 has **drifted** in ways that are accidental, not deliberate. Each divergence made the fan-out a
@@ -82,7 +86,7 @@ The `shell`/`shell-exec` PAIR is now normalized everywhere. The remaining drift 
 the baked-vs-bind-mount of the *setup*, not the launcher) is a separate migration:
 - one `shell.sh` mount path (`/usr/local/bin/shell.sh`) — a cosmetic unification of the remaining
   `/shell.sh` projects (low value; the paths already work). **Baked launchers: runCrush client is now
-  bind-mounted (done 2026-08-29); regardingBritt stays baked — it's a dead project.**
+  bind-mounted (done 2026-08-29); regardingBritt has since been deleted.**
 - one X11 flag var name (`$(X_FLAGS_FOR_CONTAINER)`; rename `$(USE_X)` in mvp/apue);
 - encode the whole standard + a conformance checklist in the contract doc (the personal overlay already
   got the `shell-exec`/`shell.sh` half, 2026-08-29).

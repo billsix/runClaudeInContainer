@@ -3,8 +3,13 @@
 **Status:** proposed — needs go-ahead
 **Priority:** 6
 **Difficulty:** 2
+**Created:** 2026-11-08 (William Emerison Six <billsix@gmail.com>)
 
-## Goal
+## BLUF
+
+Rebuild the image with `USE_EMACS_CONFIG=1` and `=0` and confirm the flag keeps or drops `/root/.emacs.d` and nothing else. Done means both images build and launch `make shell`. The config itself does not load yet (empty `elpa/`); that is `tasks/emacs-config-elpa.md`, so "working" here means the tree is present or absent, not that Emacs starts cleanly.
+
+## Context
 
 The `USE_EMACS_CONFIG` opt-out flag was added in
 `tasks/archive/2026/11/08/separate-general-and-personal-conventions.md` (Makefile default `1`, Dockerfile
@@ -32,8 +37,8 @@ belt-and-braces for nested runs (see the nested-podman reference doc); a plain h
   off, `make` opts in).
 
 Both images should still launch a working `make shell` (the flag only touches the Emacs
-tree, nothing else). Manage the RAM-backed nested store between builds (`podman rmi` under
-pressure).
+tree, nothing else). In the opt-in RAM store (`NESTED_PODMAN_STORE=tmpfs`), `podman rmi` between
+builds under pressure.
 
 ## Done when
 
