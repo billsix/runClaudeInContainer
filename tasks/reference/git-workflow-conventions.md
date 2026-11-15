@@ -74,4 +74,11 @@ commit stays one unit, run every gate once, fix what fails, and only then write 
 done-record (stating its gate result) and archive it. The per-task commit boundaries survive; only
 the gate runs once instead of per task.
 
+**Build every image yourself during a batch, nested, however large** (William Emerison Six
+<billsix@gmail.com>, 2026-11-15). Outside a batch, the agent asks the maintainer to run `make image`
+on the host for a large image, because nested layer commits are slow (`nested-run-and-gates.md`,
+"Build big images on the host"). In a batch nobody is there to answer, so the agent builds the image
+nested, accepts the wait, notes the build in the task doc, and checks `pgrep -fa "podman build"`
+before retrying a build that seems stuck.
+
 Each commit gets a clear, specific message — they are the play-by-play I read. The done-record *rewrite* of the docs (step 3) happens every batch, at archive time, regardless of whether a squash follows; the squash itself (collapsing the quick-saves to one-commit-per-task) stays a step I ask for explicitly. The stage-only default still governs — this whole workflow runs only for a batch I've explicitly told you to commit.

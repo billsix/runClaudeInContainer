@@ -95,7 +95,10 @@ tmpfs is a *real* (non-overlay) filesystem, which is the historical reason the s
 **host directory on the real disk fs (ext4/xfs/btrfs), bind-mounted in, is equally a real fs** — so
 it sidesteps the overlay-on-overlay problem exactly like tmpfs did, but with no RAM ceiling. That
 is the whole point of the 2026-09-27 change (`tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`): big
-inner builds used to OOM/`no space left` in the RAM tmpfs at layer-commit.
+inner builds used to OOM/`no space left` in the RAM tmpfs at layer-commit. Either store still
+commits slowly: `fuse-overlayfs` has no native overlay diff, so each nested commit walks the whole
+image. Build large images on the host (`tasks/reference/nested-run-and-gates.md`, "Build big images
+on the host").
 
 Opt back into the RAM store with `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs` (sized by
 `NESTED_PODMAN_TMPFS_SIZE`, default 8g) — then the recipe adds `--tmpfs /var/lib/containers` instead
