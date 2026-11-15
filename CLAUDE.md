@@ -155,6 +155,11 @@ session, so converted project Makefiles auto-apply `--cgroups=disabled` via thei
 **never passes `NESTED_PODMAN=1` on a downstream command** (it belongs only on the outermost
 host launch).
 
+**Nested layer commits are slow** (`fuse-overlayfs` has no native overlay diff, so each commit
+walks the whole image; minutes per step on a large image, once over 40), so build big images on the
+host and let the sandbox reuse them read-only. Detail: `tasks/reference/nested-run-and-gates.md`
+("Build big images on the host").
+
 For the **whole build-and-storage pipeline** — the two podman levels (host `make image` vs
 nested podman inside the sandbox) and where every image layer is written / how to reclaim
 disk — see `tasks/reference/image-build-and-storage-pipeline.md`.

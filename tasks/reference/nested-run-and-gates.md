@@ -119,6 +119,40 @@ over an hour. Use `make -n <target>` to see the recipe, or run the guard line by
 `grep -a -o "STEP [0-9]*/[0-9]*: [A-Z]*" <log> | tail -1`, plus the log's mtime to see whether it
 is still moving.
 
+## Build big images on the host; nested layer commits are slow (William Emerison Six <billsix@gmail.com>, 2026-11-15)
+
+**Every layer a nested `podman build` commits is diffed the slow way.** The inner podman stores
+layers with `fuse-overlayfs` (the kernel rejects overlay-on-overlay in nested user namespaces; see
+`entrypoint/dotfiles/.config/containers/storage.conf`), and `podman info` reports
+`Native Overlay Diff: false`. So each commit runs storage's `NaiveDiffDriver`, which finds the
+changes by walking the whole merged tree of the new layer and of its parent, one `Lstat` per file
+through FUSE. The cost grows with the size of the whole image, not with what the step changed. On a
+large image even a one-line `RUN` can take many minutes; on the host, kernel overlay diffs natively
+and the same commit takes seconds.
+
+**What it looks like:** the log stops after a `STEP n: RUN …` line, `ps` shows no process running
+that step (it already finished; finished `exe` children may linger as zombies), and `podman build`
+sits in `futex` wait. It looks like a hang, or a network stall if the step downloads something, but
+it is neither. To confirm, `kill -QUIT <podman build pid>`: the Go stack dump, written to the build's
+stderr, shows `NaiveDiffDriver.Diff` → `ChangesDirs` under `CommitResults`. (SIGQUIT ends the build;
+SIGTERM may not stop a `podman build` at all, and a surviving one holds the storage lock, so a
+retry then waits behind it. Check `pgrep -fa "podman build"` before rebuilding.)
+
+Seen 2026-11-15: rebuilding github.com/billsix/modelviewprojection's image (TeX Live, Emacs,
+Jupyter, ePiX) nested after a one-package `requirements.txt` change, the commit of a small `RUN`
+step ran for over 40 minutes before it was stopped; it was first misread as a network hang. Two
+retries then waited behind it on the storage lock (the first build had survived SIGTERM), which
+`--network=host` could not fix. A probe measured the floor: one `RUN echo hi > /opt/x` on top of the
+host-built mvp image took 256 s to commit nested. Why that one commit took ten times longer is not
+known.
+
+**So build large images on the host first.** `[HOST] make image` in the project, then launch the
+sandbox with `NESTED_PODMAN_HOST_IMAGESTORE` (the default store) so the sandbox reads the result
+read-only; running, testing and small builds nested are fine. When a change needs a big image
+rebuilt mid-session, ask the maintainer to run `make image` on the host rather than building it
+nested. No `make shell` option avoids the naive diff: `NESTED_PODMAN_STORE=tmpfs` uses the same
+driver.
+
 ## Concurrent nested builds share one storage lock — time builds alone (William Emerison Six <billsix@gmail.com>, 2026-11-08)
 
 Several `podman build`s can run at once in the sandbox, but committing a layer takes the store's lock, and

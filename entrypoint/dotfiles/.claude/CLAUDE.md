@@ -781,6 +781,14 @@ Xvfb/screenshot recipe, PYTHONPATH escape hatch, `:Z`-poisons-repos, RAM store m
 networking — in `~/.claude/reference/nested-run-and-gates.md`; flag design/lore in
 `~/.claude/reference/nested-podman-design.md`.
 
+**Before building a large image nested, ask me to build it on the host instead.** Nested layer
+commits are slow: `fuse-overlayfs` has no native overlay diff, so each commit walks the whole image
+(on a TeX-sized image, 4 minutes for a one-line step and once over 40; 2026-11-15). Name the project and the command
+(`[HOST] make image` in that repo), then wait; the sandbox reuses the host-built image read-only.
+**Exception: when I've told you to work in the background or that I'm away, don't ask: build it
+yourself, nested, and accept the wait.** A small image, or one whose steps will all hit the cache,
+just build. Detail: `~/.claude/reference/nested-run-and-gates.md` ("Build big images on the host").
+
 ## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
 
 My Bash tool runs each command through the user's interactive login shell, **`zsh`, not `bash`**, so
