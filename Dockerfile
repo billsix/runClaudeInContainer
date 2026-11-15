@@ -27,7 +27,9 @@ RUN echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
 # Install Claude Code (native binary, no Node.js required)
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-RUN source ~/.bashrc && claude update
+# PATH set here, not by sourcing ~/.bashrc: that sources ~/.extrabashrc, which the dotfiles COPY
+# below only adds later.
+RUN PATH="$HOME/.local/bin:$PATH" claude update
 
 # Lean 4 (theorem prover) via elan — host-runnable script, curl-installed like Claude
 # Code above; bakes the stable toolchain so an exported image has Lean offline.
