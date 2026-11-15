@@ -626,7 +626,7 @@ line number — they rot). Generate **deepest-first, then compress upward** (~ha
 level), and **compare each doc to a baseline the reader knows**. Rules + naming:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
+### Authoring a reference set for a codebase you don't know (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 Fan out **one reader per subsystem in parallel** (each returns a structured, `file:line`-anchored
 report), synthesize yourself, and **verify any claim a durable doc will be trusted on** —
@@ -635,7 +635,7 @@ found nothing" is not proof of absence). **Distinguish live from dead code expli
 history for *why/when/who*, current code for *what-is-true-now*. Full method:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
+### Reference docs for a versioned dependency — pin, banner, re-sync (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 When a reference set describes a **dependency pinned by submodule/SHA**, the docs rot when the pin
 moves: **pin the docs to the exact commit the consumer builds** (banner the SHA + `git describe`),
@@ -644,7 +644,7 @@ refactor, not line drift). Name the doc by what's present at the pinned version;
 cites the dependency's own pinned docs, never drifting line numbers. Full method:
 `~/.claude/reference/reference-doc-conventions.md`.
 
-### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
+### Ending a session — sweep the always-read docs (William Emerison Six <billsix@gmail.com>, 2026-07-21)
 
 When I signal end-of-session, reconcile each touched project's always-read docs (`CLAUDE.md`, every
 `tasks/reference/*`, `README.md`) against what changed — flag stale/missing/misplaced, then **apply

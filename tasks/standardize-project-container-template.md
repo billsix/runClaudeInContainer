@@ -56,7 +56,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 
 ## Plan
 
-- [ ] Get Bill's decision on each numbered item (esp. #3 whole-vs-selective and #7 prereq policy).
+- [ ] Get the maintainer's decision on each numbered item (esp. #3 whole-vs-selective and #7 prereq policy).
 - [ ] Encode the agreed standard in the **template contract** (personal-overlay Makefile/entrypoint
       contract + the meta-repos' CLAUDE.md), with a short "conformance checklist" line per item.
 - [ ] (Optional, separate) a conformance checker under `tools/` that flags a project diverging from the
@@ -64,7 +64,7 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 - [ ] Migrate the divergent projects to the standard (a follow-on; the fan-out already normalized the
       `shell`/`shell-exec` pair — this is the remaining mount/path/prereq normalization).
 
-## Decisions (Bill, 2026-08-29) — 3 of the items settled; already applied where noted
+## Decisions (William Emerison Six <billsix@gmail.com>, 2026-08-29) — 3 of the items settled; already applied where noted
 
 1. **#3 whole-repo mount = the default** (selective mount is a documented per-project exception). ✅ decided.
 2. **#7 `shell-exec` prereq: `image`, never `format`** — a runner must not reformat source. ✅ decided AND

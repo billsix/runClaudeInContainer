@@ -47,7 +47,7 @@ The discipline:
 
 ## The diversion trail — a rabbit-hole depth gauge, read bottom-up
 
-**What this is FOR (Bill, 2026-07-19): seeing how far down the rabbit hole we are, so we
+**What this is FOR (William Emerison Six <billsix@gmail.com>, 2026-07-19): seeing how far down the rabbit hole we are, so we
 don't get so lost in the weeds that we forget our purpose and make bad decisions.** It is
 **not** a to-do queue and **not** a priority list. It is a breadcrumb trail of diversions.
 
@@ -90,7 +90,7 @@ are always in your context — you are never relying on *remembering* to open it
 keeping it current non-optional: the stack is right in front of you, so a stale stack is a
 visible failure, not a hidden one.
 
-**I do NOT manage this stack — you do. That is the whole point (Bill, 2026-07-19: "I
+**I do NOT manage this stack — you do. That is the whole point (William Emerison Six <billsix@gmail.com>, 2026-07-19: "I
 don't want to have to remember those as commands").** The slash commands exist as manual
 overrides for when I explicitly want to poke the stack, but the default is that **you keep
 it current on your own, without being told**, as a normal part of how you work. Treat the

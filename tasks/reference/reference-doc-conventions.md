@@ -24,7 +24,7 @@ not an archived job.)
 knowledge, updated in place as they drift or as items in them get promoted into real `tasks/`.
 
 **Think of `tasks/reference/` as an expanded, project-specific `CLAUDE.md` — and it is for
-*you, the agent* to read (Bill, 2026-07-21).** `CLAUDE.md` stays lean and loads every session;
+*you, the agent* to read (William Emerison Six <billsix@gmail.com>, 2026-07-21).** `CLAUDE.md` stays lean and loads every session;
 the reference directory is the larger, consultable body of *why this project is the way it is*
 — design decisions, rationale, how subsystems work, gap analyses, domain notes — distilled so
 I can get oriented **without** wading through every task doc or reading all the code. It is the
@@ -127,7 +127,7 @@ with `/new-reference-set`.
 Helper commands: `/new-reference <slug>` (single doc) and
 `/new-reference-set <set> [topic]` (a layered set) to scaffold.
 
-### Authoring a reference set for a codebase you don't know (Bill, 2026-07-31)
+### Authoring a reference set for a codebase you don't know (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 When the task is "read this whole codebase and make reference docs" — an unfamiliar project,
 no prior context — this is the method that worked (the Ghostship SM64 PC port,
@@ -167,7 +167,7 @@ no prior context — this is the method that worked (the Ghostship SM64 PC port,
   them in one known place. (I filed them under `docs/reference/` first here and the user moved me
   back; a repo having a `docs/` dir is not a reason to diverge.)
 
-### Reference docs for a versioned dependency — pin, banner, re-sync (Bill, 2026-07-31)
+### Reference docs for a versioned dependency — pin, banner, re-sync (William Emerison Six <billsix@gmail.com>, 2026-07-31)
 
 When a reference set describes a **dependency the project pins by submodule/SHA** (a vendored engine,
 a git submodule), the docs rot the moment the pin moves. Hard-won documenting libultraship, which
@@ -205,13 +205,13 @@ scope, wrong path, a typo'd pattern). This is why the pass pays for itself: it c
 `AudioDmaRegistry`, non-existent bridge statics, and a "`ThreadPool` component" that was really a
 plain member — before any reached a doc.
 
-### Ending a session — sweep the always-read docs (Bill, 2026-07-21)
+### Ending a session — sweep the always-read docs (William Emerison Six <billsix@gmail.com>, 2026-07-21)
 
 **When I tell you I'm ending a session** (wrapping up, signing off, "done for the day", "that's
 it for now", etc.), before we stop do a **documentation-reconciliation pass** so the always-read
 docs don't drift from what the session actually changed.
 
-**This sweep is a VERIFICATION NET, not the primary mechanism (Bill, 2026-08-31):** per "Git: I
+**This sweep is a VERIFICATION NET, not the primary mechanism (William Emerison Six <billsix@gmail.com>, 2026-08-31):** per "Git: I
 commit, you don't — but you DO stage", each finished unit already ships its own doc deltas at
 staging time, so the sweep should expect to find **nothing** from properly finished units. What
 it still exists to catch: decisions made only in conversation that never became a staged unit,
@@ -231,7 +231,7 @@ doc updates here means the staging-time rule was missed — do the update, and t
    pass, so apply the changes (keeping `CLAUDE.md` lean and pushing detail into `tasks/reference/`
    per the convention above) and show me the diffs. Flag anything genuinely ambiguous for me to
    decide rather than guessing.
-5. **Run each touched project's format + type-check gate, and fix what it reports (Bill, 2026-10-01).**
+5. **Run each touched project's format + type-check gate, and fix what it reports (William Emerison Six <billsix@gmail.com>, 2026-10-01).**
    Run the gate **CI runs** — `.github/workflows/*` is a thin wrapper over `make <target>`, typically
    **`make format`** / **`make type-check`** / **`make lint`**. I commit **and push** at session end,
    so a green local gate is what keeps CI green (CI was failing more often than it should because this

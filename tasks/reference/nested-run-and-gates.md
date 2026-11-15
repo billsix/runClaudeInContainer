@@ -31,7 +31,7 @@ build-file additions a task needs). Absent such a grant, the default holds: prop
 edit and wait for the go-ahead, per point 2 above.
 
 **Other specifics:**
-- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (Bill, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
+- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (William Emerison Six <billsix@gmail.com>, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
   ```sh
   Xvfb :99 -screen 0 1280x800x24 &
   podman run --rm --cgroups=disabled -e DISPLAY=:99 \

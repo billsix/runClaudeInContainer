@@ -18,7 +18,7 @@ re-copy them there.
 **In this sandbox my Bash tool executes each command through the user's interactive
 login shell, which is `zsh`, not `bash`** — a wrong assumption I keep making, then
 watching commands fail with `zsh`-flavoured errors (`parse error near 'head'`,
-`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (Bill flagged it
+`(eval):N: ...`, `zsh: no matches found: *.md`). The symptom set (the maintainer flagged it
 2026-08-14: "why do you keep running zsh instead of bash?"):
 
 - **Unquoted globs error instead of passing through.** `ls *.md` with no match is a
@@ -129,7 +129,7 @@ breaks, often several commits later.
 
 **A `format.sh` (or `lint.sh` / any `make format` gate script) should be PORTABLE — runnable
 inside the container *and* on the host from the repo root — so I can format without spinning a
-container (Bill, 2026-08-14).** Exactly two things make a format script container-only; avoid
+container (William Emerison Six <billsix@gmail.com>, 2026-08-14).** Exactly two things make a format script container-only; avoid
 both:
 
 1. **An unguarded `source /venv/bin/activate`.** On the host there is no `/venv`, so the bare
