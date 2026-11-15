@@ -3,7 +3,7 @@
 # below starts a FRESH bash not under -e, so interactive/script behaviour is
 # unchanged. `set -e` only, not `set -u` (the auth hint reads possibly-unset vars).
 # (This repo's shell.sh has no heavy setup; the convention matters in projects whose
-# shell.sh does venv/editable-install/codegen -- see tasks/add-shell-exec-target.md.)
+# shell.sh does venv/editable-install/codegen -- see tasks/archive/2026/08/29/add-shell-exec-target.md.)
 set -e
 
 cd /

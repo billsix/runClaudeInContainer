@@ -3,7 +3,7 @@
 **Reference document** — the full detail behind the terse "Task documents", "Priority &
 difficulty", "Blocked tasks", "Step tasks", and "Ad-hoc scripts" rules in the cross-project
 `CLAUDE.md`. Read on demand when creating/archiving a task, scaffolding a step-task tree, or
-saving/promoting an ad-hoc script. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+saving/promoting an ad-hoc script.
 Companion: `~/.claude/reference/reference-doc-conventions.md` (reference docs, harvesting, the
 session-end sweep) and `~/.claude/reference/git-workflow-conventions.md` (the commit
 boundaries the archive lifecycle rides on).

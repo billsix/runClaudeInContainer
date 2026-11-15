@@ -82,6 +82,10 @@ module with one consumer is speculative coupling, not reuse.
 
 ## Worked examples (2026-10-29 sweep)
 
+Repos below, by short name: imps = github.com/billsix/imps, runCrush =
+github.com/billsix/runCrushInContainer, gltron = github.com/billsix/gltron-mirror, smc =
+github.com/billsix/smc.
+
 - **Converted** (logic, not glue): imps `tools/apply_unit.py` (a transitive `DEPENDS`
   graph DFS — was `declare -A VISITED` + recursion echoed into `mapfile`); imps
   `tools/check_comment_only_streams.py` (family discovery + `LANG` dispatch + array

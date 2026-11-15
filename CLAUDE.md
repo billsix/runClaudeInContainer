@@ -13,7 +13,7 @@ overlay). See `README.md` for the user-facing overview.
 ## What the pieces do
 
 - **`Dockerfile`** — Fedora 45 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
-  into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~430-package
+  into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~460-package
   toolchain — a host-runnable script the Dockerfile sources, not an inline
   `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is
   `/entrypoint.sh`.
@@ -21,8 +21,8 @@ overlay). See `README.md` for the user-facing overview.
   ephemeral (`--rm`) container; **`make shell-exec SCRIPT=… | CMD=…`** is its batch
   twin (runs a script/command in the same env, no TTY). `shell` and `shell-exec`
   share one **`SHELL_RUN_FLAGS`** variable so they can't drift. It conditionally
-  mounts host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, `~/.vimrc`, and `~/.claude` (each only
-  if it exists), mounts the CWD at `/<project-dir>`, and sets up X11 + Wayland
+  mounts host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg` and `~/.vimrc` (each only if it
+  exists) and always `~/.claude` and `~/.claude.json` (created if missing), mounts the CWD at `/<project-dir>`, and sets up X11 + Wayland
   passthrough.
 - **`entrypoint/entrypoint.sh`** — image entrypoint; just `exec bash`.
 - **`entrypoint/shell.sh`** — what `make shell` / `make shell-exec` run; `set -e`,
@@ -57,7 +57,7 @@ positional-struct-initializer checker, "Structs, constants, and the preprocessor
 `tasks/reference/vendoring-third-party-source-deps.md`).
 Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream projects' `tools/`**;
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
-(runCrush mirrors all three byte-identically). `review_status.py` is another shared tool, but it is
+(runCrush mirrors all four byte-identically). `review_status.py` is another shared tool, but it is
 **run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
 `/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too.
 
@@ -126,7 +126,9 @@ sandbox it launches.
 - **Keep host mounts conditional.** New host-file mounts in the `Makefile` should
   follow the existing `readlink -f` + existence-test pattern so the build/run still
   works on machines that lack the file.
-- **Use `:Z`** on bind mounts for SELinux relabeling, matching the existing mounts.
+- **Never `:Z` on a host tree.** The sandbox runs `--security-opt label=disable`, so `:Z` gains
+  nothing and relabels the host directory with this container's private category, locking other
+  confined containers out of it. Use `:z` or no label (README, "Mounting extra directories").
 - After changing the `Makefile`, sanity-check with `make help` and a dry run; after
   changing the `Dockerfile`, a `make image` is the real test (it is slow — full
   toolchain install).

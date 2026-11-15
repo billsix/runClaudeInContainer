@@ -41,7 +41,7 @@ The `shell` target mounts, in order (later mounts shadow earlier paths):
    ("read `~/.claude/reference/llm-overused-phrases.md` at session start")
    resolve in **every** session. The docs stay in their conventional
    `tasks/reference/` home; the mount is just an alias. The `tasks/reference/` mount
-   exists because the mounted `CLAUDE.md` **references those five reference docs by their
+   exists because the mounted `CLAUDE.md` **references the reference docs by their
    `~/.claude/reference/…` path and reads them on demand at a trigger** (e.g. "before
    hand-instrumenting a bug, read `print-debugging.md`"), so those paths must resolve in the
    container. (History: the five were `@`-imported — auto-loaded every session — from

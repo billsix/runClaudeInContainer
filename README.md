@@ -23,17 +23,15 @@ files Claude Code keeps its auth in, so a fresh browser login is needed only rar
 monthly, or after `/logout`) — not every run:
 
 1. **`~/.claude/` — your credentials & sessions.** Holds `.credentials.json` (the OAuth
-   tokens, which auto-refresh), your sessions, and agent memory. Persisting it is the fix from
-   `tasks/archive/2026/07/09/persist-claude-login-across-containers.md` (before it, the mount
-   silently no-op'd and you re-signed-in every time).
+   tokens, which auto-refresh), your sessions, and agent memory (design:
+   `tasks/reference/claude-config-layering.md`).
 
 2. **`~/.claude.json` — your onboarding state.** Holds `hasCompletedOnboarding` and your
-   account info. It's a **sibling** of `~/.claude`, so the mount above doesn't cover it; left
-   unmounted it died with each `--rm` container, and Claude — seeing no onboarding record —
-   showed the **"Select login method"** menu on *every* launch, even with valid credentials
-   mounted. `make shell` now bind-mounts it too (seeding an empty `{}` on the host the first
-   time), so onboarding persists. **This, not token expiry, was the real "log in every
-   session" cause.** Both files are created for you on first `make shell`.
+   account info. It's a **sibling** of `~/.claude`, so the mount above doesn't cover it, and
+   `make shell` mounts it separately (seeding an empty `{}` on the host the first time).
+   Without it Claude finds no onboarding record and shows the **"Select login method"** menu
+   on every launch, even with valid credentials. Both files are created for you on first
+   `make shell`.
 
 Both mounts are automatic — sign in once and you're done.
 
@@ -55,7 +53,7 @@ read from your host environment and **never stored in this repo**. `make shell` 
 `-e` passthrough when the variable is actually set, so leaving it unset changes nothing.
 *(Forks that bill per-token instead of a subscription can export `ANTHROPIC_API_KEY` instead —
 also passed through — but that uses the metered Console API, not a subscription.)* Until a
-token is set, `make shell` prints a one-line reminder at startup. A token crosses to the
+token is set, `make shell` prints a short reminder at startup. A token crosses to the
 container only if it's **exported** (`declare -p CLAUDE_CODE_OAUTH_TOKEN` shows `declare -x`,
 not `--`) and only a **fresh** sandbox picks up a new export.
 
@@ -96,7 +94,7 @@ The build (`Dockerfile`):
 2. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the
    tracked `.claude/` conventions).
 3. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
-   (~430 packages). The package list lives in that script — host-runnable on its
+   (~460 packages). The package list lives in that script — host-runnable on its
    own (`sudo ./entrypoint/01-install-base.sh` on a bare Fedora box), not just at
    build time — while the dnf cache mounts (which keep rebuilds fast) stay in the
    `Dockerfile`.
@@ -106,13 +104,13 @@ The build (`Dockerfile`):
 The run (`make shell`) mounts, on top of the image:
 
 - The current working directory at `/<project-dir-name>` (`:Z` SELinux relabel).
-- Host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg`, and `~/.claude` — **only if they
-  exist** on the host.
+- Host `~/.tmux.conf`, `~/.gitconfig`, `~/.gnupg` and `~/.vimrc` — **only if they exist** on
+  the host — and always `~/.claude` and `~/.claude.json` (created on the host if missing).
 - The repo-tracked `CLAUDE.md` and `commands/` from
   `entrypoint/dotfiles/.claude/`, layered over the host `~/.claude` mount, plus
   this repo's `tasks/reference/` at `~/.claude/reference/` (reference docs the
-  `CLAUDE.md` cites **read-on-demand** at task triggers — the overused-words catalog plus the
-  nested-podman, sandbox-capability-map, config-layering, and print-debugging docs). This keeps your
+  `CLAUDE.md` cites **read-on-demand** at task triggers: the coding standards, the conventions'
+  topic docs, the nested-podman docs, and the shared checker scripts). This keeps your
   conventions, slash commands, and those reference docs
   in version control while auth, sessions, and credentials still come from the
   host mount.
@@ -185,12 +183,12 @@ pipeline — the two podman levels, and where every layer lands — is in
 `~/.cache`) — e.g. to keep the build write-churn off an SSD by pointing it at an HDD:
 
 ```sh
-make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/mnt/sda1/tmpContainerStorage
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE_BASE=/path/to/hdd/containerStorage
 ```
 
 The base is created if missing, and the per-session store under it (`runclaude-nested.XXXXXX`)
 is still deleted on exit — a hard kill would leak it there instead
-(`podman unshare rm -rf /mnt/sda1/tmpContainerStorage/runclaude-nested.*`; the cleanup log moves
+(`podman unshare rm -rf /path/to/hdd/containerStorage/runclaude-nested.*`; the cleanup log moves
 with it, to `<base>/runclaude-nested-cleanup.log`). The base must be a **real
 filesystem that supports overlay xattrs** — ext4/xfs are ideal; btrfs works but has had
 overlay quirks — and an HDD trades build speed for fewer SSD writes. `export
@@ -280,14 +278,19 @@ podman images --format '{{.Repository}}:{{.Tag}} R/O {{.ReadOnly}}'
 | `Dockerfile` | Image definition (Fedora base + toolchain + Claude Code) |
 | `Makefile` | `make image` / `make shell` / `make shell-exec` (shared `SHELL_RUN_FLAGS`); host-mount detection; X11/Wayland passthrough |
 | `exampleRunClaude.sh` | Saved `make shell` invocation with extra mounts |
-| `entrypoint/01-install-base.sh` | The ~430-package `dnf install`, host-runnable; the Dockerfile sources it |
+| `entrypoint/01-install-base.sh` | The ~460-package `dnf install`, host-runnable; the Dockerfile sources it |
+| `entrypoint/01b-install-binary-tools.sh` | Upstream binaries Fedora does not package (shfmt, procs) |
+| `entrypoint/install-lean.sh` | The Lean toolchain (elan) |
+| `entrypoint/format.sh` | The repo's formatter (shfmt over the entrypoint scripts) |
 | `entrypoint/entrypoint.sh` | Image entrypoint (`exec bash`) |
 | `entrypoint/shell.sh` | `make shell` / `make shell-exec` launcher (`set -e` setup, then `exec bash "$@"`) |
 | `entrypoint/dotfiles/` | Files copied into `/root/`: `.extrabashrc`, `.emacs.d/`, `.vimrc` (baked vim defaults; a host `~/.vimrc` mounts over it), `.claude/` |
 | `entrypoint/dotfiles/.claude/` | Tracked Claude conventions (`CLAUDE.md`) and slash commands |
+| `entrypoint/dotfiles/.config/containers/` | The nested podman's `storage.conf` and `containers.conf` (also installed as drop-ins) |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.md` | Blank personal-overlay default (`@`-imported; your host file mounts over it) |
 | `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md` | Template for your `~/.ai-coding-conventions.personal.md` |
 | `tasks/reference/` | Reference docs, mounted at `~/.claude/reference/` for the conventions to cite |
+| `tools/` | Repo tools, not in the image (`check_helm_file_at_point.{sh,el}`) |
 | `FORKING.md` | What to change when adopting this sandbox for your own use |
 
 ## License

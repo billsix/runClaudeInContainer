@@ -6,7 +6,7 @@ script must propagate every step's failure", "Rewriting a script's contents drop
 executable bit", "Write format/check scripts to run BOTH in the container AND on the host",
 and "The Bash tool runs commands through the user's login shell (here: zsh)". Read on demand
 when writing/reviewing a gate or format script, editing a committed script, or a Bash tool
-command fails with zsh-flavoured errors. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+command fails with zsh-flavoured errors.
 
 github.com/billsix/runCrushInContainer bakes a copy of the portable sections (multi-step
 failure, executable bit, run-anywhere format scripts, batch `-it`) at

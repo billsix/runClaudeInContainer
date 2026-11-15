@@ -16,7 +16,7 @@ The `USE_EMACS_CONFIG` opt-out flag was added in
 `ARG USE_EMACS_CONFIG=0`, gating a `RUN if [ "$USE_EMACS_CONFIG" != "1" ]; then rm -rf
 /root/.emacs.d; fi` right after `COPY entrypoint/dotfiles/ /root/`). The logic is a
 trivial conditional and can't affect the package install, so it was **not** rebuild-tested
-when added (a full ~430-package `make image` is slow). Confirm it actually behaves before
+when added (a full ~460-package `make image` is slow). Confirm it actually behaves before
 trusting it.
 
 ## Verify

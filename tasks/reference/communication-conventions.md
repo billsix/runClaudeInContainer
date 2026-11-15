@@ -4,7 +4,7 @@
 terse status-update / question / README rules in the cross-project `CLAUDE.md`. Read on demand
 when writing a status update, asking the user a decision question, answering a direct question
 the user will act on, creating a task with open
-questions, or shaping a project README. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+questions, or shaping a project README.
 
 ## How much to tell me: if it went well, four sentences
 

@@ -3,7 +3,7 @@
 **Reference document** — the full detail behind the terse "Version numbers don't sort like
 strings" and "Versioning & changelogs" rules in the cross-project `CLAUDE.md`. Read on demand
 when comparing/listing versions, bumping a version, or maintaining a `CHANGELOG.md` for a
-project others pin/consume. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+project others pin/consume.
 
 ## Version numbers don't sort like strings
 
@@ -93,7 +93,7 @@ surprised?* If yes, it is breaking — flag it as such.
   don't commit, and re-deriving entries from diffs logs churn without the why. Promoting `[Unreleased]`
   to `## [version] — date` is **part of the version bump**, whoever performs it. A project with a
   changelog carries a cheap version↔changelog consistency check in its gate (gacalc:
-  `tools/check_changelog.py` — fails when `pyproject.toml`'s version has no changelog heading); it
+  `tools/check_changelog.py` in github.com/billsix/geometricalgebra — fails when `pyproject.toml`'s version has no changelog heading); it
   catches an unlogged *release*, not an unlogged change — the reconciliation does that. **On release**, rename
   `[Unreleased]` to `## [version] — date` and open a fresh empty `[Unreleased]`. The version
   bump, the changelog promotion, and the tag belong to the **same** release commit.

@@ -192,7 +192,7 @@ convention:
    lean is a deliberate `MINIMAL_IMAGE=1` for a small export/airgap image; `--build-arg` is fine on
    `podman build` (only `--cgroups` is not). `NESTED_PODMAN` keeps ONLY its run-capability role, and
    `MINIMAL_IMAGE` never applies to the sandboxes themselves. Standard + rollout:
-   `tasks/reference/minimal-nested-images.md`, `tasks/decouple-minimal-image-from-nested-podman.md`.
+   `tasks/reference/minimal-nested-images.md`, `tasks/archive/2026/09/27/decouple-minimal-image-from-nested-podman.md`.
 
 ## Operating it in practice (lore from real sessions, 2026-06 → 2026-07)
 
@@ -236,7 +236,7 @@ convention:
   in a 32g store even though the install itself finished. Fixes: relaunch with a
   bigger `NESTED_PODMAN_TMPFS_SIZE`, or — mid-session, if RAM allows — grow the live
   tmpfs: `mount -o remount,size=50g /var/lib/containers` let the 22.3 GB image
-  commit. The durable fix is the disk-backed store (Open thread).
+  commit. The disk-backed store, the default since 2026-09-27, removed this ceiling.
 
 ## Store backend: disk directory is now the default (2026-09-27, verified in-session)
 

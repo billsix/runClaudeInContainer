@@ -4,7 +4,7 @@
 rules in the cross-project `CLAUDE.md` ("Git: I commit, you don't — but you DO stage" and
 "Quick-save commits, then squash"). Read on demand when staging finished work, or when the
 user has authorized committing for a long unattended task and you need the quick-save/squash
-rhythm. (Relocated verbatim from `CLAUDE.md`, 2026-09-14.)
+rhythm.
 
 ## Git: I commit, you don't — but you DO stage
 

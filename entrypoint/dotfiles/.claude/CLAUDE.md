@@ -428,7 +428,7 @@ break/surprise a consumer, prefer a one-line entry linking the *why*. **Write th
 make the change** (it's a finished unit's doc delta) and **reconcile at the three look-back
 moments** (pre-squash harvest, session-end sweep, release): diff the public surface since the last
 tag against `[Unreleased]`. Promoting `[Unreleased]` → `## [version] — date` is part of the version
-bump (same commit as the tag). Full detail incl. `tools/check_changelog.py` and retro-fill:
+bump (same commit as the tag). Full detail incl. github.com/billsix/geometricalgebra's `tools/check_changelog.py` and retro-fill:
 `~/.claude/reference/versioning-and-changelogs.md`.
 
 ## Git: I commit, you don't — but you DO stage

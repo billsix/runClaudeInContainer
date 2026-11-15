@@ -31,7 +31,7 @@ build-file additions a task needs). Absent such a grant, the default holds: prop
 edit and wait for the go-ahead, per point 2 above.
 
 **Other specifics:**
-- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `Dockerfile`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (William Emerison Six <billsix@gmail.com>, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
+- **GUI apps CAN be run and screenshotted headlessly — without touching the project's Dockerfile.** The sandbox already ships `Xvfb` (`xorg-x11-server-Xvfb`, explicit in `runClaudeInContainer`'s `entrypoint/01-install-base.sh`) plus ImageMagick (`import`/`convert`) and Mesa's software GL. **Run the X server in the sandbox and share its socket into the nested container** — do NOT add xvfb to the project's image (William Emerison Six <billsix@gmail.com>, 2026-07-18: "can you not change the Dockerfile for mvp?"). The recipe, verified on mvp's OpenGL demos:
   ```sh
   Xvfb :99 -screen 0 1280x800x24 &
   podman run --rm --cgroups=disabled -e DISPLAY=:99 \
@@ -47,18 +47,18 @@ edit and wait for the go-ahead, per point 2 above.
   1.45.1):** the sandbox is a rootless container on the host (`/proc/self/uid_map` maps uid 0 to the host
   user), so the inner podman runs rootful with netavark for `podman run`, but buildah's `RUN` steps see the
   user namespace and take the rootless pasta path, which cannot open a network namespace there. The
-  Fedora 44 sandbox's older podman/buildah did not hit this. Tested on a one-line `RUN getent hosts
+  Fedora 44-based sandbox's older podman/buildah did not hit this. Tested on a one-line `RUN getent hosts
   github.com`: the default and `--network=bridge` fail; `--network=host`, `--isolation=chroot` and the
   environment variable `BUILDAH_ISOLATION=chroot` all work. **Fix:** launch the sandbox with
   `-e BUILDAH_ISOLATION=chroot` (the example launcher `exampleRunClaude.sh` passes it through
   `EXTRA_PODMAN_FLAGS`, which goes straight into `podman run`); then every nested `podman build` works unchanged.
   Without it, add `--network=host` to the one `podman build` command (run the `make -n image` line by
   hand rather than editing the Makefile).
-- **Bind mounts use `:Z`** (SELinux relabel), e.g. `-v "$(pwd)":/workspace:Z`, matching this repo's convention.
+- **Inside the sandbox an inner run's `:Z` is fine** (it relabels the sandbox's own view, under `label=disable`); on the host, never `:Z` a host tree (see the `:Z` note above).
 - **Inner image store is ephemeral** — pulled/built images don't survive the session; expect re-pulls. (Disk-backed dir by default since 2026-09-27; RAM tmpfs is opt-in via `NESTED_PODMAN_STORE=tmpfs`.)
 - **Manage inner images by RAM pressure only in the opt-in tmpfs mode.** With the default on-disk store this juggling is mostly moot (disk is plentiful). In `NESTED_PODMAN_STORE=tmpfs` mode the store is a small **RAM-backed** tmpfs (`/var/lib/containers`, sized by `NESTED_PODMAN_TMPFS_SIZE`, **default 8g**), so every pulled/built image costs real memory. **Don't** `rmi` an image the moment you're done with it — keeping it avoids an expensive rebuild if you need it again this session. Instead, **before building or pulling a new image**, estimate its size (a Fedora/full-toolchain image is multiple GB; a slim base is hundreds of MB) and check headroom with `df -h /var/lib/containers`. Only if there isn't enough room, **evict** — `podman rmi` an existing image that seems unlikely to be needed again soon (and `podman image prune -f` for dangling layers) to make space. (`--rm` removes the *container*; the *image* persists until you `rmi` it.) The goal is fewest rebuilds within the RAM budget, not a clean store. Also: when validating in a throwaway image, install the baseline tools your check depends on first — a minimal base (e.g. `ubuntu:24.04`) ships no `python3`, which can make a check *silently pass*.
 - **Storage is native kernel overlay**; `podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}'` reports `true` (see "Storage speed").
-- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/.../nested-podman.md`.
+- The host Podman stays **rootless** — nested runs never gain privilege on the real host. Full rationale lives in the `runClaudeInContainer` repo's `CLAUDE.md` / `README.md` and `tasks/archive/2026/06/07/nested-podman.md`.
 
 ## Verification gates in nested containers
 

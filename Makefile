@@ -244,7 +244,7 @@ image: ## Build the OCI image (USE_EMACS_CONFIG=0 for a clean box without the ve
 # --- shell / shell-exec share ONE container invocation, defined here so the two
 # targets can never drift. Scoped to this pair ONLY -- do NOT fold in
 # format/image-*/etc, which carry different mount sets. See
-# tasks/add-shell-exec-target.md.
+# tasks/archive/2026/08/29/add-shell-exec-target.md.
 SHELL_RUN_FLAGS = \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
@@ -281,7 +281,7 @@ SHELL_EXEC_ARGS = -c 'cd $(REPO_MOUNT) && $(if $(CMD),$(CMD),exec bash $(SCRIPT)
 # non-nested runs leave STORE empty, so the ${STORE:+…} adds nothing (the tmpfs flag, if any, is
 # already in SHELL_RUN_FLAGS). Duplicated verbatim in shell + shell-exec on purpose (a
 # define/call recipe is fragile); keep the two blocks identical. See
-# tasks/nested-store-cleanup-permission-denied.md.
+# tasks/archive/2026/11/08/nested-store-cleanup-permission-denied.md.
 .PHONY: shell
 shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_STORE=tmpfs (RAM store vs the default ephemeral disk dir), EXTRA_PODMAN_FLAGS="-v /host:/path:z -e VAR=value" (extra podman-run flags; mounts ":z"/no flag, never ":Z"), USE_CONTROLLER=0 (skip gamepad passthrough)
 	@STORE=""; \
