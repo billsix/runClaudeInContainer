@@ -1,22 +1,31 @@
-# Trim the always-loaded shared CLAUDE.md where it restates its topic docs
+# Trimmed the shared CLAUDE.md where it restated its topic docs, and deduped three sections
 
-**Status:** proposed — in the 2026-11-15 audit batch
+**Status:** complete
+**Completed:** 2026-11-15
 **Priority:** 5
 **Difficulty:** 3
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/15/repo-review.md §3.1, §1.14 F16
 
-## BLUF
+## What this did
 
-The shared `CLAUDE.md` (about 16K tokens, paid every turn) restates its topic docs at length in places, and three sections are duplicated across reference docs. Cut those to rule + pointer and dedupe. Done means the rules are unchanged and the file is shorter.
+- `entrypoint/dotfiles/.claude/CLAUDE.md` (paid every turn): the "Archiving" paragraph and the
+  session-end block were cut to their rules plus a pointer, from 11,928 to 11,504 words. Every
+  rule stayed: archive at completion without asking, the done-record rewrite whether or not a
+  squash follows, the three commits, never a plain `mv`, stage and stop until the work commit
+  exists, the session-start scan; and, at session end, trim the stack, review token waste, run
+  the CI gate. The detail that left (the stack's keep/delete lists and the 474 → ~30 example, the
+  token-waste examples) moved into `tasks/reference/reference-doc-conventions.md`'s checklist
+  (steps 8–9); the archiving detail was already in `task-doc-conventions.md`.
+- Labels: the coding-standards heading names all six standards; `doctests-by-default.md` is titled
+  "(Python, Rust and C++)".
+- Duplicates: `cpp-build-modernization.md`'s blame-ignore and generated-files sections point at
+  the canonical sections in `code-style-conventions.md` and `codegen-conventions.md`, keeping only
+  their C++-specific examples. The `modernize-loop-convert` lesson stays in both
+  `code-style-conventions.md` (general) and `cpp-ownership-migration.md` (the clang-tidy
+  specifics), which already cross-link.
 
-## Context
+## Verification
 
-- §3.1: "Archiving" (`:527-547`) restates `task-doc-conventions.md:57-104`; the session-end block (`:647-682`) is about 35 lines.
-- §1.14: the heading "Python, C++, and C" (six standards exist); `doctests-by-default.md` title; three duplicated sections (`.git-blame-ignore-revs`, "Generated files", `modernize-loop-convert`).
-
-## Plan
-
-1. Cut the two sections to the rule plus a pointer, moving any unique detail into the topic doc.
-2. Fix the labels; keep one copy of each duplicated section and point at it.
-3. Diff the rule set before and after: nothing dropped.
+Read the old and new Archiving and session-end text side by side: each rule in the old text
+appears in the new text or, for detail, in the topic doc it points at.

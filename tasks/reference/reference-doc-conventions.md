@@ -250,13 +250,21 @@ doc updates here means the staging-time rule was missed — do the update, and t
    list them one line each with their `Blocked on:`, and remind me `/recheck-blocked` can test
    whether their gate cleared. **Don't run the network re-checks yourself** — just surface that
    they're there.
-8. **Trim the diversion stack** (`~/.claude/stack.md`) back to pointers: harvest any durable detail
-   into the relevant task or reference doc, then delete completed-work narration. Keep only the
-   active chain, owed git-state handoffs, and passive maintainer-waits (shared `CLAUDE.md`, "Ending
-   a session").
-9. **Review the session for token waste that would recur** (an unneeded fork or fan-out, reading
-   vendored or generated trees, a bloated always-loaded doc) and record the lesson where it belongs,
-   or say "nothing to add" (`token-and-context-economy.md`).
+8. **Trim the diversion stack** (`~/.claude/stack.md`) back to pointers. It is `@`-imported every
+   session, so a bloated stack is paid every turn. It is a depth gauge and cross-session handoff,
+   never a task log: harvest any durable detail into the relevant task or reference doc, then
+   delete all completed-work narration (DONE/ARCHIVED/MERGED; that record lives in git history and
+   `tasks/archive/`). Keep only the active diversion chain, cross-session git-state handoffs not
+   captured as a task doc (owed branch merges, blame-ignore additions), and passive
+   maintainer-waits; open, proposed, blocked, paused or deferred work is a task doc. A large
+   reduction is normal (474 → ~30 lines on 2026-11-06); if in doubt, trim harder, backing up the
+   prior contents first.
+9. **Review the session for token waste that would recur** (an unneeded fork or parallel fan-out,
+   each of which re-ingests the conversation and the instruction set; reading files that only get
+   compiled, or vendored/generated trees; a bloated always-loaded doc). Record the lesson where it
+   belongs: a project-specific pattern in that repo's `CLAUDE.md`, a general one in the shared
+   `CLAUDE.md` (kept terse) or `token-and-context-economy.md`. Say "nothing to add" if the session
+   was lean.
 
 Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
 updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation

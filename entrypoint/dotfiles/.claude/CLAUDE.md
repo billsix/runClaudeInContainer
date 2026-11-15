@@ -218,7 +218,7 @@ The offenders, grouped:
   elegant variation (in technical prose, repeat the exact term — synonym-cycling
   creates ambiguity).
 
-## Python, C++, and C: the shared coding standards live in reference docs
+## The shared coding standards live in reference docs (Python, C++, C, Rust, Haskell, JavaScript)
 
 For **Python** specifically, the full coding standard — the ruff-enforced tiers plus the judgment
 calls ruff can't check (naming grammar, expression / mutate-vs-return, reduce-with-`sum`, annotate every
@@ -244,7 +244,7 @@ derive-and-implement-the-standard-trait, `#[non_exhaustive]`/`#[must_use]`, borr
 and as tier (b) the annotate-every-binding rule in Haskell's forms (do-binds, `let`/`where`, the exempt
 pattern variables, `forall` for outer type variables, concrete-over-polymorphic locals), totality, ADTs
 for options, explicit/qualified imports and strictness. The
-language-agnostic conventions in this file apply to all five languages too; a project keeps only its
+language-agnostic conventions in this file apply to all of these languages too; a project keeps only its
 own repo-specific invariants inline in its `CLAUDE.md`. Each doc's canonical source and its
 mirrors (including the Crush client's baked copies) are named in its header.
 
@@ -525,26 +525,16 @@ over-scaffold** — a two-step job is one task with a phase list. Detail:
 `~/.claude/reference/task-doc-conventions.md`.
 
 Archiving: when complete, **move** the file to `tasks/archive/<YYYY>/<MM>/<DD>/<slug>.md`.
-**Archiving is yours to do proactively at the moment of completion — no go/no-go question**
-(harvest durable knowledge to reference docs, **rewrite the task doc into a lean done-record**, fix
-inbound pointers, `git mv`, `git rm` one-shot adhoc scripts); never present a done task as an archive
-*candidate*. **The done-record rewrite is NOT contingent on a squash:** the moment a task is done,
-normalize it into one past-tense voice and drop the forward-looking scaffolding (the plan-shaped BLUF,
-"Context (read first)", Plan, Open questions) and the stale `Status:` line — so a scaffolded doc can
-never reach the archive. (A squash, when it happens, reuses this same rewrite; it is not the only
-trigger.) **BUT the archive is its OWN commit AFTER the work
-commit** — the three-commit lifecycle is (1) task-add, (2) work + adhoc scripts + the done-record
-rewrite of the task doc, (3) archive-move + one-shot `git rm` (so the doc is already a clean
-done-record when it is renamed into the archive). **Stage the work and STOP — do NOT move to archive yet.** Once the work commit
-exists (I make it by default), **then** `git mv` the task into `tasks/archive/…` (+ `git rm` one-shot
-scripts) and stop again — the rename sits staged for its OWN commit (commit 3, *after* the work's
-commit 2); never move the archive *before* the work commit. **And always `git mv`, never a plain
-`mv`** — a plain `mv` leaves the old path tracked-deleted and the new path untracked, so a
-`git add -u`/`git commit -a` orphans the archived doc into HEAD nowhere (incident: gacalc 2026-10-08).
-The archive is an **owed, tracked** action (record it in the task's `Status`/the stack), done after the
-work commit and never bundled into it. When you're authorized to commit this session, you make both
-commits in order — work, then archive — never one combined "work + archive". At session start, scan `tasks/` (not
-`tasks/archive/`) for in-flight work, list easy-wins-first, and list `blocked` tasks separately.
+**Archiving is yours to do proactively at the moment of completion — no go/no-go question**; never
+present a done task as an archive *candidate*. **The moment a task is done, rewrite it into a lean
+done-record** (one past-tense voice; drop the plan-shaped BLUF, "Context (read first)", Plan, Open
+questions and the stale `Status:`), whether or not a squash follows, and harvest durable knowledge
+into reference docs. **Three commits:** (1) task-add, (2) work + adhoc scripts + the done-record
+rewrite, (3) the archive move (`git mv`, **never a plain `mv`**) + one-shot `git rm`. **Stage the
+work and STOP**; move to the archive only once the work commit exists (I make it by default), and
+record the move as owed until then. When authorized to commit, make both commits in order, never one
+combined "work + archive". At session start, scan `tasks/` (not `tasks/archive/`) for in-flight
+work, list easy-wins-first, and list `blocked` tasks separately.
 Full lifecycle + incidents: `~/.claude/reference/task-doc-conventions.md`.
 
 ## Ad-hoc scripts — save the substantive ones under `tasks/adhoc/`
@@ -654,33 +644,13 @@ already shipped its doc deltas at staging time, so expect to find nothing from p
 units; it catches conversation-only decisions, cross-repo drift, and mid-session redesigns. Also
 remind me of any `blocked` tasks (don't run their network re-checks yourself).
 
-**Trim the diversion stack (`~/.claude/stack.md`) back to pointers — it is `@`-imported every
-session, so a bloated stack is paid every turn and will make the agent complain at startup.** The
-stack is a depth gauge + cross-session handoff, **never a task log**: harvest any durable detail
-into the relevant `tasks/`/`tasks/reference/` doc (push it there if it isn't already), then **delete
-all completed-work narration** (DONE/ARCHIVED/MERGED — that record lives in git history +
-`tasks/archive/`). What stays is only: the active diversion chain (if any), cross-session git-state
-handoffs not captured as a task doc (owed branch merges, blame-ignore additions), and passive
-maintainer-waits. Everything else — open/proposed/blocked/paused/deferred work — is a task doc
-found by scanning each repo's `tasks/`, so it does not belong in the stack. A tremendous reduction
-here is normal and expected (474 → ~30 lines, 2026-11-06); if in doubt, trim harder and back up the
-prior contents first.
-
-**Also review the session for generalizable token waste.** If the session burned tokens in a way that
-would recur — an unneeded fork or parallel fan-out (each re-ingests the whole conversation + this
-instruction set), reading files that only get compiled or vendored/generated trees, a bloated
-always-loaded doc — capture the lesson where it belongs: a project-specific pattern in that repo's own
-`CLAUDE.md`, a general one in this cross-project file (kept terse — it's paid every turn) or
-`~/.claude/reference/token-and-context-economy.md`. Say "nothing to add" if the session was lean.
-
-**Then run each touched project's format + type-check gate** (whatever its `CLAUDE.md`/`README`
-names — e.g. `make format` / `make type-check` / `make lint`), and fix what it reports, **before I
-commit** — I commit and push at session end, so a green local gate is what keeps CI green.
-**A project's *test* gate often does NOT run the type-checker or linter** (e.g. a `make test` that is
-pytest-only while `ty`/ruff run under `make format`) — and `ty`/type errors slip through tests
-silently — so run the actual **format/type-check/lint** gate CI runs, not just the tests. Match CI:
-run the same `make` targets `.github/workflows/*` invoke. Full checklist:
-`~/.claude/reference/reference-doc-conventions.md`.
+**Trim the diversion stack (`~/.claude/stack.md`) back to pointers** — it is `@`-imported every
+session. Harvest durable detail into a task or reference doc, then delete completed-work narration;
+keep only the active chain, owed git-state handoffs, and passive maintainer-waits. **Review the
+session for token waste that would recur** and record the lesson where it belongs (or say "nothing
+to add"). **Then run each touched project's format + type-check + lint gate — the `make` targets
+`.github/workflows/*` run, not just the tests** (a test gate often skips `ty`/ruff) — and fix what it
+reports before I commit. Full checklist: `~/.claude/reference/reference-doc-conventions.md`.
 
 ## A project's README is commands-forward; prose belongs in reference docs
 
