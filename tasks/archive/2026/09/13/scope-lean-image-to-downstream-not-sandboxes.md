@@ -34,12 +34,12 @@ guarded against in the docs.
 ## What was done
 
 1. **Rescoped the convention docs.** Added an explicit scope boundary to
-   `tasks/reference/minimal-nested-images.md` and `tasks/minimal-image-for-nested-podman-standard.md`:
+   `tasks/reference/minimal-nested-images.md` and `tasks/archive/2026/11/15/minimal-image-for-nested-podman-standard.md`:
    the standard applies to downstream container-per-project repos only, **never** to the two sandboxes
    themselves (host-built, launched nested — typing `NESTED_PODMAN=1` must not change their image), with
    the sandbox rows in their survey/rollout tables marked N/A — excluded, cross-referencing
    `nested-podman-vs-image-content.md`.
-2. **Parked `tasks/minimal-sandbox-image.md`** — marked it `dropped` with the reason (the maintainer
+2. **Parked `tasks/archive/2026/11/15/minimal-sandbox-image.md`** — marked it `dropped` with the reason (the maintainer
    builds this sandbox on the host; a `NESTED_PODMAN`-coupled lean self-build is the bug, and a lean
    build verifies a different package set than the shipped image). If ever revived, it must use an
    explicit non-`NESTED_PODMAN` flag and a distinct tag.
@@ -53,7 +53,7 @@ guarded against in the docs.
 ## Verification
 
 - The convention docs state the downstream-only scope and exclude the two sandboxes.
-- `tasks/minimal-sandbox-image.md` is marked dropped.
+- `tasks/archive/2026/11/15/minimal-sandbox-image.md` is marked dropped.
 - `grep -rn 'FULL_TOOLCHAIN' Makefile Dockerfile` in this repo returns nothing (no coupling added).
 
 ## Related
@@ -61,5 +61,5 @@ guarded against in the docs.
 - runCrushInContainer `tasks/reference/nested-podman-vs-image-content.md` — the decision record.
 - runCrushInContainer `tasks/archive/2026/09/13/decouple-full-toolchain-from-nested-podman.md` — the
   client-side implementation this paired with.
-- Rescoped `tasks/minimal-image-for-nested-podman-standard.md` and
-  `tasks/reference/minimal-nested-images.md`; parked `tasks/minimal-sandbox-image.md`.
+- Rescoped `tasks/archive/2026/11/15/minimal-image-for-nested-podman-standard.md` and
+  `tasks/reference/minimal-nested-images.md`; parked `tasks/archive/2026/11/15/minimal-sandbox-image.md`.

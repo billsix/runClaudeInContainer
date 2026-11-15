@@ -1,11 +1,9 @@
 # Write the shared C coding standard (sibling of the C++ and Python ones)
 
-**Status:** done 2026-10-15 (William Emerison Six <billsix@gmail.com>) — staged in both repos,
-awaiting the maintainer's commit; archive is owed after the work commit (commit 3 of the lifecycle).
-**Priority:** 4
-**Difficulty:** 4
+**Status:** complete
+**Completed:** 2026-10-15 (William Emerison Six <billsix@gmail.com>)
 
-## BLUF
+## What this did
 
 The fleet had shared read-on-demand Python and C++ coding standards but nothing for **C**, even
 though several mounted projects are C or mixed C/C++. This task wrote
@@ -13,13 +11,12 @@ though several mounted projects are C or mixed C/C++. This task wrote
 clang-format / clang-tidy / Cppcheck / the warning level + sanitizers enforce; tier (b): the
 judgment calls they can't check), mirrored it byte-identically to the two runCrushInContainer
 copies, and wired the read-on-demand pointers into both sandboxes' conventions files plus the Crush
-file-layout mapping. Done = the three copies are byte-identical, both `CLAUDE.md`s point at it next
-to the Python/C++ pointers, and the Crush layout table lists it.
+file-layout mapping.
 
-## Context
+## Inputs and decisions
 
 - Model: `tasks/reference/cpp-coding-standard.md` (the shape, the three-copies banner, the (a)/(b)
-  split) and `tasks/cpp-coding-standard.md` (that task's record).
+  split) and `tasks/archive/2026/10/15/cpp-coding-standard.md` (that task's record).
 - Inputs: the maintainer's own modern-C notes (supplied 2026-10-15 in-session: narrow scope,
   fixed-width + `size_t` types, const correctness, immediate initialization, designated
   initializers, `<stdbool.h>`, safer string/memory handling, static analysis; plus a C23 list —
@@ -27,8 +24,8 @@ to the Python/C++ pointers, and the Crush layout table lists it.
   initializers, `static_assert`, variably-modified array parameters) **plus** online research:
   the SEI CERT C Coding Standard (rule IDs cited inline), MISRA C:2023, Jens Gustedt's *Modern C*,
   the cppreference C23 feature list, WG14 N1967 on Annex K, and the clang-tidy / Cppcheck catalogs.
-- **Three corrections made to the input notes, inline where a reader acts on them** (the "look
-  online besides what I said" part earned these):
+- **Three corrections were made to the input notes, inline where a reader acts on them** (from
+  the maintainer's request to look online beyond the notes):
   1. `strncpy`/`strncat` are **not** the safe versions — `strncpy` doesn't null-terminate on
      truncation (SEI STR31-C). Prefer `snprintf` (check its return) and `memcpy` + explicit length.
   2. Annex K `_s` functions are an **optional, largely-unimplemented** annex (glibc never shipped
@@ -59,7 +56,3 @@ to the Python/C++ pointers, and the Crush layout table lists it.
 - `md5sum` of the three `c-coding-standard.md` copies is equal.
 - Both sandboxes' conventions files point at the doc next to the Python/C++ pointers; the Crush
   layout mapping lists it as baked.
-
-## Open questions
-
-None.

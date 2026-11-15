@@ -38,7 +38,7 @@
 
 Not here: the Dockerfile summaries (§1.3) change with the layer reorder in
 `tasks/dockerfile-and-makefile-hygiene.md`; the nested section of the project `CLAUDE.md` (§1.4) was
-rewritten by `tasks/archive/2026/11/15/nested-native-overlay.md`'s work; `tauri-desktop-apps.md`'s
+rewritten by `tasks/nested-native-overlay.md`'s work; `tauri-desktop-apps.md`'s
 pointers (§2.3) need the hanoi repo checked and are left for the archive-and-refs task.
 
 ## Verification

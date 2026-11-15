@@ -56,7 +56,7 @@ documented for the LLM in `tasks/reference/code-generator-architecture.md` and
    `generated-product-typing.md` as the LLM markdown track.
 3. **Build HTML + PDF into `output/`** via gacalc's Dockerfile (the book pipeline already
    emits to `output/`; add a target/step for this separate doc set). Coordinate Dockerfile
-   edits with `tasks/extract-dockerfile-steps-into-host-scripts.md`.
+   edits with `tasks/archive/2026/08/13/extract-dockerfile-steps-into-host-scripts.md`.
 4. **Save the Sphinx scaffold as an ad-hoc script** under `tasks/adhoc/<this-slug>/` per
    the "one-time generative setup" rule — `sphinx-quickstart` for the new doc set plus the
    `conf.py` edits that shape it (HTML + PDF/LuaLaTeX). Since this is a *separate* project
@@ -84,7 +84,7 @@ documented for the LLM in `tasks/reference/code-generator-architecture.md` and
 - gacalc `tasks/reference/code-generator-architecture.md`, `generated-product-typing.md`
   — the LLM markdown track this pairs with.
 - gacalc `tasks/reference/book-and-docs-pipeline.md` — the Sphinx→HTML/PDF pipeline.
-- `tasks/extract-dockerfile-steps-into-host-scripts.md` — the other Dockerfile-editing task.
-- `tasks/print-debugging-guidance-multilang.md` — stays markdown-only (LLM), decided here.
+- `tasks/archive/2026/08/13/extract-dockerfile-steps-into-host-scripts.md` — the other Dockerfile-editing task.
+- `tasks/archive/2026/08/13/print-debugging-guidance-multilang.md` — stays markdown-only (LLM), decided here.
 - Cross-project `CLAUDE.md` → "Reference documents" and "Ending a session — sweep the
   always-read docs" — the conventions the drift-check extends.
