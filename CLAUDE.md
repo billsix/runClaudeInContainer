@@ -78,6 +78,19 @@ not token expiry), the onboarding-vs-token distinction, the personal-overlay rou
 `@`-import history, the `mkdir -p` rationale, and the rejected alternatives — is in
 `tasks/reference/claude-config-layering.md`. See also `README.md` ("Auth").
 
+## Reviews
+
+Latest deep review: `tasks/review/2026/11/15/repo-review.md` (first review; includes the nested-storage
+research). Records are frozen; act on them through tasks.
+
+**A task here may span three repos** (William Emerison Six <billsix@gmail.com>, 2026-11-15):
+github.com/billsix/runCrushInContainer is the open-source-tools sibling of this sandbox, and the
+maintainer mirrors this repo's changes into it as far as is reasonable. The personal overlay
+(github.com/billsix/dotfiles `.ai-coding-conventions.personal.md`) is loaded by both. So a task made
+from a review finding here (or any convention change) may also edit runCrush and that overlay, and
+should say which of the three it touches. runCrush keeps its own review records in its own
+`tasks/review/`.
+
 ## Host shell vs container shell
 
 Two environments are in play and a command means different things in each, so when you
