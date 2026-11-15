@@ -127,7 +127,11 @@ because the inner store, `/var/lib/containers`, is a real filesystem (the host d
 tmpfs), never the sandbox's own overlay root; buildah's temp files sit on the same volume
 (`image_copy_tmp_dir`), because a build-context overlay mount on `/var/tmp` fails. Measured
 2026-11-15 on the 3.1 GB spimulator image: a two-step build (`RUN echo`, `RUN dnf install cowsay`)
-took 13 s native, 9 s native on tmpfs, and 62 s under the fuse-overlayfs setup it replaced.
+took 13 s native, 9 s native on tmpfs, and 62 s under the fuse-overlayfs setup it replaced. In a
+sandbox launched from the rebuilt image (disk store, same day), that build took 14.3 s on the
+4.9 GB spimulator image, a one-line `RUN` on the 17.2 GB gacalc image committed in 1.2 s (fuse: about
+4 minutes), and github.com/billsix/texExpToPng's nested `make image` took 5 s with 19 of 20 steps
+served from the host-built cache.
 
 **Without native diff, every commit walks the whole image.** fuse-overlayfs has no native diff, so
 containers/storage's `NaiveDiffDriver` finds each layer's changes by walking the merged tree of the
