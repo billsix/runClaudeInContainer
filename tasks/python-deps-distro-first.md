@@ -1,24 +1,27 @@
-# Make the shared Python-deps rule match the personal overlay (distro first)
+# Checked the Python-deps rule across the shared conventions and the overlay: already consistent
 
-**Status:** proposed — in the 2026-11-15 audit batch
+**Status:** complete — no change needed
+**Completed:** 2026-11-15
 **Priority:** 3
 **Difficulty:** 2
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/15/repo-review.md §1.1 F4
 
-## BLUF
+## What this found
 
-The shared `CLAUDE.md` and `python-coding-standard.md` say "the venv copy wins" (install every package with uv into `/venv`), while the personal overlay says prefer distro `python3-*` with `--system-site-packages`. The maintainer chose the overlay's newer rule. Done means the shared texts say the same thing and no doc still teaches the other.
+The review (§1.1) reported that the shared `CLAUDE.md` and `python-coding-standard.md` ("the venv
+copy wins") contradicted the personal overlay ("prefer distro `python3-*` with
+`--system-site-packages`"). The overlay the review read was a stale copy mounted into the sandbox
+at session start. The overlay itself (github.com/billsix/dotfiles
+`.ai-coding-conventions.personal.md`, "Python deps — every package in the venv (the venv copy
+wins); lock the whole set") was revised on 2026-11-12, after the modelviewprojection incident in
+which distro-matching pins duplicated 15 packages and plain `pip` left `/venv/bin` without
+`pytest`/`sphinx-build`. All three files state the venv-wins rule.
 
-## Context
+The maintainer's answer to the review's question 2 was "go with the newer one", which is that
+rule. The record carries a dated correction.
 
-- Shared `entrypoint/dotfiles/.claude/CLAUDE.md` section "Python deps in a container image: the venv copy wins, and lock everything".
-- `tasks/reference/python-coding-standard.md:478-506` ("Pin direct dependencies").
-- The personal overlay (github.com/billsix/dotfiles `.ai-coding-conventions.personal.md`, "Python deps — prefer distro `python3-*` …") is the rule to keep; it stays as is.
-- runCrushInContainer mirrors this in its own batch (`crush/CLAUDE.md:398` and its standard copies).
+## Verification
 
-## Plan
-
-1. Rewrite the shared `CLAUDE.md` section to the distro-first rule (terse, pointing at the standard).
-2. Rewrite the standard's section to match, keeping the pinning rules both agree on.
-3. grep for other "venv copy wins" text and fix it.
+`grep -c "venv copy wins"` → 1 in the dotfiles overlay and 0 in the stale mounted copy;
+`cmp` shows the mounted copy differs from the overlay. No file changed.

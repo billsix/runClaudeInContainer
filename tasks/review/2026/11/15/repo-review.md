@@ -483,3 +483,12 @@ existing `NESTED_PODMAN_STORE=tmpfs` toggle. `README.md` and `CLAUDE.md` say how
 off) and a fixed commented-out variant that turns the RAM store on (the current commented line
 sets `NESTED_PODMAN_TMPFS_SIZE` without `NESTED_PODMAN_STORE=tmpfs`, so it does not). The same
 applies to runCrushInContainer.
+
+## Correction (William Emerison Six <billsix@gmail.com>, 2026-11-15)
+
+Dated note correcting a reviewer error. **§1.1 is wrong, and F4 needs no change.** The review read
+the personal overlay at `~/.claude/ai-coding-conventions.personal.md`, a copy mounted at session
+start. The overlay itself (github.com/billsix/dotfiles `.ai-coding-conventions.personal.md`) had
+already been revised on 2026-11-12, in "Python deps — every package in the venv (the venv copy
+wins)", and agrees with the shared `CLAUDE.md` and `python-coding-standard.md`. The answer to open
+question 2 ("the newer one") therefore means the venv-wins rule, which every file already states.
