@@ -1,6 +1,8 @@
 # Use native kernel overlay for the nested store, and keep the RAM store behind its toggle
 
-**Status:** proposed — in the 2026-11-15 audit batch
+**Status:** blocked — implemented and verified in the sandbox 2026-11-15; waiting on the maintainer's host rebuild + relaunch
+**Blocked on:** `[HOST] make image` in runClaudeInContainer, then `[HOST] make shell NESTED_PODMAN=1` (or `exampleRunClaude.sh`), so a sandbox actually runs the new config.
+**Recheck:** `[CONTAINER] podman info --format '{{index .Store.GraphStatus "Native Overlay Diff"}}'` prints `true`, the shell prints no `[nested podman] … no native overlay diff` warning, and a small nested build (`FROM <a host image>` + one `RUN`) commits in seconds. Cleared → rewrite this into a done-record and archive it.
 **Priority:** 1
 **Difficulty:** 4
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
@@ -26,3 +28,19 @@ The nested podman drives overlay through fuse-overlayfs, so every layer commit w
 4. Rewrite the fuse-overlayfs rationale and the build-on-host rule: `README.md`, project `CLAUDE.md`, shared `CLAUDE.md` ("Running projects in a nested container"), `nested-run-and-gates.md`, `nested-podman-design.md`, `image-build-and-storage-pipeline.md`, `Makefile` comments.
 5. RAM toggle: README + `CLAUDE.md` section; fix `exampleRunClaude.sh`.
 6. Verify the image builds (`make image`, nested, using the native store) and the new config gives native diff; then `blocked` on the maintainer's host rebuild + relaunch.
+
+## Log
+
+- **2026-11-15, implemented** (commit "nested podman: native kernel overlay instead of
+  fuse-overlayfs"): `storage.conf` without `mount_program` and with `mountopt = "nodev"`; the
+  `containers.conf` drop-in (`image_copy_tmp_dir = "/var/lib/containers/tmp"`), installed by the
+  `Dockerfile`; `entrypoint/shell.sh` creates the dir and warns when podman reports no native diff;
+  the docs and `exampleRunClaude.sh` as planned.
+- **2026-11-15, verified in the sandbox.** Without the `containers.conf` override, a native build
+  fails (`mounting an overlay over build context directory … invalid argument`), so the drop-in is
+  required. `make image` built on a scratch native-overlay store in 29m46s (24.6 GB image, the full
+  459-package install). Inside the built image: no `mount_program` in either storage file,
+  `mountopt = "nodev"`, the `image_copy_tmp_dir` drop-in, Lean 4.35.0, `claude` on the login
+  `PATH`. The RAM toggle: `make -n shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs` gives
+  `tmpfs /var/lib/containers:rw,size=8g`. Not verifiable here: a sandbox launched from that image
+  (this session runs the old one), which is the Recheck above.
