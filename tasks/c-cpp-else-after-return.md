@@ -1,23 +1,27 @@
-# Resolve the C/C++ standards' else-after-return contradiction
+# Resolved the C/C++ standards' else-after-return contradiction
 
-**Status:** proposed — in the 2026-11-15 audit batch
+**Status:** complete
+**Completed:** 2026-11-15
 **Priority:** 4
 **Difficulty:** 1
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/15/repo-review.md §4.3, §4.5 F12
 
-## BLUF
+## What this did
 
-The C and C++ standards list clang-tidy's `readability-else-after-return` as an authority while the Dispatch rule requires the `if`/`else if`/`else` return chains it flags. Drop it from tier (a) with a note saying why, the way the Python standard handles RET505/RET506 (maintainer decision 2026-11-15). Also brace the C example that breaks `readability-braces-around-statements`.
+`tasks/reference/c-coding-standard.md` and `cpp-coding-standard.md` listed clang-tidy's
+`readability-else-after-return` among the checks whose clean run is authority, while the C
+"Dispatch" rule (and the shared total-dispatch rule for C++) requires the `if`/`else if`/`else`
+return chains that check flags. Both standards now leave it off and say why, pointing at the Python
+standard's RET505/RET506 precedent (maintainer decision, 2026-11-15). The C standard's
+`make_temp` example also braces its `if (fd < 0)` body, which `readability-braces-around-statements`
+(still listed) requires.
 
-## Context
+Documentation only; no project's `.clang-tidy` changed. runCrushInContainer re-copies both
+standards in its batch (`tasks/mirrors-and-baked-docs.md` there).
 
-- `tasks/reference/c-coding-standard.md:48-49` and the Dispatch rule `:279-322`; `cpp-coding-standard.md:49`; `python-coding-standard.md:332` is the model.
-- `c-coding-standard.md:137`: an unbraced `if`.
-- Documentation only; no project's `.clang-tidy` changes.
+## Verification
 
-## Plan
-
-1. Remove `readability-else-after-return` from both tier-(a) lists; add the note.
-2. Brace the example.
-3. Re-copy both standards into runCrushInContainer in its batch.
+The review's reader ran `clang-tidy -checks='-*,readability-else-after-return'` on a
+Dispatch-conforming chain and got `warning: do not use 'else' after 'return'`; neither standard
+lists the check now (`grep -n else-after-return` shows only the explanatory notes).
