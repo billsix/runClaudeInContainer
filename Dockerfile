@@ -7,7 +7,7 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 
 COPY entrypoint/dotfiles/ /root/
 
-# Store config for the nested podman (fuse-overlayfs, plus the read-only host image store at
+# Store config for the nested podman (native kernel overlay, plus the read-only host image store at
 # /var/lib/shared-images). podman loads ONE main storage.conf, the highest-precedence one that
 # exists (~/.config, then /etc, then /usr/share), and then every storage.conf.d/ and
 # storage.rootful.conf.d/ drop-in, sorted by file name, each overriding what came before.
@@ -19,6 +19,10 @@ COPY entrypoint/dotfiles/ /root/
 COPY entrypoint/dotfiles/.config/containers/storage.conf /etc/containers/storage.conf
 COPY entrypoint/dotfiles/.config/containers/storage.conf \
      /etc/containers/storage.conf.d/50-runclaude-nested.conf
+# buildah's temp dir on the store volume, so native overlay can mount build contexts; see
+# the file's header.
+COPY entrypoint/dotfiles/.config/containers/containers.conf \
+     /etc/containers/containers.conf.d/50-runclaude-nested.conf
 
 # The vendored ~/.emacs.d/ tree is the maintainer's personal Emacs setup. Opt-out:
 # ARG defaults 0 (a bare `podman build` is a clean box), and `make image` passes 1.

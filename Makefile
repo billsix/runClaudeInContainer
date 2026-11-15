@@ -25,7 +25,7 @@ EXTRA_MOUNTS ?=
 # Opt-in nested Podman (run `podman` inside the sandbox). Off by default to keep
 # normal sessions minimal. The host podman stays rootless either way: these flags
 # only let the container's (already unprivileged, namespace-mapped) root drive an
-# inner podman via fuse-overlayfs. No privilege is granted on the real host.
+# inner podman with native kernel overlay. No privilege is granted on the real host.
 #   usage: make shell NESTED_PODMAN=1
 NESTED_PODMAN ?= 0
 # Backend for the inner podman image store (/var/lib/containers), used only when
@@ -34,12 +34,13 @@ NESTED_PODMAN ?= 0
 #                      `rm`'d when `make shell` exits (a trap). No RAM ceiling: the old
 #                      tmpfs filled RAM and OOM'd on big images and at layer-commit
 #                      (a 22.3 GB client image needed size=50g); disk is plentiful.
-#   tmpfs           -- the old RAM-backed store (fastest, bounded by RAM). Select with
+#   tmpfs           -- a RAM-backed store (bounded by RAM; gone at exit). Select with
 #                      `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs`; size it
 #                      with NESTED_PODMAN_TMPFS_SIZE.
-# Why a *dir* works where the sandbox's own rootfs does not: overlay-on-overlay under a
-# nested userns is kernel-rejected, but a dir on the host's real fs (like the tmpfs) is
-# not overlay, so fuse-overlayfs runs on it. One sandbox per store dir at a time.
+# Why a *dir* works where the sandbox's own rootfs does not: the kernel refuses an overlay
+# whose upper dir is on another overlay (the rootfs), but a dir on the host's real fs (like
+# the tmpfs) is not overlay, so native kernel overlay runs on it. One sandbox per store dir
+# at a time.
 # Design + host-verification checklist: tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md.
 NESTED_PODMAN_STORE ?= dir
 NESTED_PODMAN_STORE_BASE ?= $(HOME)/.cache

@@ -135,43 +135,36 @@ sandbox it launches.
 
 `make shell NESTED_PODMAN=1` (opt-in, default off) lets you run `podman` inside the
 sandbox: it appends the capability/device flags (`--device /dev/fuse`, `--security-opt
-label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, a tmpfs
+label=disable`/`unmask=ALL`, `--cap-add=sys_admin,mknod,net_admin`, the inner image store at
 `/var/lib/containers`, and a tmpfs over `$XDG_RUNTIME_DIR/libpod`) to the `shell` target's
-`podman run`, and the inner podman uses `fuse-overlayfs` (configured by
-`entrypoint/dotfiles/.config/containers/storage.conf`).
+`podman run`. The inner podman uses **native kernel overlay** (`entrypoint/dotfiles/.config/containers/storage.conf`,
+no `mount_program`), with buildah's temp dir on the store volume
+(`entrypoint/dotfiles/.config/containers/containers.conf`); a layer commit costs what it does on the
+host. `entrypoint/shell.sh` warns at start when podman reports no native overlay diff (an image
+built before the switch). Detail: `tasks/reference/nested-run-and-gates.md` ("Storage speed").
 
-> **Store backend changed 2026-09-27 (disk store + reuse VERIFIED live).**
-> The inner `/var/lib/containers` store now defaults to an **ephemeral on-disk directory**
-> (`NESTED_PODMAN_STORE=dir`; created under `NESTED_PODMAN_STORE_BASE` — default `~/.cache`,
-> relocatable per launch, e.g. to an HDD to spare an SSD — and `rm`'d on exit via an
-> `EXIT INT TERM HUP` trap) with the host image store mounted read-only for reuse
-> (`additionalimagestores`). The RAM tmpfs below is now **opt-in** via `NESTED_PODMAN_STORE=tmpfs`.
-> **The store config must be installed as a drop-in, not only as a main `storage.conf`.**
-> podman loads one main file, then every drop-in, and containers-common's
-> `/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` resets
-> `additionalimagestores`. The Dockerfile therefore also installs our file as
-> `/etc/containers/storage.conf.d/50-runclaude-nested.conf`, and `entrypoint/shell.sh` warns when the
-> mounted host store is not in use. Detail: `tasks/reference/nested-podman-design.md` ("Which storage
-> config the nested podman reads"). After a `make image` rebuild + relaunch, the
-> whole chain was confirmed from inside: store is btrfs-on-disk, host-built images list read-only,
-> and a `FROM` a host image builds without pulling. Details + verification log:
-> `tasks/archive/2026/09/27/dir-backed-nested-podman-storage.md`. **runCrush ships the identical design and was verified
-> in-session 2026-09-27 too** (ext4 disk store, images reused read-only, a `FROM` host-image build
-> with no pull, and a forced ~20 GB layer committed with no `no space left on device`). The paragraph
-> below still describes the tmpfs mode.
+**The inner store has two backends, toggled by `NESTED_PODMAN_STORE`:**
+- `dir` (default): an ephemeral directory on the host disk, created under
+  `NESTED_PODMAN_STORE_BASE` (default `~/.cache`; point it at another disk to spare an SSD) and
+  removed on exit by an `EXIT INT TERM HUP` trap (`podman unshare rm -rf`).
+- `tmpfs`: a RAM store sized by `NESTED_PODMAN_TMPFS_SIZE` (default `8g`), e.g.
+  `make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs NESTED_PODMAN_TMPFS_SIZE=16g`. Bounded by
+  RAM; a full-toolchain image needs well over 8g. `exampleRunClaude.sh` carries this as a
+  commented-out alternative to the disk-store line.
 
-The `/var/lib/containers` tmpfs is **RAM-backed**, defaults to **8g**, and is sized by
-`NESTED_PODMAN_TMPFS_SIZE` (e.g. `make shell NESTED_PODMAN=1 NESTED_PODMAN_TMPFS_SIZE=16g`
-for a large inner build). A `NESTED_PODMAN=1` launch also exports `NESTED_PODMAN=1` into the
-session, so converted project Makefiles auto-apply `--cgroups=disabled` via their
-`PODMAN_RUN_FLAGS` variable — the agent runs plain `make image`/`make test` nested and
-**never passes `NESTED_PODMAN=1` on a downstream command** (it belongs only on the outermost
-host launch).
+Either way the host image store is mounted read-only at `/var/lib/shared-images`
+(`additionalimagestores`), so nested builds reuse host-built images. **The store config is
+installed as a drop-in too, not only as a main `storage.conf`:** containers-common's
+`/usr/share/containers/storage.rootful.conf.d/00-vendor-rootful.conf` resets
+`additionalimagestores` and turns on `metacopy` (which native overlay rejects in a user namespace),
+so the Dockerfile installs our file as `/etc/containers/storage.conf.d/50-runclaude-nested.conf`,
+and `entrypoint/shell.sh` warns when the mounted host store is not in use. Detail:
+`tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
 
-**Nested layer commits are slow** (`fuse-overlayfs` has no native overlay diff, so each commit
-walks the whole image; minutes per step on a large image, once over 40), so build big images on the
-host and let the sandbox reuse them read-only. Detail: `tasks/reference/nested-run-and-gates.md`
-("Build big images on the host").
+A `NESTED_PODMAN=1` launch also exports `NESTED_PODMAN=1` into the session, so converted project
+Makefiles auto-apply `--cgroups=disabled` via their `PODMAN_RUN_FLAGS` variable — the agent runs
+plain `make image`/`make test` nested and **never passes `NESTED_PODMAN=1` on a downstream
+command** (it belongs only on the outermost host launch).
 
 For the **whole build-and-storage pipeline** — the two podman levels (host `make image` vs
 nested podman inside the sandbox) and where every image layer is written / how to reclaim

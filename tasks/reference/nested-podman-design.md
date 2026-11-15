@@ -24,7 +24,7 @@ minimal. Flag by flag, with the failure each one answers:
 
 | Flag | Why it exists (observed failure without it) |
 | --- | --- |
-| `--device /dev/fuse` | Inner storage must be fuse-overlayfs; no fuse device, no storage. |
+| `--device /dev/fuse` | Kept for fuse-based tools and the fuse-overlayfs fallback; the store itself uses native overlay ("Storage driver" below). |
 | `--security-opt label=disable` | SELinux confinement blocks the nested mount/storage dance. |
 | `--cap-add=sys_admin,mknod` | Baseline for the inner runtime's mount/device work. |
 | `--cap-add=...,net_admin` | The rootful inner podman uses **netavark** (bridge + veth over netlink), which needs `CAP_NET_ADMIN`. Without: `netavark: Netlink error: Operation not permitted`. (pasta/slirp4netns are rootless-only paths — irrelevant here.) |
@@ -33,8 +33,22 @@ minimal. Flag by flag, with the failure each one answers:
 | `--tmpfs /var/lib/containers:rw,size=$(NESTED_PODMAN_TMPFS_SIZE)` | The inner image store **in the opt-in `NESTED_PODMAN_STORE=tmpfs` mode** (the default is now an on-disk dir — see "Store backend" below). tmpfs (not overlay) because overlay-on-overlay under nested userns is rejected by the kernel; RAM-backed, default 8g. |
 | `--tmpfs $(XDG_RUNTIME_DIR)/libpod:rw` | The host's `$XDG_RUNTIME_DIR` is bind-mounted in for Wayland/Pulse, and it carries the **host** podman's `libpod/tmp/pause.pid` — a host PID that doesn't exist in the container's PID namespace. The inner podman tries to `setns()`-join that PID's userns and dies: `cannot re-exec process to join the existing user namespace`. Shadowing *just* `libpod/` with an empty tmpfs fixes it while leaving the Wayland/Pulse sockets intact. |
 
-Plus `entrypoint/dotfiles/.config/containers/storage.conf`, which points the inner
-podman at `mount_program = /usr/bin/fuse-overlayfs`.
+Plus `entrypoint/dotfiles/.config/containers/storage.conf` (installed also as a drop-in) and the
+`containers.conf` drop-in; see "Storage driver" below.
+
+### Storage driver: native kernel overlay (2026-11-15)
+
+The inner podman uses the kernel's own overlay: `storage.conf` sets no `mount_program`, overrides
+the vendor drop-in's `mountopt = "nodev,metacopy=on"` with `"nodev"` (the kernel rejects `metacopy`
+in a user namespace), and the `containers.conf` drop-in puts buildah's temp dir
+(`image_copy_tmp_dir`) at `/var/lib/containers/tmp`, which `entrypoint/shell.sh` creates. It works
+because the store is a real filesystem (the disk dir or the tmpfs); the kernel refuses an overlay
+whose upper dir is on another overlay, which is why the store can never be the sandbox's rootfs and
+why buildah's default `/var/tmp` (on the rootfs) fails a build-context mount. With native overlay a
+layer commit tars only the new layer; under fuse-overlayfs, which has no native diff, each commit
+walked the whole image (measured 13 s against 62 s for the same build; minutes per step on a large
+image). Measurements and requirements: `tasks/reference/nested-run-and-gates.md` ("Storage speed");
+work record: `tasks/archive/2026/11/15/nested-native-overlay.md`.
 
 ### The two read-only walls, and the one requirement that remains
 
@@ -82,11 +96,14 @@ not override a ro mount:
   Revisit if the sandbox itself should ever become unprivileged.
 - **Daemon socket / `podman --remote`** (mount the host socket): declined
   outright — the socket "can totally take over the host machine".
-- **vfs storage driver:** avoids `/dev/fuse` but slow and disk-hungry; kept only
-  as a diagnostic fallback if fuse-overlayfs misbehaves.
+- **vfs storage driver:** slow and disk-hungry (a full copy per layer); kept only as a
+  diagnostic fallback.
+- **fuse-overlayfs (`mount_program`):** used until 2026-11-15. It runs on any filesystem but has
+  no native diff, so every layer commit walked the whole image; replaced by native overlay once the
+  store sat on a real filesystem.
 - **Default-on (`NESTED_PODMAN ?= 1`):** declined. It would weaken every normal
   session's isolation (SELinux off, broad caps), break `make shell` on hosts
-  lacking `/dev/fuse`/`/dev/net/tun`, and reserve the tmpfs each session. The
+  lacking `/dev/fuse`/`/dev/net/tun`, and create an inner store each session. The
   personal launcher (`exampleRunClaude.sh`) opts in instead.
 
 ## Security trade-off (the costs of the flags on)
@@ -202,7 +219,7 @@ convention:
   refreshes) lands in the host repo. Check `git status` after any nested run and
   triage what appeared.
 - **Timeouts skew nested.** Sanitizer-instrumented test suites in particular can
-  trip fixed per-test timeouts under fuse-overlayfs (seen: a UBSan regression
+  trip fixed per-test timeouts nested (seen under the old fuse-overlayfs store: a UBSan regression
   test killed at its 30s limit while 24/25 passed). A nested timeout with zero
   real failures is evidence of slowness, not breakage — prefer the project's
   documented opt-out (e.g. `RUN_SANITIZERS=0`) over raising limits.
@@ -285,7 +302,7 @@ used.
 **Confirmed live after the rebuild (2026-09-27, `runClaudeInContainer`, before containers-common
 0.69).** The maintainer rebuilt and relaunched; from inside, `podman info` reads `/etc/containers/storage.conf`,
 `overlay.additionalImageStores` and `overlay.imagestore` both resolve to `/var/lib/shared-images`,
-`mount_program` is `fuse-overlayfs`, and `podman images` lists the host-built images (`smc`,
+the driver is overlay, and `podman images` lists the host-built images (`smc`,
 `claudecontainer`, `crushcontainer`, `gacalc`, osbooks bundles, …) as **read-only** — a
 `FROM localhost/smc:latest` resolves with no pull. Mechanics that hold on a disk dir:
 
@@ -319,9 +336,9 @@ used.
   calls for `chmod -R u+rwX` inside the same `unshare`, and leftover subuid-owned files point at
   `/etc/subuid` vs `podman unshare cat /proc/self/uid_map`. Investigation record:
   `tasks/archive/2026/11/08/nested-store-cleanup-permission-denied.md`.
-- **fuse-overlayfs runs cleanly on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
-  sidesteps the overlay-on-overlay-under-nested-userns rejection; the only thing that does *not*
-  work is pointing the inner store at the host's overlay graphroot directly.
+- **Native overlay runs on the disk dir** — a real fs (btrfs/ext4/xfs), like tmpfs, so it
+  sidesteps the overlay-on-overlay rejection; the only thing that does *not* work is pointing the
+  inner store at the host's overlay graphroot directly.
 - **The read-only host store is readable by the mapped root uid** as-is (~655 images), so
   `additionalimagestores` reuse needed no world-readable chmod on the host store.
 

@@ -477,10 +477,10 @@ and the say-so doesn't carry to the next session. Full choreography:
 `~/.claude/reference/git-workflow-conventions.md`.
 
 **Build every image yourself during a batch, nested, however large.** I'm not around to run
-`make image` on the host, so don't ask me to: the "ask me to build it on the host" rule under
-"Running projects in a nested container" does not apply here. Accept the slow nested layer commits,
-note the build in the task doc, and check `pgrep -fa "podman build"` before retrying a build that
-seems stuck (it may be one long commit, and a leftover build holds the storage lock).
+`make image` on the host, so don't ask me to, even when the shell warns of no native overlay diff
+(then accept the slow commits). Note the build in the task doc, and check `pgrep -fa "podman build"`
+before retrying a build that seems stuck (it may be one long commit, and a leftover build holds the
+storage lock).
 
 ## Task documents
 
@@ -787,14 +787,13 @@ Xvfb/screenshot recipe, PYTHONPATH escape hatch, `:Z`-poisons-repos, RAM store m
 networking — in `~/.claude/reference/nested-run-and-gates.md`; flag design/lore in
 `~/.claude/reference/nested-podman-design.md`.
 
-**Before building a large image nested, ask me to build it on the host instead.** Nested layer
-commits are slow: `fuse-overlayfs` has no native overlay diff, so each commit walks the whole image
-(on a TeX-sized image, 4 minutes for a one-line step and once over 40; 2026-11-15). Name the project
-and the command (`[HOST] make image` in that repo), then wait; the sandbox reuses the host-built
-image read-only. **Exception: when I've told you to work in the background or that I'm away
-(including any batch run under "The authorized-batch workflow"), don't ask: build it yourself,
-nested, and accept the wait.** A small image, or one whose steps will all hit the cache, just build.
-Detail: `~/.claude/reference/nested-run-and-gates.md` ("Build big images on the host").
+**Build images nested; a host-built image is reused, not required.** The nested podman uses
+native kernel overlay, so a layer commit costs about what it does on the host (13 s against 62 s
+under the old fuse-overlayfs, 2026-11-15), and the sandbox reuses host-built images read-only. If
+the shell prints the `[nested podman] … no native overlay diff` warning, the sandbox image predates
+that switch: every nested commit walks the whole image again, so ask me to rebuild it on the host
+(`[HOST] make image` in the sandbox repo) before a large nested build. Detail:
+`~/.claude/reference/nested-run-and-gates.md` ("Storage speed").
 
 ## The Bash tool runs commands through the user's login shell (here: zsh) — wrap patterns in `bash -c`
 

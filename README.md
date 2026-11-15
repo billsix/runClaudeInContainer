@@ -151,14 +151,14 @@ use; see `FORKING.md`.
 ### Building containers inside the sandbox (nested Podman)
 
 `podman` is installed in the image, but running it *inside* the sandbox needs a few
-extra flags (overlay-on-overlay under nested user namespaces requires
-`fuse-overlayfs`). These are opt-in:
+extra flags, and an inner image store on a real filesystem (the kernel refuses an overlay on
+the sandbox's own overlay root). These are opt-in:
 
 ```sh
 make shell NESTED_PODMAN=1
 ```
 
-This adds `--device /dev/fuse` (overlay storage), `--device /dev/net/tun` (rootless
+This adds `--device /dev/fuse` (kept for fuse-based tools), `--device /dev/net/tun` (rootless
 networking via pasta), `--security-opt label=disable`, `--security-opt unmask=ALL` (so the
 inner netavark can write the per-interface sysctls that bridged networking needs — the
 sandbox's `/proc/sys` is otherwise read-only), `--cap-add=sys_admin,mknod,net_admin`, an
@@ -177,7 +177,7 @@ that is removed on exit, so it needs no cleanup (a hard-killed session may leak 
 `podman unshare rm -rf ~/.cache/runclaude-nested.*` — the `unshare` matters, a bare `rm` cannot
 delete the image layers' read-only dirs; each exit also appends what the cleanup did to
 `~/.cache/runclaude-nested-cleanup.log`); it is disk-backed by default (`NESTED_PODMAN_STORE=tmpfs`
-for the old RAM store) and reuses the host images read-only. The full build-and-storage
+for a RAM store, see below) and reuses the host images read-only. The full build-and-storage
 pipeline — the two podman levels, and where every layer lands — is in
 `tasks/reference/image-build-and-storage-pipeline.md`.
 
@@ -197,12 +197,24 @@ overlay quirks — and an HDD trades build speed for fewer SSD writes. `export
 NESTED_PODMAN_STORE_BASE=…` in your shell to make it the default. (Only used in the default
 `dir` mode; ignored under `NESTED_PODMAN_STORE=tmpfs`, which is RAM.)
 
+**Keep the inner store in RAM instead (`NESTED_PODMAN_STORE=tmpfs`).** The default store is a disk
+directory; a RAM tmpfs is the alternative. It is bounded by RAM (`NESTED_PODMAN_TMPFS_SIZE`, default
+`8g`; a full-toolchain image needs far more) and vanishes at exit like the disk store. Builds run at
+native speed on either.
+
+```sh
+make shell NESTED_PODMAN=1 NESTED_PODMAN_STORE=tmpfs NESTED_PODMAN_TMPFS_SIZE=16g   # RAM store
+make shell NESTED_PODMAN=1                                                          # disk store (default)
+```
+
+`exampleRunClaude.sh` carries both lines, the RAM one commented out.
+
 **Test it — run Podman inside the container:**
 
 ```sh
-podman info --format '{{.Store.GraphDriverName}}'   # -> overlay (driven by fuse-overlayfs)
+podman info --format '{{.Store.GraphDriverName}} native-diff={{index .Store.GraphStatus "Native Overlay Diff"}}'   # -> overlay native-diff=true
 
-# full path — pull (networking) + unpack (fuse-overlayfs) + run, with a bind mount:
+# full path — pull (networking) + unpack (native overlay) + run, with a bind mount:
 podman run --rm -it --cgroups=disabled -v "$(pwd)":/workspace:Z ubuntu:latest bash
 ```
 
@@ -249,13 +261,11 @@ podman images --format '{{.Repository}}:{{.Tag}} R/O {{.ReadOnly}}'
 > podman is not using it. Rebuild the image (`make image`); the cause and fix are in
 > `tasks/reference/nested-podman-design.md` ("Which storage config the nested podman reads").
 
-> **Build large images on the host first.** Inside the sandbox every layer commit is slow: the inner
-> podman stores layers with `fuse-overlayfs`, which has no native overlay diff, so each commit walks
-> the whole image. On a big image (TeX Live, toolchains) a one-line `RUN` step took 4 minutes to
-> commit, and one commit ran over 40 minutes and looked like a hang. On the host a commit takes
-> seconds. So run
-> `make image` for the project on the host, then launch the sandbox; it reuses that image read-only.
-> No launch flag avoids this. Detail: `tasks/reference/nested-run-and-gates.md` ("Build big images on the host").
+> **Nested builds commit layers at native speed.** The inner podman uses the kernel's own overlay,
+> so a layer commit costs what it does on the host (13 s against 62 s under the old fuse-overlayfs
+> setup). If the shell prints `[nested podman] … no native overlay diff` at start, your sandbox
+> image predates that: rebuild it (`[HOST] make image`) and relaunch. Detail:
+> `tasks/reference/nested-run-and-gates.md` ("Storage speed").
 
 > **Note:** you must launch with `NESTED_PODMAN=1`. A plain `make shell` won't have
 > `/dev/fuse` or the capabilities, and `podman run` will fail. The `NESTED_PODMAN=1`
