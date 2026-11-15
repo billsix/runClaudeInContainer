@@ -1,39 +1,46 @@
-# Make the shared checkers fail loudly, and fix their own bugs
+# Made the shared checkers fail loudly, and fixed their own bugs
 
-**Status:** in progress
+**Status:** complete
+**Completed:** 2026-11-15
 **Priority:** 2
 **Difficulty:** 3
 **Created:** 2026-11-15 (William Emerison Six <billsix@gmail.com>)
 **Source:** tasks/review/2026/11/15/repo-review.md §4.1, §4.2, §5.1, §5.2, §5.3, §5.4, §6.1 F3 F8 F9
 
-## BLUF
+## What this did
 
-Three shared gates can pass while checking nothing, and two shared tools have bugs. Fix them in
-the canonical copies here and re-copy them byte-identically into runCrushInContainer. Done means
-each tool exits 2 on "nothing matched" and on setup errors, the listed bugs have doctests that
-would have caught them, and the tools pass ruff, ty and `check_local_annotations.py` on
-themselves.
+Three shared gates could pass while checking nothing, and two shared tools had bugs. All four
+canonical copies in `tasks/reference/` were fixed:
 
-## Context
+- `check_local_annotations.py`: `iter_py` raises `FileNotFoundError` on a missing path, and `main`
+  exits 2 on that or when no `.py` file matches (it exited 0). `display_path` prints a file outside
+  the repo root as given (it raised `ValueError`). Every binding is annotated, the functions have
+  Google docstrings, the two PERF402 loops use `extend`, the file is executable and
+  ruff-formatted, the docstring's usage and exit statuses are current, and the rule's origin is
+  cited by repo URL.
+- `c_designated_init_check.py`: exits 2 when a source path does not exist, `clang` is missing, the
+  compile database is missing or empty, or a translation unit cannot be parsed (it exited 0, or
+  aborted with a `CalledProcessError` traceback and exit 1). An unparseable file is reported on
+  stderr and the rest are still checked.
+- `c_dispatch_check.py`: exits 2 with a message when the compile database or `clang` is missing
+  (it exited 1 with a traceback).
+- `review_status.py`: `latest_record` only considers dated `<YYYY>/<MM>/<DD>/*.md` records;
+  `refs_for` gives each record only the § refs and IDs after its own path on a multi-record
+  Source line; the tier regex accepts multi-word tiers ("Nice to have").
 
-- `tasks/reference/check_local_annotations.py`: exits 0 on a missing path or when no `.py`
-  file matches (§5.1); fails its own annotate-every-binding rule, ruff (EXE001, PERF402) and
-  `ruff format` (§4.1); crashes with `ValueError` on a file outside the repo root (§4.2).
-- `tasks/reference/c_designated_init_check.py`: exits 0 when no translation unit matches; one
-  unparseable file raises `CalledProcessError` and exits 1, which reads as "sites found" (§5.2).
-- `tasks/reference/c_dispatch_check.py`: a missing `compile_commands.json` or `clang` exits 1 with
-  a traceback instead of 2 (§5.3).
-- `tasks/reference/review_status.py`: `latest_record` would pick `tasks/review/README.md`;
-  `citations` credits one record with another record's §refs; the tier regex misses multi-word
-  tiers (§5.4).
-- The vendored copies in downstream projects (spimulator, methodfinder, …) are re-copied by a
-  follow-up task, since they live in other repos.
+## Verification
 
-## Plan
+- ruff, `ruff format --check`, ty and `check_local_annotations.py --include-module` are clean on
+  all four; the new doctests (`iter_py`, `display_path`, `refs_for`) pass.
+- Scratch C tree: positional site → 1; nonexistent source → 2; missing database → 2 (both C
+  tools); an unparseable file next to a positional one → the site is listed and the exit is 2;
+  clean file → 0. `check_local_annotations.py` on a missing path and on an empty directory → 2.
+- Real trees still pass: spimulator `c_designated_init_check.py builddir src include` → 0,
+  `c_dispatch_check.py builddir src` → 0 (16 units, 0 flagged); methodfinder `src` → 0.
+- Scratch `tasks/review/` with a `README.md` and a "Nice to have" tier: the dated record is chosen
+  and the tier is parsed.
 
-1. Fix each tool; add doctests for each failure path.
-2. Run ruff, `ruff format --check`, ty, and `check_local_annotations.py --include-module` on all
-   four; exercise each fix on a scratch input.
-3. Re-copy all four into runCrushInContainer (`tasks/reference/` and the baked
-   `client/entrypoint/dotfiles/.config/crush/reference/` where present) in the runCrush batch.
-4. Scaffold the follow-up task for the downstream vendored copies.
+## Follow-ups
+
+- runCrushInContainer's mirrored copies: re-copied by that repo's batch.
+- Other repos' vendored copies: `tasks/recopy-shared-checkers-downstream.md`.
