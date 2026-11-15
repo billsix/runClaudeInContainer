@@ -999,6 +999,14 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/emacs-container-contract.md`** — read **before** creating or changing a
   project's vendored `.emacs.d` (or conforming a new project): the `init.el` order and LSP-root pin, the
   byte-identical `helm.el`/`preferences.el`, the package-list tiers, and the known drift.
+- **`~/.claude/reference/makefile-feature-flag-guards.md`** — read **before** adding or changing a run
+  target whose tool exists only when a build-time feature flag was on (`make docs`/`jupyter`/`lean`):
+  the preflight guard, flag-echo vs capability probe, and the autoconf comparison.
+- **`~/.claude/reference/shell-exec-and-container-template.md`** — read when adding or conforming a
+  project's `shell-exec` target, or standardizing a project's container template: the design and the
+  per-project variations the fleet rollout found.
+- **`~/.claude/reference/lean-proof-methodology.md`** — read **before** starting or extending a Lean 4 /
+  Mathlib formalization: coordinates first, then leaf constructs, and the other transferable lessons.
 - **`~/.claude/reference/code-style-conventions.md`** — read when reflowing comments, changing a
   line-length limit, handling an externally-defined name, naming a loop/iteration variable,
   extracting a function, deciding whether a local earns its name or a helper should be nested, or choosing total dispatch (the "use your discretion" 80-column worked
