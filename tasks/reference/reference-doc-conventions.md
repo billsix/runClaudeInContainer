@@ -250,6 +250,13 @@ doc updates here means the staging-time rule was missed — do the update, and t
    list them one line each with their `Blocked on:`, and remind me `/recheck-blocked` can test
    whether their gate cleared. **Don't run the network re-checks yourself** — just surface that
    they're there.
+8. **Trim the diversion stack** (`~/.claude/stack.md`) back to pointers: harvest any durable detail
+   into the relevant task or reference doc, then delete completed-work narration. Keep only the
+   active chain, owed git-state handoffs, and passive maintainer-waits (shared `CLAUDE.md`, "Ending
+   a session").
+9. **Review the session for token waste that would recur** (an unneeded fork or fan-out, reading
+   vendored or generated trees, a bloated always-loaded doc) and record the lesson where it belongs,
+   or say "nothing to add" (`token-and-context-economy.md`).
 
 Scope it to what the session actually touched — don't rewrite docs wholesale, and if nothing needs
 updating, say so briefly rather than inventing changes. (This is the same doc-reconciliation
