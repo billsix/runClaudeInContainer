@@ -31,12 +31,12 @@ fi
 if [ "$#" -eq 0 ] && [ -d /var/lib/shared-images/overlay-images ] && command -v podman >/dev/null; then
     stores=$(timeout 10 podman info --format '{{json .Store.GraphOptions.additionalImageStores}}' 2>/dev/null || true)
     case "$stores" in
-        *'"/var/lib/shared-images"'*) ;;
-        *)
-            printf '\n\033[33m[nested podman]\033[0m The host image store is mounted at /var/lib/shared-images,\n'
-            printf '  but podman is not using it (additional stores: %s).\n' "${stores:-unknown}"
-            printf '  Nested builds will not reuse host images. See ~/.claude/reference/nested-podman-design.md.\n\n'
-            ;;
+    *'"/var/lib/shared-images"'*) ;;
+    *)
+        printf '\n\033[33m[nested podman]\033[0m The host image store is mounted at /var/lib/shared-images,\n'
+        printf '  but podman is not using it (additional stores: %s).\n' "${stores:-unknown}"
+        printf '  Nested builds will not reuse host images. See ~/.claude/reference/nested-podman-design.md.\n\n'
+        ;;
     esac
 fi
 

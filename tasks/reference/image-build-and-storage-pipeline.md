@@ -19,7 +19,7 @@ store plus read-only reuse of the host store.
 ```
 [LEVEL 1 — HOST]  make image                          [LEVEL 2 — INSIDE THE SANDBOX]  podman build (nested)
   host rootless podman                                  inner rootful-in-userns podman
-  FROM fedora:45 → dnf → COPY → install                 FROM <base> → RUN … → COMMIT
+  FROM fedora:45 → dnf → install → COPY                 FROM <base> → RUN … → COMMIT
         │                                                     │  writable layers ↓        base images ↑ (read-only)
         ▼                                                     ▼                           │
   ~/.local/share/containers/storage   ◄────reused read-only────┐                          │
@@ -43,14 +43,16 @@ containers from inside that sandbox. The disk-dir + reuse machinery is **only** 
 1. `FROM registry.fedoraproject.org/fedora:45`.
 2. `RUN --mount=type=cache …; dnf upgrade -y` — the dnf cache is a **build-time cache mount**,
    discarded after the build (it is *not* a layer, not in the image).
-3. `COPY entrypoint/dotfiles/ /root/` — dotfiles, incl. `.config/containers/storage.conf`.
-4. `COPY entrypoint/dotfiles/.config/containers/storage.conf` to `/etc/containers/storage.conf` and
-   again to `/etc/containers/storage.conf.d/50-runclaude-nested.conf`. This is the *same* store
-   config: the drop-in copy is the one that survives containers-common's vendor drop-in (see
-   Level 2 (b)).
-5. `RUN /usr/local/bin/01-install-base.sh` — the ~460-package toolchain (a host-runnable script
+3. `RUN /usr/local/bin/01-install-base.sh` — the ~460-package toolchain (a host-runnable script
    the Dockerfile sources, not an inline `dnf install`).
-6. `RUN curl …/install.sh | bash` + `claude update` — install Claude Code.
+4. `RUN /usr/local/bin/01b-install-binary-tools.sh` — shfmt and procs from upstream binaries.
+5. `RUN curl …/install.sh | bash` + `claude update` — install Claude Code; then
+   `RUN /usr/local/bin/install-lean.sh` — Lean via elan.
+6. `COPY entrypoint/dotfiles/ /root/` — dotfiles, incl. `.config/containers/storage.conf` (the main
+   store config); then `storage.conf` again as `/etc/containers/storage.conf.d/50-runclaude-nested.conf`
+   (the copy that survives containers-common's vendor drop-in, see Level 2 (b)) and `containers.conf`
+   as `/etc/containers/containers.conf.d/50-runclaude-nested.conf`; then the `USE_EMACS_CONFIG`
+   opt-out. These come last because they change most often.
 7. `ENTRYPOINT ["/entrypoint.sh"]` (which just `exec bash`).
 
 **Where the layers go:** the finished image and all its layers are committed to the host's rootless

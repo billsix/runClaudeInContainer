@@ -33,7 +33,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 # shfmt: a single statically-linked binary published per platform.
 if curl -fsSL -o "$tmp/shfmt" \
-      "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"; then
+    "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64"; then
     install -m 0755 "$tmp/shfmt" /usr/local/bin/shfmt
     shfmt --version || status=1
 else
@@ -43,9 +43,9 @@ fi
 
 # procs: published as a zip containing a single `procs` binary.
 if curl -fsSL -o "$tmp/procs.zip" \
-      "https://github.com/dalance/procs/releases/download/${PROCS_VERSION}/procs-${PROCS_VERSION}-x86_64-linux.zip"; then
-    unzip -o -q "$tmp/procs.zip" -d "$tmp" && \
-        install -m 0755 "$tmp/procs" /usr/local/bin/procs && \
+    "https://github.com/dalance/procs/releases/download/${PROCS_VERSION}/procs-${PROCS_VERSION}-x86_64-linux.zip"; then
+    unzip -o -q "$tmp/procs.zip" -d "$tmp" &&
+        install -m 0755 "$tmp/procs" /usr/local/bin/procs &&
         procs --version || status=1
 else
     echo "01b-install-binary-tools: failed to fetch procs ${PROCS_VERSION}" >&2

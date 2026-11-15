@@ -92,6 +92,12 @@ NESTED_PODMAN_IMAGESTORE_MOUNT := $(shell if [ -n "$(NESTED_PODMAN_HOST_IMAGESTO
 # containerized make targets work nested with no hand-edits — and on a normal host, where
 # this env var is absent, they behave byte-identically. (A plain `make shell` exports
 # nothing, matching "nested not available".)
+# Flags for every `podman run` in this Makefile (never `podman build`, which rejects them): the
+# fleet's PODMAN_RUN_FLAGS convention. Keyed on /run/.containerenv, which podman creates inside
+# every container, not on NESTED_PODMAN: here NESTED_PODMAN=1 is the HOST launch flag, and a host
+# run must not get --cgroups=disabled. So only a `make` run inside a container (this sandbox
+# launching itself, nested) adds it. Override per invocation: `make shell PODMAN_RUN_FLAGS='...'`.
+PODMAN_RUN_FLAGS ?= $(if $(wildcard /run/.containerenv),--cgroups=disabled)
 NESTED_PODMAN_FLAGS := --device /dev/fuse \
                        --device /dev/net/tun \
                        --security-opt label=disable \
@@ -107,21 +113,21 @@ endif
 
 TMUX_FILE := $(HOME)/.tmux.conf
 TMUX_REAL_PATH := $(shell readlink -f $(TMUX_FILE))
-TMUX_MOUNT := $(shell if [ -f $(TMUX_REAL_PATH) ]; then echo "-v $(TMUX_REAL_PATH):/root/.tmux.conf:Z" ; fi)
+TMUX_MOUNT := $(shell if [ -f $(TMUX_REAL_PATH) ]; then echo "-v $(TMUX_REAL_PATH):/root/.tmux.conf:z" ; fi)
 
 GITCONFIG_FILE := $(HOME)/.gitconfig
 GITCONFIG_REAL_PATH := $(shell readlink -f $(GITCONFIG_FILE))
-GITCONFIG_MOUNT := $(shell if [ -f $(GITCONFIG_REAL_PATH) ]; then echo "-v $(GITCONFIG_REAL_PATH):/root/.gitconfig:Z" ; fi)
+GITCONFIG_MOUNT := $(shell if [ -f $(GITCONFIG_REAL_PATH) ]; then echo "-v $(GITCONFIG_REAL_PATH):/root/.gitconfig:z" ; fi)
 
 GNUPG_FILE := $(HOME)/.gnupg
 GNUPG_REAL_PATH := $(shell readlink -f $(GNUPG_FILE))
-GNUPG_MOUNT := $(shell if [ -d $(GNUPG_REAL_PATH) ]; then echo "-v $(GNUPG_REAL_PATH):/root/.gnupg:Z" ; fi)
+GNUPG_MOUNT := $(shell if [ -d $(GNUPG_REAL_PATH) ]; then echo "-v $(GNUPG_REAL_PATH):/root/.gnupg:z" ; fi)
 
 # Host ~/.vimrc shadows the baked entrypoint/dotfiles/.vimrc when present (2026-09-10); conditional
 # like tmux/gitconfig — a vim user without a dotfile gets the baked defaults, nothing breaks.
 VIMRC_FILE := $(HOME)/.vimrc
 VIMRC_REAL_PATH := $(shell readlink -f $(VIMRC_FILE))
-VIMRC_MOUNT := $(shell if [ -f $(VIMRC_REAL_PATH) ]; then echo "-v $(VIMRC_REAL_PATH):/root/.vimrc:Z" ; fi)
+VIMRC_MOUNT := $(shell if [ -f $(VIMRC_REAL_PATH) ]; then echo "-v $(VIMRC_REAL_PATH):/root/.vimrc:z" ; fi)
 
 CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # mkdir -p, not an existence check: if the host dir is missing, a conditional
@@ -136,7 +142,7 @@ CLAUDE_CONFIG_DIR := $(HOME)/.claude
 # same mounted dir, so it needs no separate -v; it only needs to EXIST so the
 # @-import never dangles on a fresh host. (\043 is printf's octal for '#', used so
 # no literal '#' appears in this Makefile line, which would start a make comment.)
-CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); [ -f $(CLAUDE_CONFIG_DIR)/stack.md ] || printf '\043 Work stack\n\nRead BOTTOM-up: the bottom of each descent names its root purpose. Empty for now.\n' > $(CLAUDE_CONFIG_DIR)/stack.md; echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:Z")
+CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); [ -f $(CLAUDE_CONFIG_DIR)/stack.md ] || printf '\043 Work stack\n\nRead BOTTOM-up: the bottom of each descent names its root purpose. Empty for now.\n' > $(CLAUDE_CONFIG_DIR)/stack.md; echo "-v $(CLAUDE_CONFIG_DIR):/root/.claude:z")
 
 # ~/.claude.json holds Claude Code's ONBOARDING / login-menu state
 # (hasCompletedOnboarding, oauthAccount, userID) — tracked SEPARATELY from the
@@ -150,7 +156,7 @@ CLAUDE_CONFIG_MOUNT := $(shell mkdir -p $(CLAUDE_CONFIG_DIR); [ -f $(CLAUDE_CONF
 # it so onboarding persists across runs: log in once, and the menu never returns.
 # touch/seed at parse time, like CLAUDE_CONFIG_MOUNT's mkdir -p; make runs on the host.
 CLAUDE_JSON_FILE := $(HOME)/.claude.json
-CLAUDE_JSON_MOUNT := $(shell [ -f $(CLAUDE_JSON_FILE) ] || echo '{}' > $(CLAUDE_JSON_FILE); echo "-v $(CLAUDE_JSON_FILE):/root/.claude.json:Z")
+CLAUDE_JSON_MOUNT := $(shell [ -f $(CLAUDE_JSON_FILE) ] || echo '{}' > $(CLAUDE_JSON_FILE); echo "-v $(CLAUDE_JSON_FILE):/root/.claude.json:z")
 
 # Repo-tracked Claude config (CLAUDE.md + slash commands + reference docs)
 # layered on top of the host's ~/.claude mount so edits flow back to git.
@@ -158,9 +164,9 @@ CLAUDE_JSON_MOUNT := $(shell [ -f $(CLAUDE_JSON_FILE) ] || echo '{}' > $(CLAUDE_
 # holds docs the mounted CLAUDE.md tells the agent to read (e.g. the overused-
 # words catalog, read at session start); mounting it keeps those pointers valid
 # in every session while the docs stay in their conventional tasks/reference home.
-CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claude/CLAUDE.md:Z \
-                         -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:Z \
-                         -v ./tasks/reference:/root/.claude/reference:Z
+CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claude/CLAUDE.md:z \
+                         -v ./entrypoint/dotfiles/.claude/commands:/root/.claude/commands:z \
+                         -v ./tasks/reference:/root/.claude/reference:z
 
 # Personal overlay. The tracked CLAUDE.md @-imports ~/.claude/ai-coding-conventions.personal.md; the repo
 # ships a BLANK ai-coding-conventions.personal.md as the baked default (so a bare `podman run` without this
@@ -173,7 +179,7 @@ CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claud
 # absent — exactly like CLAUDE_CONFIG_MOUNT's mkdir -p above; make runs on the host, so
 # this creates it there. The mount is unconditional: the @-import target must always exist.
 CLAUDE_PERSONAL_FILE := $(HOME)/.ai-coding-conventions.personal.md
-CLAUDE_PERSONAL_MOUNT := $(shell touch $(CLAUDE_PERSONAL_FILE); echo "-v $(CLAUDE_PERSONAL_FILE):/root/.claude/ai-coding-conventions.personal.md:Z")
+CLAUDE_PERSONAL_MOUNT := $(shell touch $(CLAUDE_PERSONAL_FILE); echo "-v $(CLAUDE_PERSONAL_FILE):/root/.claude/ai-coding-conventions.personal.md:z")
 
 # Optional non-interactive auth, passed THROUGH from the host env (never stored
 # in the repo). The ~/.claude mount above already persists your login across
@@ -192,8 +198,8 @@ CLAUDE_AUTH_ENV := $(shell \
 
 PROJECT_DIR ?= $(notdir $(CURDIR))
 
-FILES_TO_MOUNT = -v $(shell pwd):/$(PROJECT_DIR)/:Z \
-		-v ./entrypoint/entrypoint.sh:/entrypoint.sh:Z \
+FILES_TO_MOUNT = -v $(shell pwd):/$(PROJECT_DIR)/:z \
+		-v ./entrypoint/entrypoint.sh:/entrypoint.sh:z \
                 $(TMUX_MOUNT) \
                 $(GNUPG_MOUNT) \
                 $(GITCONFIG_MOUNT) \
@@ -248,7 +254,7 @@ image: ## Build the OCI image (USE_EMACS_CONFIG=0 for a clean box without the ve
 SHELL_RUN_FLAGS = \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
-		-v ./entrypoint/shell.sh:/shell.sh:Z \
+		-v ./entrypoint/shell.sh:/shell.sh:z \
 		$(EXTRA_PODMAN_FLAGS) \
 		$(EXTRA_MOUNTS) \
 		$(NESTED_PODMAN_FLAGS) \
@@ -294,10 +300,10 @@ shell: ## Get shell. Opts: NESTED_PODMAN=1 (podman-in-podman), NESTED_PODMAN_STO
 	      [ -e "$$STORE" ] && echo "== LEFTOVER: $$STORE" || echo "== clean"; \
 	    } 2>&1 | tee -a "$$LOG"' EXIT INT TERM HUP; \
 	fi; \
-	$(CONTAINER_CMD) run -it --rm $${STORE:+-v "$$STORE":/var/lib/containers:Z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
+	$(CONTAINER_CMD) run -it --rm $(PODMAN_RUN_FLAGS) $${STORE:+-v "$$STORE":/var/lib/containers:z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh
 
 .PHONY: shell-exec
-shell-exec: ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
+shell-exec: image ## Run a script/command in the container env (no TTY): make shell-exec SCRIPT=path | CMD='...'
 	@[ -n "$(SCRIPT)$(CMD)" ] || { echo 'usage: make shell-exec SCRIPT=<repo-relative path> | CMD="..."'; exit 2; }
 	@STORE=""; \
 	if [ "$(NESTED_PODMAN)" = "1" ] && [ "$(NESTED_PODMAN_STORE)" = "dir" ]; then \
@@ -309,11 +315,11 @@ shell-exec: ## Run a script/command in the container env (no TTY): make shell-ex
 	      [ -e "$$STORE" ] && echo "== LEFTOVER: $$STORE" || echo "== clean"; \
 	    } 2>&1 | tee -a "$$LOG"' EXIT INT TERM HUP; \
 	fi; \
-	$(CONTAINER_CMD) run --rm $${STORE:+-v "$$STORE":/var/lib/containers:Z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh $(SHELL_EXEC_ARGS)
+	$(CONTAINER_CMD) run --rm $(PODMAN_RUN_FLAGS) $${STORE:+-v "$$STORE":/var/lib/containers:z} $(SHELL_RUN_FLAGS) $(CONTAINER_NAME) /shell.sh $(SHELL_EXEC_ARGS)
 
 .PHONY: format
 format: image ## Format the repo's shell scripts in place with shfmt (fixes land on the host)
-	$(CONTAINER_CMD) run --rm \
+	$(CONTAINER_CMD) run --rm $(PODMAN_RUN_FLAGS) \
 		--entrypoint /bin/bash \
 		$(FILES_TO_MOUNT) \
 		$(CONTAINER_NAME) \

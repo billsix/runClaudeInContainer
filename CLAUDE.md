@@ -12,11 +12,13 @@ overlay). See `README.md` for the user-facing overview.
 
 ## What the pieces do
 
-- **`Dockerfile`** — Fedora 45 base, `dnf upgrade`, copies `entrypoint/dotfiles/`
-  into `/root/`, then runs **`entrypoint/01-install-base.sh`** (the ~460-package
-  toolchain — a host-runnable script the Dockerfile sources, not an inline
-  `dnf install`), then installs Claude Code via the official `install.sh`. Entrypoint is
-  `/entrypoint.sh`.
+- **`Dockerfile`** — least-volatile layers first: Fedora 45 base and `dnf upgrade`;
+  **`entrypoint/01-install-base.sh`** (the ~460-package toolchain — a host-runnable script
+  the Dockerfile sources, not an inline `dnf install`); `entrypoint/01b-install-binary-tools.sh`
+  (shfmt, procs); Claude Code via the official `install.sh`; Lean via
+  `entrypoint/install-lean.sh`; then the often-edited part: `entrypoint/dotfiles/` into `/root/`,
+  the nested podman's `storage.conf` / `containers.conf` drop-ins, and the `USE_EMACS_CONFIG`
+  opt-out. Entrypoint is `/entrypoint.sh`.
 - **`Makefile`** — the control surface. `make image` builds; `make shell` runs an
   ephemeral (`--rm`) container; **`make shell-exec SCRIPT=… | CMD=…`** is its batch
   twin (runs a script/command in the same env, no TTY). `shell` and `shell-exec`

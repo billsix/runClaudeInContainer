@@ -273,8 +273,10 @@ shows only images built inside the sandbox, and every nested build starts from s
 
 **Fix (2026-11-12):** each Dockerfile installs the same `storage.conf` a second time, as a drop-in
 named to sort after the vendor's: `/etc/containers/storage.conf.d/50-runclaude-nested.conf` here,
-`50-crush-nested.conf` in the runCrushInContainer client. The `/etc/containers/storage.conf` copy
-stays for an older podman without the vendor drop-in. `entrypoint/shell.sh` warns at interactive start
+`50-crush-nested.conf` in the runCrushInContainer client. The main file is the
+`~/.config/containers/storage.conf` the dotfiles COPY installs (`strace podman info` shows podman
+opening it and the drop-ins, never `/etc/containers/storage.conf`, so this repo no longer installs
+that copy). `entrypoint/shell.sh` warns at interactive start
 when `/var/lib/shared-images` is mounted but missing from
 `podman info --format '{{json .Store.GraphOptions.additionalImageStores}}'`, so the next silent
 override is visible.

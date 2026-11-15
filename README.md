@@ -91,15 +91,19 @@ conventions in `~/.ai-coding-conventions.personal.md` (copy the template from
 The build (`Dockerfile`):
 
 1. `FROM registry.fedoraproject.org/fedora:45`, then `dnf upgrade`.
-2. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the
-   tracked `.claude/` conventions).
-3. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
+2. Runs `entrypoint/01-install-base.sh` to `dnf install` the full toolchain
    (~460 packages). The package list lives in that script — host-runnable on its
    own (`sudo ./entrypoint/01-install-base.sh` on a bare Fedora box), not just at
    build time — while the dnf cache mounts (which keep rebuilds fast) stay in the
    `Dockerfile`.
-4. Installs Claude Code via `curl -fsSL https://claude.ai/install.sh | bash`.
-5. `ENTRYPOINT` is `/entrypoint.sh` (which just `exec bash`).
+3. Runs `entrypoint/01b-install-binary-tools.sh` (shfmt and procs, which Fedora 45 does
+   not package).
+4. Installs Claude Code via `curl -fsSL https://claude.ai/install.sh | bash`, then Lean via
+   `entrypoint/install-lean.sh`.
+5. Copies `entrypoint/dotfiles/` into `/root/` (bash prompt, Emacs config, the tracked
+   `.claude/` conventions) and the nested podman's storage and containers config. These change
+   most often, so they come last and an edit rebuilds only these layers.
+6. `ENTRYPOINT` is `/entrypoint.sh` (which just `exec bash`).
 
 The run (`make shell`) mounts, on top of the image:
 

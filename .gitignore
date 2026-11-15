@@ -3,7 +3,7 @@
 *.elc
 *.eln
 *~
-#*#
+\#*\#
 
 auto-save-list
 history
@@ -13,6 +13,7 @@ session.*
 # editor / tooling caches
 nano.*.save
 .ruff_cache/
+__pycache__/
 .virtual_documents/
 
 # exported OCI image tars (make image-export) — large, never commit
