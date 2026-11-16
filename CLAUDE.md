@@ -63,6 +63,17 @@ this repo holds the **canonical** copy, so edit it here and re-copy over every v
 **run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
 `/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too.
 
+**Where the vendored copies are (2026-11-16):**
+- `check_local_annotations.py`: github.com/billsix/modelviewprojection, github.com/billsix/methodfinder
+  and github.com/billsix/spimulator `tools/`; github.com/billsix/impo `openstax/tooling/tools/`.
+- `c_dispatch_check.py` and `c_designated_init_check.py`: spimulator `tools/`.
+- `update_dep_common.sh`: github.com/billsix/Craft `tools/`.
+
+Copies drift silently, since nothing compares them with the canonical. After editing a tool here,
+`git ls-files | grep <tool>` in each mounted repo, then `cmp` each hit against the canonical. The
+2026-11-16 re-copy found five stale copies this way:
+`tasks/archive/2026/11/16/recopy-check-local-annotations-to-vendored-copies.md`.
+
 **Auth persistence needs TWO host mounts**, because Claude Code splits its auth state:
 `~/.claude/.credentials.json` (OAuth tokens, covered by the `~/.claude` mount,
 `CLAUDE_CONFIG_MOUNT`) **and `~/.claude.json`** (onboarding state — a *sibling* of
