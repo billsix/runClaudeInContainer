@@ -25,8 +25,8 @@ each copy is byte-identical to the canonical and that repo's `make type-check` p
   stricter exit status is 0 for no findings, 1 for findings, and 2 when a given path is missing,
   nothing matches, or the check cannot run. The vendored copies predate that commit.
 - Found 2026-11-16 by modelviewprojection's dangling-path sweep. That sweep left mvp's copy alone
-  because it is vendored (modelviewprojection `tasks/repoint-dangling-task-doc-paths.md`, moving
-  to its `tasks/archive/2026/11/16/` once archived).
+  because it is vendored (github.com/billsix/modelviewprojection
+  `tasks/archive/2026/11/16/repoint-dangling-task-doc-paths.md`).
 
 ## The copies (snapshot 2026-11-16, `diff | wc -l` against the canonical)
 
