@@ -738,7 +738,9 @@ Most of my projects share one container-per-project template (Fedora + Podman
 ephemeral-container: a `Dockerfile`, a `Makefile` of `podman run --rm` targets, `entrypoint/`
 scripts). When a new project is mounted, use it as a **conformance reference** — flag accidental
 drift (stale copy-paste, wrong paths, missing targets); deliberate variation is fine. The
-tier-by-tier spec and per-project examples are personal (`ai-coding-conventions.personal.md`);
+tier-by-tier spec and per-project examples are personal: the overlay
+(`ai-coding-conventions.personal.md`) says when to read its read-on-demand half,
+`~/.claude/ai-coding-conventions.personal.template.md`;
 per-project specifics belong in that project's own `CLAUDE.md`.
 
 ## Running projects in a nested container
