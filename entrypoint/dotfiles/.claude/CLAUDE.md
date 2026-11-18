@@ -311,9 +311,10 @@ its keep on *structural* patterns; a `match` whose every case is a boolean guard
 transform-each, select, combine-with-a-running-value. Reach for the **most specific** one that
 fits (a 1:1 transform is a map, a selection is a filter, a fold/`reduce` is the last resort and
 the least specific), and hand-write recursion only when none fits. When you do recurse, let the
-shape **follow the data** — the nil/cons split (base case + recursive case), **head first** (handle
-`[head, *tail]`'s head, then recurse; if the tail seems to have to come first, reorder how the data is
-built before settling) — and do per-element work by **mapping over the tail**, not by threading a hand-rolled accumulator. Keep an
+shape **follow the data** — the nil/cons split (base case + recursive case), **head first when the
+data is in that order** (`[head, *tail]`; when the data's construction makes the last element the
+solvable one, as in back-substitution, tail-first is right; don't build the data reversed just to start
+at the head) — and do per-element work by **mapping over the tail**, not by threading a hand-rolled accumulator. Keep an
 accumulator only when genuinely needed (a true left-fold of state, or a tail/iterative form);
 then **name it `acc`/`accumulator`** and keep it accumulator-first — never flip the order between
 a helper's parameters and its reducer. This is language-agnostic (Lisp/Haskell-rooted; the
