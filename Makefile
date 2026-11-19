@@ -180,6 +180,10 @@ CLAUDE_DOTFILES_MOUNT := -v ./entrypoint/dotfiles/.claude/CLAUDE.md:/root/.claud
 # this creates it there. The mount is unconditional: the @-import target must always exist.
 CLAUDE_PERSONAL_FILE := $(HOME)/.ai-coding-conventions.personal.md
 CLAUDE_PERSONAL_MOUNT := $(shell touch $(CLAUDE_PERSONAL_FILE); echo "-v $(CLAUDE_PERSONAL_FILE):/root/.claude/ai-coding-conventions.personal.md:z")
+# The overlay's read-on-demand half (the container-template spec): not @-imported, so it costs no
+# context until a session reads it; the overlay names it. Same touch-then-mount shape as above.
+CLAUDE_PERSONAL_TEMPLATE_FILE := $(HOME)/.ai-coding-conventions.personal.template.md
+CLAUDE_PERSONAL_MOUNT += $(shell touch $(CLAUDE_PERSONAL_TEMPLATE_FILE); echo "-v $(CLAUDE_PERSONAL_TEMPLATE_FILE):/root/.claude/ai-coding-conventions.personal.template.md:z")
 
 # Optional non-interactive auth, passed THROUGH from the host env (never stored
 # in the repo). The ~/.claude mount above already persists your login across

@@ -22,7 +22,11 @@ swapping in your own personal layer — and pull upstream improvements without c
    identity, your project→URL mapping, and your mount
    layout. `make shell` mounts that file over `~/.claude/ai-coding-conventions.personal.md` (which the tracked
    `CLAUDE.md` `@`-imports), creating it empty if it doesn't exist yet. Leaving it empty
-   is fine — you just get the portable conventions with nothing added.
+   is fine — you just get the portable conventions with nothing added. Long material your
+   overlay only needs now and then (the maintainer's container-template spec) can go in
+   `~/.ai-coding-conventions.personal.template.md`, which `make shell` mounts beside it at
+   `~/.claude/ai-coding-conventions.personal.template.md`; it is not `@`-imported, so it costs
+   no context until your overlay tells the agent to read it.
 
 2. **Your dotfiles.** Replace `entrypoint/dotfiles/.extrabashrc` (prompt/aliases) with
    your own. The vendored `entrypoint/dotfiles/.emacs.d/` is the maintainer's Emacs
