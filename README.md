@@ -83,7 +83,9 @@ see [Building containers inside the sandbox](#building-containers-inside-the-san
 
 **Forking this for your own use?** See `FORKING.md`. In short: put your personal
 conventions in `~/.ai-coding-conventions.personal.md` (copy the template from
-`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`), swap the dotfiles, and build with
+`entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`), optionally put a
+read-on-demand project-template spec in `~/.ai-coding-conventions.personal.template.md`, swap the
+dotfiles, and build with
 `make image USE_EMACS_CONFIG=0` if you don't want the vendored Emacs config.
 
 ## How it works
@@ -124,6 +126,13 @@ The run (`make shell`) mounts, on top of the image:
   your own identity, project→URL mapping, and mount layout go, so the portable
   conventions stay maintainer-agnostic. See `FORKING.md` and
   `entrypoint/dotfiles/.claude/ai-coding-conventions.personal.example.md`.
+- Your **personal template spec** (optional): `make shell` mounts your host's
+  `~/.ai-coding-conventions.personal.template.md` at
+  `~/.claude/ai-coding-conventions.personal.template.md` (auto-created empty if absent). It is
+  not `@`-imported; the overlay tells the agent when to read it, so a long project-layout spec
+  costs tokens only when that topic comes up.
+  > Both files go directly in your **host** home directory, not in this repo; relaunch
+  > `make shell` after creating one.
 - X11 and Wayland sockets, so GUI programs (GTK Emacs, etc.) display on
   the host.
 
