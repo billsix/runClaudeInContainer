@@ -259,6 +259,7 @@ dnf install -y \
     mesa-dri-drivers \
     mesa-libEGL-devel \
     mesa-libGL-devel \
+    mesa-libGLU-devel \
     meson \
     mingw64-gcc \
     mold \
@@ -291,6 +292,8 @@ dnf install -y \
     oniguruma-devel \
     opam \
     openblas-devel \
+    openbox \
+    OpenEXR-devel \
     openldap-devel \
     openssh-clients \
     openssl-devel \
@@ -469,8 +472,10 @@ dnf install -y \
     xclip \
     xdg-desktop-portal-gtk \
     xdotool \
+    xdpyinfo \
     xmlstarlet \
     xorg-x11-server-Xvfb \
+    xwd \
     xz \
     xz-devel \
     yasm \
