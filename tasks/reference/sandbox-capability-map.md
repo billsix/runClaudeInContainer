@@ -104,7 +104,10 @@ Full client tooling (curl/wget/httpie/aria2, nmap, nmap-ncat (`nc`/`ncat`), tcpd
 iperf3, mtr, mosh, wireguard-tools, bind-utils) and local services for integration testing:
 postgresql, mariadb, redis, memcached, nginx, sqlite. `gh` for GitHub, git-lfs,
 mercurial, and **VCS-history tools** (`git-svn`, `cvs`, `cvsps`, `git-filter-repo` — added
-2026-09-22 to reconstruct an old project's history from SourceForge/CVS/GitHub). Networking
+2026-09-22 to reconstruct an old project's history from SourceForge/CVS/GitHub), and two tools built on `git-filter-repo`:
+`tools/copy_history_without_paths.sh SOURCE DEST PATH...` copies a repository's history into another with the given paths left out of
+every commit (the source is never touched), and `tools/verify_history_copy.py` proves the copy (tree equals the old tree minus the paths,
+authors, dates, parents, tags). Networking
 in *nested* containers: see
 `nested-podman-design.md` (bridged netavark works; `--network=host` fallback).
 
