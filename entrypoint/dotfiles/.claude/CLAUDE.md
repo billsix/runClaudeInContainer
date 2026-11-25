@@ -281,16 +281,17 @@ full detail: `~/.claude/reference/code-style-conventions.md`.
 ## What earns pulling code into its own function
 
 **Duplication, or naming a distinct phase — NOT reshaping control flow** (language-agnostic).
-Lift to shared/module scope when more than one caller needs it; nest it when it closes over the
-enclosing function's parameters and names a real phase; do **neither** when the helper would be
-used exactly once and only reshapes control flow or avoids mutating a local. Corollary: **raise
+Lift to shared/module scope when more than one caller needs it; nest it inside its caller when it
+has exactly one caller or closes over the enclosing function's parameters, and names a real phase
+(a helper with a doctest, or one another file imports, stays at module level); do **neither** when
+the helper would be used exactly once and only reshapes control flow or avoids mutating a local. Corollary: **raise
 the error from the code that discovers it.** Don't chase a shape for its own sake or churn
 existing early-return code — a cheap top-of-function guard is usually right. Cases + net-line
 counts: `~/.claude/reference/code-style-conventions.md`.
 
 **Names:** inline a binding used once (a comment above names the subexpression); two uses don't
 automatically earn a name (absorb them, e.g. `getattr(obj, name, fallback)`); declare at the point of use;
-nest a one-caller helper inside its caller, shadowing the caller's same-meaning names on purpose (and
+nest a one-caller helper inside its caller (mechanically: `~/.claude/reference/nest_one_caller.py`), shadowing the caller's same-meaning names on purpose (and
 verify the helper never needs the outer value); a nested function reads only names bound *before* it, and
 data computed later goes in as a parameter (in Python, bound with `functools.partial`). Detail: the same doc, "Names: inline what is used once".
 
