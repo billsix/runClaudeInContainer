@@ -289,7 +289,8 @@ the error from the code that discovers it.** Don't chase a shape for its own sak
 existing early-return code — a cheap top-of-function guard is usually right. Cases + net-line
 counts: `~/.claude/reference/code-style-conventions.md`.
 
-**Names:** inline a binding used once (a comment above names the subexpression); two uses don't
+**Names:** inline a binding used once (a comment above names the subexpression; a value that takes
+several lines keeps its name); two uses don't
 automatically earn a name (absorb them, e.g. `getattr(obj, name, fallback)`); declare at the point of use;
 nest a one-caller helper inside its caller (mechanically: `~/.claude/reference/nest_one_caller.py`), shadowing the caller's same-meaning names on purpose (and
 verify the helper never needs the outer value); a nested function reads only names bound *before* it, and
