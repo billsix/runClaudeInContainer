@@ -1,35 +1,43 @@
-# Apply the bash naming and scope rules to the container template's `entrypoint/*.sh`, once for the fleet
+# Applied the bash naming and scope rules to every project's `entrypoint/*.sh`, once for the fleet
 
-**Status:** proposed — needs go-ahead
-**Priority:** 7 (a readability sweep with no deadline)
-**Difficulty:** 4 (few distinct scripts, many copies; the work is keeping the copies in step)
-**Created:** 2026-11-25 (William Emerison Six <billsix@gmail.com>, asked whether the template's near-identical `entrypoint/*.sh` scripts should be surveyed once in this repository or per repository: "fleet wide").
-**Source:** github.com/billsix/towersofhanoi `tasks/archive/2026/11/25/apply-naming-and-scope-rules-per-language-across-repositories.md` ("Not decided", now decided).
+**Completed:** 2026-11-26
+**Created:** 2026-11-25 (William Emerison Six <billsix@gmail.com>, asked whether the template's `entrypoint/*.sh` scripts should be surveyed once in this repository or per repository: "fleet wide"). Go-ahead 2026-11-26.
+**Source:** github.com/billsix/towersofhanoi `tasks/archive/2026/11/25/apply-naming-and-scope-rules-per-language-across-repositories.md` ("Not decided").
 
-## BLUF
+## What was done
 
-Every project that follows the container-per-project template carries `entrypoint/*.sh` scripts (install scripts, `shell.sh`, `format.sh`, `lint.sh`, `entrypoint.sh`) that began as copies of one another. This task applies the bash rules ("Names and scope in bash" in `tasks/reference/shell-and-gate-scripts.md`) to them once: survey every repository's copies together, decide each change once, and make it in every copy. Done means the template scripts in every project repository are surveyed, changed or recorded as left alone, and each repository's own gate still passes; and each repository's `tasks/apply-naming-and-scope-rules-per-language.md` says its `entrypoint/` scripts are covered here.
+The bash rules ("Names and scope in bash" in `tasks/reference/shell-and-gate-scripts.md`) were applied to the 268 tracked `entrypoint/*.sh` scripts of 26 project repositories in one pass. Two scripts changed. Each repository's `tasks/apply-naming-and-scope-rules-per-language.md` (23 repositories have both that task and `entrypoint/` scripts) gained one line saying its `entrypoint/` scripts were covered here.
 
-## Context
+## Method
 
-**The rules** (this repository, `tasks/reference/shell-and-gate-scripts.md`, "Names and scope in bash"): inline a variable assigned once and used once, unless its command's failure must stop the script, or it is a regular expression, a table or a setting; `${VAR:-default}` and its relatives absorb a second use; assign at the point of use, with `local` on the first assignment inside a function; a helper is never nested (functions are global); declare every function variable `local`.
+`python3 tasks/reference/survey_names_and_scope.py --language bash` was run in each repository and its output filtered to paths matching `entrypoint/<name>.sh`. Upstream-only checkouts were skipped. The survey printed 20 leads; each was read.
 
-**The scripts.** List them with `ls /mnt/sda1/*/entrypoint/*.sh /mnt/sda1/*/*/entrypoint/*.sh` in the sandbox (the project checkouts sit side by side; skip upstream-only checkouts, whose remotes are all third-party). Group identical and near-identical files first (`md5sum`, then `diff` within a name), so that one decision covers a group. The template itself is described in the personal overlay's template document (`ai-coding-conventions.personal.template.md`, read on demand).
+## The 20 leads
 
-**The survey tool.** `python3 ~/.claude/reference/survey_names_and_scope.py --language bash`, run in each repository, lists variables named exactly twice in a script. In github.com/billsix/towersofhanoi and github.com/billsix/spimulator (done 2026-11-25) the `entrypoint/` scripts produced no leads that were real assignments, so expect few changes; the value of this task is confirming that across the fleet and fixing the handful that exist in every copy at once.
+| Lead | Where | Decision |
+|---|---|---|
+| `NBSRC` | github.com/billsix/epix-mirror `entrypoint/build_py.sh` | **Inlined** into the `g++` command; it was a plain string built from `NBDIR`, used once. |
+| `bn` | github.com/billsix/impo `openstax/tooling/entrypoint/pdf.sh` | **Absorbed**: `basename "$c" .collection.xml` strips the suffix itself, so the variable and the `${bn%…}` expansion went. |
+| `PYINC`, `NBINC`, `EXT` | epix-mirror `entrypoint/build_py.sh` | Kept: each is a command substitution whose failure must stop the script (`set -e` ignores one inside another command's arguments). |
+| `site` | github.com/billsix/geometricalgebra `entrypoint/install-epix-stubs.sh` | Kept, same reason. |
+| `DEV_DIMS` | geometricalgebra `entrypoint/shell.sh` | Kept: a named setting with a comment that explains its value. |
+| `site_base` | impo `openstax/tooling/entrypoint/html.sh` | Kept: a default the environment may override. |
+| `UPSTREAM` | imps `unixutils/ripgrep/entrypoint/warm-cargo-cache.sh` | Kept: a setting. |
+| `SHFMT_SHA256`, `PROCS_SHA256` (two repositories) | this repository and github.com/billsix/runCrushInContainer, `01b-install-binary-tools.sh` | Kept: pinned checksums in the block a reader edits. |
+| `_CONN`, `_ROUTER` | runCrushInContainer `client/entrypoint/03-build-crush.sh` | Kept: each is a path about 90 characters long, and inlined into its `grep` it would not fit on the line. |
+| `render_one`, `warm_one` | epix-mirror `entrypoint/examples.sh`, imps `android/fossify/entrypoint/warm-gradle-cache.sh` | Functions with one caller; a bash function is never nested. |
+| `PYTHONPATH=..`, `CC=clang CXX=clang++` (two lines) | github.com/billsix/methodfinder `entrypoint/test.sh`, github.com/billsix/spimulator `entrypoint/buildDebug.sh` | Not assignments: an environment prefix on a command. |
 
-**Each repository already has a task** `tasks/apply-naming-and-scope-rules-per-language.md` (proposed, written 2026-11-25) whose bash row counts its `entrypoint/` scripts. Those tasks keep their other shell scripts (tools, tests, gates); this task takes the template scripts out of them.
+## Found on the way
 
-**Gate scripts must keep their shape.** A `format.sh` or `lint.sh` runs every step and fails if any failed (`status=0; cmd || status=1; … exit $status`); do not restructure that. After editing a script, check its mode (`git ls-files -s`) and restore `+x` if a rewrite dropped it.
+The task expected groups of identical scripts, one decision per group. The scripts are not identical: `format.sh` and `shell.sh` have a different checksum in almost every repository (one pair matches). No lead recurred across repositories except the two checksum settings that this repository and runCrushInContainer share.
 
-## Plan
+## Verification
 
-- [ ] List and group the scripts across the project repositories.
-- [ ] Survey; read the leads once per group.
-- [ ] Apply each change to every copy in the group; stage by path in each repository.
-- [ ] In each repository's `tasks/apply-naming-and-scope-rules-per-language.md`, add one line saying the `entrypoint/` scripts were done here.
-- [ ] Run each touched repository's format gate, or record why it was not run.
+- `bash -n` and `shellcheck -S warning` pass on both changed scripts; both keep mode 100755.
+- `basename ../collections/foo.collection.xml .collection.xml` prints `foo`, the value the removed expansion produced.
+- Not run: `make py-ext` in epix-mirror and `make pdf` in impo, the targets that execute the two scripts. Neither repository's format gate reads shell scripts.
 
-## Open questions
+## Handoff
 
-None.
+The two script changes and the one-line notes are staged, not committed, in the other repositories, next to the task documents already staged there. In this repository and in runCrushInContainer the note is committed on a branch.
