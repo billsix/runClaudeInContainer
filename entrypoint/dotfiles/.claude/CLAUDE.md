@@ -295,9 +295,10 @@ nest a one-caller helper inside its caller (mechanically: `~/.claude/reference/n
 verify the helper never needs the outer value); a nested function reads only names bound *before* it, and
 data computed later goes in as a parameter (in Python, bound with `functools.partial`). Detail: the same doc, "Names: inline what is used once".
 **How to nest is per language** (each standard's "Locals and helpers" section): Rust a nested `fn`, or
-a closure when it captures a local; JavaScript a nested function; C++ a named function directly above
-its caller, not a lambda; bash never (functions are global; `shell-and-gate-scripts.md`, "Names and
-scope in bash").
+a closure when it captures a local; JavaScript a nested function; Haskell a `where` helper (no
+shadowing: `-Wall -Werror` rejects it); C++ a named function directly above its caller, not a lambda;
+C a `static` function directly above its caller; bash never (functions are global;
+`shell-and-gate-scripts.md`, "Names and scope in bash").
 
 ## Prefer total dispatch over an open-ended conditional chain
 
