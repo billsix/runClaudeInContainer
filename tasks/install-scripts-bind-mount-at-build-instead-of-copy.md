@@ -1,122 +1,75 @@
 # Research: must build-time install scripts be COPY'd into the image, or can they be bind-mounted during the build?
 
-**Status:** proposed — needs go-ahead
-**Priority:** 5
-**Difficulty:** 4 (the research; a "yes, mount them" verdict spawns a fleet rollout that is larger)
+**Status:** done 2026-11-26 — verdict: they can be mounted; contract, both sandbox Dockerfiles and the per-project tasks follow from it
 **Created:** 2026-11-26 (William Emerison Six <billsix@gmail.com>)
+**Touched:** this repo, github.com/billsix/runCrushInContainer, the personal overlay template in
+github.com/billsix/dotfiles, github.com/billsix/geometricalgebra (the trial), and one new task doc in
+each of 23 projects.
 
-**Touches:** this repo, github.com/billsix/runCrushInContainer, and the personal overlay template in
-github.com/billsix/dotfiles; under verdict (2) also one new task doc in each affected project.
+## What this did
 
-## BLUF
+Every project's `Dockerfile` did `COPY entrypoint/0N-install-*.sh /usr/local/bin/` and then ran the
+script. The question was whether that `COPY` is required, or whether the script can be supplied with
+`RUN --mount=type=bind` for the one `RUN` that needs it, the build-time twin of how `shell.sh` is
+bind-mounted at run time. The answer was measured, not argued: **the `COPY` is not required.**
 
-Every project's `Dockerfile` does `COPY entrypoint/0N-install-*.sh /usr/local/bin/` and then
-`RUN /usr/local/bin/0N-install-*.sh`. This task decides, by experiment, whether that `COPY` is required
-or whether the script can be supplied with `RUN --mount=type=bind` for the duration of the one `RUN`
-that needs it (the build-time twin of how `shell.sh` is bind-mounted into `/usr/local/bin` at run time).
-Done means one of two recorded verdicts: **(1) COPY is required**, with the measured reason written
-into the Dockerfile contract so the question is not reopened; or **(2) the scripts can be mounted**, in
-which case the contract and both sandbox repos are updated and one task per affected project exists.
+Everything durable is in `tasks/reference/build-time-bind-mounts-for-install-scripts.md` (the shape,
+every measurement, the SELinux and Docker tables, which files stay `COPY`).
 
-## Context
+## Findings, in the order they were established
 
-Read first:
+1. **podman 6.2.0, nested in the sandbox.** With one mount per script, an edited script re-ran its own
+   layer and no other; a whole-directory mount re-ran every layer on any edit; nothing was left in the
+   image; `.dockerignore` did not filter a mount source.
+2. **Trial on geometricalgebra.** 5 `COPY` instructions (12 scripts) became 12 mounts on 7 `RUN`s. A
+   default-flag `make image` built in 16 minutes and `make test` gave 1412 passed, 3 skipped.
+3. **SELinux, on the maintainer's enforcing host.** A plain mount of a `:Z`-labelled context passed,
+   as did `,z`, `,Z`, `--security-opt label=disable` and the old `COPY` shape. This had been the
+   expected obstacle: imps `n64/SuperMario64/Dockerfile` records a denial of this kind. It was not
+   reproduced.
+4. **Docker 29.9.3, same host.** The plain mount built and its cache keyed on the script's content.
+   Docker rejected `z` and `Z` (`invalid field`), so the rule is a plain mount with no relabel option.
 
-- **The contract.** The maintainer's personal overlay template, `.ai-coding-conventions.personal.template.md`
-  in github.com/billsix/dotfiles (mounted into the sandbox next to the overlay). Sections:
-  "Dockerfile contract" (the line "COPY the entrypoint scripts to `/usr/local/bin`"), "Host-agnostic
-  setup belongs in a script the Dockerfile sources" (why the install scripts exist and what stays in
-  the Dockerfile), "entrypoint contract" (`shell.sh` is bind-mounted, never baked), the `.dockerignore`
-  bullet, and "Quick conformance check for a new project". The sandbox copy and the dotfiles copy were
-  the same size but had different dates on 2026-11-26; diff them before editing and edit the canonical one.
-- **The two sandbox repos.** This repo's `Dockerfile` (three script COPYs: `01-install-base.sh`,
-  `01b-install-binary-tools.sh`, `install-lean.sh`) and `Makefile`; github.com/billsix/runCrushInContainer
-  `client/Dockerfile` (`00-install-minimal.sh`, `01-install-base.sh`, `01b-install-binary-tools.sh`,
-  `install-lean.sh`, `03-build-crush.sh`, `02-install-vendor-tools.sh`, plus `patches/` and
-  `entrypoint/vendor/`). Related docs here: `tasks/reference/image-build-and-storage-pipeline.md`,
-  `tasks/reference/shell-exec-and-container-template.md`, `tasks/reference/nested-run-and-gates.md`.
-- **Related open task:** `tasks/standardize-project-container-template.md` (the same contract, other
-  drift). A verdict here feeds its "Proposed standard".
+## What was changed
 
-Current state, surveyed 2026-11-26 (git-tracked `Dockerfile*`/`Containerfile*` under `/mnt/sda1`, 64
-files; 52 have a `COPY` line naming `entrypoint` or `install`). The pattern also matches COPYs that are
-not candidates (the `entrypoint/dotfiles/` tree, baked source), so each file needs reading:
+- **Contract** (dotfiles `.ai-coding-conventions.personal.template.md`, "Dockerfile contract", the
+  script section's "Keep in the Dockerfile" list, and the conformance check): build-only scripts get
+  one bind mount each, no relabel option, never a directory mount; `COPY` stays for what the running
+  container uses.
+- **runClaudeInContainer:** `Dockerfile` converted (3 scripts); image built nested in 42 minutes,
+  `make format` green. The reference doc is in the conventions' read-on-demand list
+  (`entrypoint/dotfiles/.claude/CLAUDE.md`) and named in `CLAUDE.md`.
+- **runCrushInContainer:** `client/Dockerfile` converted (6 scripts); image built nested in 18 minutes,
+  `make format` green; its `tasks/reference/container-file-layout.md` rows and `CLAUDE.md` updated; this
+  task mirrored into its `tasks/`.
+- **geometricalgebra:** `Dockerfile` converted (the trial), with its task
+  `tasks/install-scripts-bind-mount-at-build.md` in progress.
+- **23 projects:** `tasks/install-scripts-bind-mount-at-build.md`, `proposed — needs go-ahead`, each
+  listing that repo's candidate files per Dockerfile from the survey (113 build-only files in 24
+  repos; leads from a text match, to be read per project).
 
-| Repo (local directory) | Dockerfiles with such COPY lines |
-| --- | --- |
-| billsEmacsConfigs | 20 (one per language directory) |
-| hanoi | 4 (root, `cpp/`, `python/`, `rust/`) |
-| imps | 4 (`android/fossify`, `games/gzdoom/book`, `n64/SuperMario64/book`, `unixutils/ripgrep`) |
-| impo | 2 (`openstax/tooling`, `study/notebooks`) |
-| one each | CodeTheClassics, Craft, McNopperOpenGL, OpenGLSuperBibleV4Code, Programming3DComputerGraphics, apue, buildLineageOS, duckgamevst, epix-mirror, geometricalgebra, gltron, graphicalcontainer, methodfinder, multivariate-math, openglredbook9examples, runClaudeInContainer, runCrushInContainer (`client/`), sb7code, smalltalk, smc, spimulator, texExpToPng |
+## Decisions
 
-Skip upstream-only checkouts (no remote on a private-range host or `github.com/billsix/`): read them,
-but create no task in them.
+- **Per-file mounts only.** A directory mount keys every layer that uses it on every file in it.
+- **No relabel option**, because Docker refuses it and nothing needed it.
+- **Target path unchanged** (`/usr/local/bin/<script>`), so no `RUN` body changes.
+- **Build inputs** (`constraints.txt`, `requirements.txt`) may be mounted the same way when nothing
+  later needs them in the image; decided per project.
+- **runCrushInContainer does not carry a copy of the reference doc**; it cites runClaudeInContainer's
+  by URL.
 
-Two facts already in the tree that the research must account for:
+## Tools
 
-- **A build-time bind mount is already in use.** github.com/billsix/Programming3DComputerGraphics
-  `Dockerfile` mounts `constraints.txt` with `RUN --mount=type=bind,source=constraints.txt,target=/constraints.txt`.
-  The three imps N64 Dockerfiles (`n64/MajorasMask`, `n64/OcarinaOfTime`, `n64/SuperMario64`) mention it too.
-- **A recorded reason against it.** imps `n64/SuperMario64/Dockerfile`, in the comment above
-  `COPY libultraship/requirements.txt`, says it uses COPY on purpose: the `RUN` process is confined
-  (`container_t`) and reads a bind-mounted file with its on-disk SELinux label, so a checkout that the
-  sandbox has relabelled with `:Z` categories is denied on a host-side `podman build`; `COPY` is read by
-  buildah unconfined and works with any label. This is the strongest known candidate for verdict (1).
-  It has not been re-measured here: reproduce it before relying on it, and test whether a relabel
-  option on the mount (`z`, `relabel=shared`) or `--security-opt label=disable` on the build removes it.
+Promoted to runClaudeInContainer `tools/`: `survey_dockerfile_copies.py`,
+`convert_install_copy_to_bind_mount.py` (idempotent; used on all three converted Dockerfiles) and
+`check_build_bind_mount.sh` (the host check, podman or Docker). One-shot, in
+`tasks/adhoc/install-scripts-bind-mount-at-build-instead-of-copy/`: `write_project_tasks.py` and its
+input `data/copies.tsv` (removed when this task is archived).
 
-## Goal
+## Not verified
 
-A measured answer, per class of build-only file, to "COPY or bind mount", and the follow-through that
-answer implies.
-
-## Plan
-
-- [ ] **Classify every COPY** in the 64 Dockerfiles: (a) install/build script that runs once in a `RUN`
-      and is never used again; (b) build-only input (`constraints.txt`, `patches/`, vendored tarballs);
-      (c) file the running container uses (dotfiles, baked source, a fallback `shell.sh`, config);
-      (d) script that looks build-only but is called later (by another script, by an entrypoint, or
-      from a bare-host run of the image). Only (a) and (b) are candidates. Save the discovery command
-      and its output under `tasks/adhoc/install-scripts-bind-mount-at-build-instead-of-copy/`.
-- [ ] **Measure, with the sandbox's podman (6.2.0 on 2026-11-26), on a small throwaway Dockerfile:**
-  - [ ] **Cache invalidation — the crux.** Build, edit the mounted script, build again: does the `RUN`
-        re-run? If a mounted file's content is not part of the `RUN` layer's cache key, an edited
-        install script silently yields a stale image, and that alone gives verdict (1). Also check the
-        reverse: with one mount per script, an edit to script B must not re-run script A's layer (so
-        mounting the whole `entrypoint/` directory into every `RUN` is the wrong shape).
-  - [ ] **SELinux**, the imps case above: a host-side build of a checkout carrying sandbox `:Z` labels
-        (needs the maintainer, `[HOST]`), and a nested build in the sandbox.
-  - [ ] **`.dockerignore`:** is a mount source filtered by it, the way a COPY source is (gltron and
-        towersofhanoi exclude `entrypoint/` and re-include named files)?
-  - [ ] **Executable bit:** a mount keeps the host mode, so a 644 script needs `bash <script>`; pick one
-        invocation form for the contract.
-  - [ ] **Other builders:** which projects build in GitHub Actions or with Docker/BuildKit
-        (`rg -l "docker build|buildx|podman build" -g "*.yml"` per repo), and does the same Dockerfile
-        behave the same there?
-  - [ ] **What the image loses:** the scripts are no longer in `/usr/local/bin` of the built image.
-        Find anything that relies on them being there (an exported/airgap image, a `make` target, a doc).
-  - [ ] **What is gained**, in numbers: layers removed per image, rebuild behaviour, size.
-- [ ] **Write the verdict** into a reference doc in this repo (extend
-      `tasks/reference/image-build-and-storage-pipeline.md`, or a new one if it outgrows that).
-- [ ] **Verdict (1), COPY required:** add the measured reason to the contract's "Dockerfile contract"
-      section and a one-line pointer in both sandbox repos' docs. No project tasks.
-- [ ] **Verdict (2), mount them:** update the contract (the COPY line, the script section's "Keep in the
-      Dockerfile" list, the conformance check), convert this repo's `Dockerfile` and
-      runCrushInContainer's `client/Dockerfile` as the worked examples, run each one's image build and
-      gate, then create `tasks/install-scripts-bind-mount-at-build.md` in every affected project
-      (`proposed — needs go-ahead`, citing the reference doc and listing that project's COPY lines by
-      class). A mixed verdict (mount class (a), keep COPY for (b), or the reverse) is allowed; state it
-      per class.
-
-## Notes / decisions
-
-- The research and the rollout are separate go-aheads. Creating the per-project tasks is part of this
-  task under verdict (2); executing them is not.
-- Run-time delivery of `shell.sh` and `format.sh` (bind-mounted by the Makefile) is settled and out of
-  scope; it is the model the question is drawn from.
-
-## Open questions
-
-None blocking. The plan treats build-only inputs (`constraints.txt`, `patches/`) as in scope alongside
-the install scripts, reported per class.
+- A host `make image` of geometricalgebra with the converted Dockerfile (the maintainer started one
+  on 2026-11-26; the host check's context was under `/tmp`).
+- geometricalgebra's first GitHub Actions run after the change.
+- The imps denial, on the imps Dockerfile itself.
+- runCrushInContainer's `tools/check_launchers.sh` and a launcher session against the rebuilt client.

@@ -14,7 +14,9 @@ overlay). See `README.md` for the user-facing overview.
 
 - **`Dockerfile`** — least-volatile layers first: Fedora 45 base and `dnf upgrade`;
   **`entrypoint/01-install-base.sh`** (the ~460-package toolchain — a host-runnable script
-  the Dockerfile sources, not an inline `dnf install`); `entrypoint/01b-install-binary-tools.sh`
+  the Dockerfile runs, not an inline `dnf install`; each install script is bind-mounted into its
+  `RUN`, never `COPY`'d: `tasks/reference/build-time-bind-mounts-for-install-scripts.md`);
+  `entrypoint/01b-install-binary-tools.sh`
   (shfmt, procs); Claude Code via the official `install.sh`; Lean via
   `entrypoint/install-lean.sh`; then the often-edited part: `entrypoint/dotfiles/` into `/root/`,
   the nested podman's `storage.conf` / `containers.conf` drop-ins, and the `USE_EMACS_CONFIG`
@@ -34,7 +36,11 @@ overlay). See `README.md` for the user-facing overview.
   (prompt, `GPG_TTY`, `ls` alias), `.emacs.d/`, and `.claude/`.
 - **`exampleRunClaude.sh`** — a saved `make shell` invocation with `NESTED_PODMAN=1`
   and `EXTRA_PODMAN_FLAGS` populated.
-- **`tools/`** — repo tools, not copied into the image. `check_helm_file_at_point.{sh,el}` is an ERT
+- **`tools/`** — repo tools, not copied into the image. Three serve the build-time bind-mount rule
+  (`tasks/reference/build-time-bind-mounts-for-install-scripts.md`): `survey_dockerfile_copies.py`
+  (classifies every `COPY` in the given repos), `convert_install_copy_to_bind_mount.py` (rewrites a
+  Dockerfile's install-script `COPY`s as per-script mounts) and `check_build_bind_mount.sh` (`[HOST]`;
+  SELinux, relabel-option and cache checks for podman or Docker). `check_helm_file_at_point.{sh,el}` is an ERT
   check that a vendored `.emacs.d`'s `C-x C-f` prefills a repo-root-relative doc path from any depth
   (`bash tools/check_helm_file_at_point.sh <.emacs.d>`; needs that config's `elpa/`). runCrushInContainer
   mirrors it byte-identically. The contract it checks: `tasks/reference/emacs-container-contract.md`.
