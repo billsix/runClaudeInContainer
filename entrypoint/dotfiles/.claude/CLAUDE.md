@@ -708,6 +708,28 @@ mechanics: `~/.claude/reference/diversion-stack-and-scope.md`.
   (citing task in `tasks/`) or untracked, derived from the tasks' `**Source:**` lines by
   `~/.claude/reference/review_status.py`. Read-only; the record stays frozen.
 
+## External source outlines — the outline in a data file, coverage derived
+
+When a project draws on a book it does not own (a textbook whose topics the project's own book
+answers), keep that source's outline in **`tasks/sources/<key>.toml`**: one entry per chapter,
+lesson or topic, with the source's number and page, the topic in the project's own words, and my
+decision (`want` / `skip` with a reason / `undecided`). **Never write coverage into the outline or
+a reference doc; it is derived.** A product file tags what it covers with a comment,
+`covers: <key>/<entry id>`, written when the page is written; a task names its entries on its
+`**Source:**` line. `/source-coverage [key]` (`~/.claude/reference/source_coverage.py`, a report,
+not a gate) then prints each entry as covered, planned, skipped or not addressed.
+
+- **Entry IDs are short names, not the source's numbers, and never change** once written; numbers
+  and pages are fields, corrected in place.
+- **The outline grows a few entries at a time.** A partial outline is valid. When I ask to add to
+  one, write only what I gave (page `page_verified` only if I read it from my copy), run the report
+  for the new entries, stage the file.
+- **Commit titles, numbers, pages and own-words summaries only**: never a source's definitions,
+  exercises, examples or figures, and no scans or verbatim notes in git.
+
+Full rules, the file format, the copyright sources and the tool:
+`~/.claude/reference/external-source-outlines.md`.
+
 ## Open-issues sections in project docs
 
 An "open/known issues" list in a `CLAUDE.md` or `README` holds only **genuinely open** items —
@@ -1043,6 +1065,10 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/bluf-bottom-line-up-front.md`** — read when writing a task's `## BLUF`.
 - **`~/.claude/reference/repo-review-conventions.md`** — read **before** running `/audit-repo deep`,
   or when a repo's `tasks/review/` record is the subject (its dimensions, method, layout, lifecycle).
+- **`~/.claude/reference/external-source-outlines.md`** — read **before** creating or adding to a
+  `tasks/sources/*.toml` outline of an external book, tagging a page with `covers:`, citing such a
+  source, or answering "which of its topics have I not covered?" (the file format, permanent entry
+  IDs, what may be committed, the `source_coverage.py` report).
 - **`~/.claude/reference/token-and-context-economy.md`** — read **before** spawning a subagent/fork or a
   parallel fan-out, or before reading large / vendored / generated files; the rules for not burning tokens
   (the everyday essence is inline above under "Token & context economy").
