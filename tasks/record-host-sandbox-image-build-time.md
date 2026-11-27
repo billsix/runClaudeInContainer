@@ -12,6 +12,13 @@
 
 The 2026-11-15 hygiene reorder changed the package layer's parent, so the first host rebuild re-ran that layer. No host timing has been recorded; the only full-build figure is the nested one (29m46s on a native store). Done means one host `make image` time is written into `tasks/reference/nested-run-and-gates.md` ("Storage speed") next to the nested figure. Optional: it informs expectations only, and nothing depends on it.
 
+## Note (2026-11-27)
+
+The next `[HOST] make image` is also the first host build of the `Dockerfile` that bind-mounts its
+three install scripts (`tasks/reference/build-time-bind-mounts-for-install-scripts.md`). Every layer
+from the base install down rebuilds, so the time reported is a full-build time (it took 42 minutes
+nested). Check `ls /usr/local/bin` in the new sandbox shows no install script.
+
 ## Context
 
 - The nested build time is in `tasks/archive/2026/11/15/nested-native-overlay.md` ("Verification").
