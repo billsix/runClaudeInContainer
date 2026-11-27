@@ -67,7 +67,9 @@ Each carries a `SHARED, VENDORED TOOL` banner and is **copied into downstream pr
 this repo holds the **canonical** copy, so edit it here and re-copy over every vendored copy
 (runCrush mirrors all four byte-identically). `review_status.py` is another shared tool, but it is
 **run in place** (`python3 ~/.claude/reference/review_status.py`, by `/review-status` and
-`/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too. So are
+`/audit-repo deep`), not copied into projects; runCrush mirrors it byte-identically too. So is
+`source_coverage.py` (by `/source-coverage`: which entries of a `tasks/sources/<key>.toml` outline
+a project's pages tag and its tasks cite; `tasks/reference/external-source-outlines.md`). So are
 `nest_one_caller.py` (nests a Python helper that has one caller) and `survey_names_and_scope.py`
 (lists leads for the naming and scope rules in Rust, C++, C, Haskell, bash and JavaScript; the rules
 are each language standard's "Locals and helpers" section).
