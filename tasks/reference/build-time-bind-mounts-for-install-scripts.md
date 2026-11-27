@@ -95,8 +95,9 @@ checkout on a different filesystem path, so re-test there before converting it.
 
 The check is `tools/check_build_bind_mount.sh`
 (`[HOST] bash check_build_bind_mount.sh`; pass `docker` as its argument to test Docker where installed).
-Its context lives under `/tmp`; a real repo on the data disk is confirmed by a host `make image` of a
-converted project.
+Its context lives under `/tmp`. For a real repo on the data disk, carrying the labels its own `:Z`
+mounts leave, the maintainer's host `make image` of the converted geometricalgebra built all 31 steps
+(2026-11-27, podman, SELinux enforcing).
 
 ## Which files are candidates
 
