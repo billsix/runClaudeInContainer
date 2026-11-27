@@ -1,12 +1,12 @@
 # A convention for holding an external book's outline, citing it, and tracking which of its topics a project has covered
 
-**Status:** done 2026-11-27 — staged; the archive move is owed after the work commit
+**Status:** done 2026-11-27
 **Priority:** 4
 **Difficulty:** 5
 **Created:** 2026-11-27 (William Emerison Six <billsix@gmail.com>)
 **Touched:** this repo; github.com/billsix/runCrushInContainer (its mirror task of the same name);
 github.com/billsix/geometricalgebra (the first user, its
-`tasks/external-source-outline-pearson-geometry.md`).
+`tasks/archive/2026/11/27/external-source-outline-pearson-geometry.md`).
 **Related:** `tasks/review-record-shows-dispositions.md` (the same derived-status problem, for review
 records); github.com/billsix/impo `tasks/research-illustrative-mathematics-geometry-build.md`
 (deferred by the maintainer).
@@ -107,6 +107,30 @@ Run in geometricalgebra on its first outline (127 entries, eight tagged book pag
 task): 30 covered, 2 planned, 95 not addressed, no problem lines; `--status planned`,
 `--unverified-pages` (31 rows) and `--cite` gave the expected output. The slash command was not
 run through a fresh session.
+
+## Order of events (2026-11-27, from the commit history before it was squashed)
+
+1. The maintainer showed a table of contents he had typed from his copy of the textbook and asked
+   whether a reference doc was the right home for it. The investigation above followed, and the
+   task was added as *proposed* with the proposal, three alternatives (a reference doc with a
+   hand-kept column, a layered set's status board, reusing `review_status.py`) and five open
+   questions. A mirror task was added in runCrushInContainer and a research task in impo.
+2. He answered all five with the agent's recommendations and asked whether the design allowed for
+   adding to an outline over time. It did only in passing, so the growth rules were written into
+   the task before anything was built: a partial outline is valid, an ID never changes, each entry
+   records when it was added, one small request adds an entry.
+3. The tool, the reference doc, the command and the conventions section were written, in that
+   order, then geometricalgebra's first outline, then the runCrushInContainer mirror. Two things
+   changed while writing the first outline: IDs became names instead of lesson numbers (the
+   numbers turned out to come from a curriculum map, not the book), and the directory became
+   `tasks/sources/`. A first draft of the tool tracked tags of unknown sources in a variable that
+   could never be non-empty; it was removed before the first run.
+4. The maintainer then asked for a task to outline Illustrative Mathematics' course in
+   geometricalgebra and chose its newest edition whatever the licence; that task records what the
+   non-commercial licence means for quoting.
+5. Archive and session-end sweep: `tasks/sources/` was added to the list of directories that get
+   a `.keep` (`tasks/reference/task-doc-conventions.md`), and the reference doc's pointer to this
+   record was fixed.
 
 ## Left open
 
