@@ -64,7 +64,7 @@ Promoted to runClaudeInContainer `tools/`: `survey_dockerfile_copies.py`,
 `convert_install_copy_to_bind_mount.py` (idempotent; used on all three converted Dockerfiles) and
 `check_build_bind_mount.sh` (the host check, podman or Docker). One-shot, in
 `tasks/adhoc/install-scripts-bind-mount-at-build-instead-of-copy/`: `write_project_tasks.py` and its
-input `data/copies.tsv` (removed when this task is archived).
+input `data/copies.tsv` (removed when this task was archived).
 
 ## Not verified
 

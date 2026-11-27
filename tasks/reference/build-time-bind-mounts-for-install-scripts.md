@@ -3,7 +3,7 @@
 **Reference document.** What is known about supplying a build-only script to the one `RUN` that
 needs it with a bind mount, instead of copying it into the image first. Measured 2026-11-26 with
 podman 6.2.0 / buildah 1.46.1 nested in the sandbox (William Emerison Six <billsix@gmail.com>). The
-research task is `tasks/install-scripts-bind-mount-at-build-instead-of-copy.md`.
+research task is `tasks/archive/2026/11/27/install-scripts-bind-mount-at-build-instead-of-copy.md`.
 
 ## Verdict
 
