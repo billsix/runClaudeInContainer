@@ -9,17 +9,21 @@ RUN --mount=type=cache,target=/var/cache/libdnf5 \
 # toolchain can be installed on a bare Fedora host/guest (no container runtime), not
 # only during this build. The dnf cache mount + keepcache stay in the Dockerfile (build
 # plumbing); `dnf upgrade` ran in the earlier layer above; the script is purely install.
-COPY entrypoint/01-install-base.sh /usr/local/bin/
-
-RUN --mount=type=cache,target=/var/cache/libdnf5 \
+#
+# Each install script is bind-mounted into the one RUN that executes it: the script's
+# content is part of that layer's cache key, and no copy of it stays in the image. One
+# mount per script, with no relabel option. See
+# tasks/reference/build-time-bind-mounts-for-install-scripts.md.
+RUN --mount=type=bind,source=entrypoint/01-install-base.sh,target=/usr/local/bin/01-install-base.sh \
+    --mount=type=cache,target=/var/cache/libdnf5 \
     --mount=type=cache,target=/var/lib/dnf \
     /usr/local/bin/01-install-base.sh && \
     echo "source ~/.extrabashrc" >> ~/.bashrc
 
 # shfmt and procs were dnf packages under Fedora 44 but were dropped in Fedora 45;
 # install them from upstream release binaries (own layer, own host-runnable script).
-COPY entrypoint/01b-install-binary-tools.sh /usr/local/bin/
-RUN /usr/local/bin/01b-install-binary-tools.sh
+RUN --mount=type=bind,source=entrypoint/01b-install-binary-tools.sh,target=/usr/local/bin/01b-install-binary-tools.sh \
+    /usr/local/bin/01b-install-binary-tools.sh
 
 
 RUN echo 'export PATH=~/.local/bin:$PATH' >> ~/.bashrc
@@ -33,8 +37,8 @@ RUN PATH="$HOME/.local/bin:$PATH" claude update
 
 # Lean 4 (theorem prover) via elan — host-runnable script, curl-installed like Claude
 # Code above; bakes the stable toolchain so an exported image has Lean offline.
-COPY entrypoint/install-lean.sh /usr/local/bin/
-RUN /usr/local/bin/install-lean.sh
+RUN --mount=type=bind,source=entrypoint/install-lean.sh,target=/usr/local/bin/install-lean.sh \
+    /usr/local/bin/install-lean.sh
 ENV PATH="/root/.elan/bin:${PATH}"
 
 # The dotfiles, the nested-podman config and the Emacs-config opt-out change more often than the

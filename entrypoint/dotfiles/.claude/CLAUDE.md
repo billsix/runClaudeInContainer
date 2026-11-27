@@ -981,6 +981,9 @@ then split the long single-CLAUDE.md rationale into the per-topic docs below):
 - **`~/.claude/reference/emacs-container-contract.md`** — read **before** creating or changing a
   project's vendored `.emacs.d` (or conforming a new project): the `init.el` order and LSP-root pin, the
   byte-identical `helm.el`/`preferences.el`, the package-list tiers, and the known drift.
+- **`~/.claude/reference/build-time-bind-mounts-for-install-scripts.md`** — read **before** adding or
+  changing how a `Dockerfile` brings in an install or build script (`RUN --mount=type=bind` per script,
+  not `COPY`): the measured cache behaviour, the SELinux result, and which files stay `COPY`.
 - **`~/.claude/reference/makefile-feature-flag-guards.md`** — read **before** adding or changing a run
   target whose tool exists only when a build-time feature flag was on (`make docs`/`jupyter`/`lean`):
   the preflight guard, flag-echo vs capability probe, and the autoconf comparison.
