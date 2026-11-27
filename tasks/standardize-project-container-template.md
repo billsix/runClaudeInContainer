@@ -33,6 +33,13 @@ runCrushInContainer** — the same standard should land in both meta-repos' cont
 | `shell.sh` mode | 755 vs 644 |
 | outliers | `graphicalcontainer`: no `shell.sh`, no repo mount, `shell` runs `bash` directly |
 
+## Related, settled 2026-11-27: install scripts are bind-mounted at build
+
+The contract now says a build-only install script is bind-mounted into the `RUN` that executes it,
+not `COPY`'d (github.com/billsix/runClaudeInContainer
+`tasks/reference/build-time-bind-mounts-for-install-scripts.md`). Each project has its own
+`tasks/install-scripts-bind-mount-at-build.md`; that item is not part of the list below.
+
 ## Proposed standard (to encode in the contract doc — confirm each)
 
 1. **One `shell.sh` mount path.** Pick `/usr/local/bin/shell.sh` (the majority) and always **bind-mount**
